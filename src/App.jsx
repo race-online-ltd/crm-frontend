@@ -65,7 +65,6 @@ const App = () => {
           <Route path='/' element={<PublicRoutes />}>
             <Route path='/' element={<Login />} />
             <Route path='*' element={<Error />} />
-            {/* <Route path="/roles/:id" element={<RoleShow />} /> */}
           </Route>
 
           <Route path='/admin/*' element={<PrivateRoutes />}>
@@ -134,11 +133,6 @@ const App = () => {
               path='settings/dashboart-tab-mappings'
               element={<DashboardMapping />}
             />
-
-            {/* <Route path="settings/state-configs" element={<StateConfigList />} />
-          <Route path="settings/state-configs/create" element={<StateConfigForm />} />
-          <Route path="settings/state-configs/:id" element={<StateConfigManager />} />
-          <Route path="settings/state-configs/edit/:id" element={<StateConfigForm />} /> */}
 
             <Route path='settings/svguploader' element={<SvgUploader />} />
             <Route path='settings/svgpreviewer' element={<SvgPreview />} />

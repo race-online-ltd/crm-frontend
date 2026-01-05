@@ -10,7 +10,7 @@ import "./assets/styles/index.css";
 import "./assets/styles/App.css";
 import "./assets/styles/control-switch.css";
 
-import App from "./App";
+import App from "./App.jsx";
 
 import reportWebVitals from "./reportWebVitals";
 import { UserProvider } from "./context/UserProvider";

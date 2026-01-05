@@ -43,22 +43,10 @@ export const sidebarMenu = [
             title: 'Users',
             path: '/admin/users',
           },
-          // {
-          //   title: "Register",
-          //   path: "/admin/settings/userregister",
-          // },
           {
             title: 'Role List',
             path: '/admin/roles',
           },
-          // {
-          //   title: "Create Role",
-          //   path: "/admin/roles/create",
-          // },
-          // {
-          //   title: "Permissions",
-          //   path: "/admin/permissions",
-          // },
         ],
       },
       {

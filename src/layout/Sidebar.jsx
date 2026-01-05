@@ -3,7 +3,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.svg";
-import { sidebarMenu } from "../static-data/data";
+import { sidebarMenu } from "../static-data/data.jsx";
 import { userContext } from "../context/UserContext";
 
 const Sidebar = ({ collapsed, isMobile }) => {
