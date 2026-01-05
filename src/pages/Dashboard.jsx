@@ -1913,6 +1913,13 @@ const Dashboard = () => {
     }
   }, [incommingMQTTData, dataCenterId, stateConfig]);
 
+  useEffect(() => {
+  setLiveSensorData(null);
+  setLiveSomkeAndWaterSensorData(null);
+  localStorage.removeItem('liveSensorData');
+  localStorage.removeItem('liveSomkeAndWaterSensorData');
+}, [dataCenterId]);
+
 
   const tabContentMap = {
     1: <SLD data={diagramContent} live={liveSLDSensorData?.sensor_types?.[0]} />,
@@ -1931,20 +1938,20 @@ const Dashboard = () => {
       <div className="card">
         <div className="card-header flex-column justify-content-between align-items-center">
           <div className="d-flex  justify-content-between align-items-center"></div>
-          <ul className="nav nav-tabs card-header-tabs">
+          <div className="dashboard-tabs">
             {tabList?.map((tab) => (
-              <li className="nav-item" key={tab.id}>
-                <button
-                  className={`nav-link text-secondary rounded-bottom-0 fw-bold ${
-                    activeTab === tab.id ? 'active' : ''
-                  }`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.name}
-                </button>
-              </li>
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`tab-item ${activeTab === tab.id ? 'tab-active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="tab-text">{tab.name}</span>
+                <span className="tab-indicator" aria-hidden />
+              </button>
             ))}
-          </ul>
+          </div>
         </div>
 
         <div className="card-body">

@@ -41,10 +41,30 @@ export const SLD = ({ data, live }) => {
     setIsModalOpen(false);
   };
 
+  useEffect(() => {
+  // 🔴 RESET EVERYTHING WHEN DATACENTER CHANGES
+
+  // Clear SVG DOM
+  if (containerRef.current) {
+    containerRef.current.innerHTML = '';
+  }
+
+  // Clear previous sensor states
+  prevSensorStatesRef.current = new Map();
+
+  // Clear detected paths
+  circlePaths.current = [];
+
+  // Reset modal state
+  setIsModalOpen(false);
+  setSelectedPathId(null);
+
+}, [dataCenterId]);
+
   // 1️⃣ Inject SVG + detect clickable paths
   useEffect(() => {
     if (!data?.svg_content || !containerRef.current) return;
-
+    containerRef.current.innerHTML = '';
     containerRef.current.innerHTML = data.svg_content;
 
     const paths = containerRef.current.querySelectorAll('svg path');
