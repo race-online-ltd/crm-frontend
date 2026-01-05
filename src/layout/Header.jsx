@@ -1,7 +1,8 @@
+
 // import React, { useState, useEffect, useRef, useContext } from "react";
 // import { useDispatch, useSelector } from "react-redux";
-// import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
-// import { RiArrowRightWideFill, RiArrowLeftWideFill } from "react-icons/ri";
+// // Updated: Switched RiArrow icons to FaAngle icons for a cleaner look
+// import { FaUserCircle, FaBars, FaTimes, FaAngleLeft, FaAngleRight } from "react-icons/fa"; 
 // import { useFormik } from "formik";
 // import * as Yup from "yup";
 
@@ -26,7 +27,7 @@
 //   const dispatch = useDispatch();
 //   const dataCenterOptions = useSelector((state) => state.dashboard.options);
 //   const { user } = useContext(userContext);
-// const[dropdown,setDropdown]=useState(false);
+//   const[dropdown,setDropdown]=useState(false);
 //   const [defaultDataCenter, setDefaultDataCenter] = useState("");
 //   const [selectedDataCenter, setSelectedDefaultDataCenter] = useState(null);
 
@@ -62,14 +63,15 @@
 
 //   const handleChangePassword = () => {
 //     console.log("Change Password clicked");
+//     // TODO: Implement actual password change logic/navigation
 //   };
 
 //   const formik = useFormik({
 //     initialValues: {
-//       color: "",
+//       dropdownFilter: "", // Changed 'color' to 'dropdownFilter' to match usage
 //     },
 //     validationSchema: Yup.object({
-//       color: Yup.string().required("Color is required!"),
+//       dropdownFilter: Yup.string().required("Data center is required!"),
 //     }),
 //     onSubmit: (values) => {
 //       console.log("Form Submitted:", values);
@@ -86,7 +88,7 @@
 //         dispatch(setDataCenterOptions(options));
 //       })
 //       .catch(errorMessage);
-//   }, [dispatch]);
+//   }, [dispatch, user?.id]); // Added user?.id to dependency array
 
 //   useEffect(() => {
 //     if (selectedDataCenter != null) {
@@ -96,7 +98,7 @@
 //         })
 //         .catch(errorMessage);
 //     }
-//   }, [selectedDataCenter]);
+//   }, [selectedDataCenter, dispatch]); // Added dispatch to dependency array
 
 //   return (
 //     <header
@@ -108,10 +110,11 @@
 //         {/* Left: Sidebar toggle + DC name */}
 //         <div className="d-flex align-items-center gap-3">
 //           <button onClick={toggleSidebar} className="sidebar-toggle">
+//             {/* REDESIGN: Using FaAngle icons for a nicer, sleeker look */}
 //             {isSidebarCollapsed ? (
-//               <RiArrowRightWideFill className="text-dark fw-bolder" />
+//               <FaAngleRight size={24} className="text-dark" />
 //             ) : (
-//               <RiArrowLeftWideFill className="text-dark fw-bolder" />
+//               <FaAngleLeft size={24} className="text-dark" />
 //             )}
 //           </button>
 //           <h6 className="text-dark mb-0">{defaultDataCenter}</h6>
@@ -145,62 +148,31 @@
 //         </div>
 
 //         {/* Right: User */}
-//         {/* <div className="d-flex align-items-center">
-//           <div className="dropdown">
-//             <button
-//               className="btn btn-transparent border-0"
-//               type="button"
-//               data-bs-toggle="dropdown"
-//               aria-expanded="false"
-//             >
-//               <FaUserCircle size={30} className="text-success" />
-//             </button>
-//             <ul className="dropdown-menu pt-0">
-//               <li className="bg-secondary text-white text-center py-2">
-//                 {username}
-//               </li>
-//               <li>
-//                 <button className="dropdown-item" type="button">
-//                   Change Password
-//                 </button>
-//               </li>
-//               <li>
-//                 <button
-//                   className="dropdown-item"
-//                   type="button"
-//                   onClick={handleLogout}
-//                 >
-//                   Logout
-//                 </button>
-//               </li>
-//             </ul>
-//           </div>
-//         </div> */}
-// <div className="dropdown">
-//   <button
-//   onClick={()=>setDropdown(!dropdown)}
-//     id="userDropdown"
-//     className="btn btn-transparent border-0"
-//     type="button"
-    
-//   >
-//     <FaUserCircle size={30} className="text-success" />
-//   </button>
-// {dropdown && (<ul className="dropdown-menu d-block pt-0">
-//     <li className="bg-secondary text-white text-center py-2">
-//       {username}
-//     </li>
-//     <li>
-//       <button className="dropdown-item">Change Password</button>
-//     </li>
-//     <li>
-//       <button className="dropdown-item" onClick={handleLogout}>
-//         Logout
-//       </button>
-//     </li>
-//   </ul>)}
-  
-// </div>
+//         <div className="dropdown">
+//           <button
+//             onClick={()=>setDropdown(!dropdown)}
+//             id="userDropdown"
+//             className="btn btn-transparent border-0"
+//             type="button"
+//           >
+//             <FaUserCircle size={30} className="text-success" />
+//           </button>
+//           {dropdown && (<ul className="dropdown-menu d-block pt-0">
+//             <li className="bg-secondary text-white text-center py-2">
+//               {username}
+//             </li>
+//             <li>
+//               <button className="dropdown-item" onClick={handleChangePassword}>
+//                 Change Password
+//               </button>
+//             </li>
+//             <li>
+//               <button className="dropdown-item" onClick={handleLogout}>
+//                 Logout
+//               </button>
+//             </li>
+//           </ul>)}
+//         </div>
 
 
 //       </div>
@@ -209,9 +181,11 @@
 // };
 
 // export default Header;
+
+
+
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { useDispatch, useSelector } from "react-redux";
-// Updated: Switched RiArrow icons to FaAngle icons for a cleaner look
 import { FaUserCircle, FaBars, FaTimes, FaAngleLeft, FaAngleRight } from "react-icons/fa"; 
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -225,19 +199,19 @@ import {
   fetchDataCenter,
   getTabDataCenters,
   getUserDataCenters,
+  fetchSensorRealTimeValueByDataCenter,
 } from "../api/settings/dataCenterApi";
 import { setDataCenterOptions } from "../redux/features/dashboard/dataCenterSlice";
 import { userContext } from "../context/UserContext";
 import { setTabList } from "../redux/features/dashboard/tabListSlice";
 import { setUpdatedDataCenter } from "../redux/features/dashboard/updatedDataCenterSlice";
 
-
 const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const dataCenterOptions = useSelector((state) => state.dashboard.options);
   const { user } = useContext(userContext);
-  const[dropdown,setDropdown]=useState(false);
+  const [dropdown, setDropdown] = useState(false);
   const [defaultDataCenter, setDefaultDataCenter] = useState("");
   const [selectedDataCenter, setSelectedDefaultDataCenter] = useState(null);
 
@@ -245,40 +219,38 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
     if (dataCenterOptions?.length > 0) {
       setDefaultDataCenter(dataCenterOptions?.[0]?.label);
       setSelectedDefaultDataCenter(dataCenterOptions?.[0]?.value);
-       dispatch(setUpdatedDataCenter(dataCenterOptions?.[0]?.value));
+      dispatch(setUpdatedDataCenter(dataCenterOptions?.[0]?.value));
     }
   }, [dataCenterOptions]);
 
-const handleLogout = () => {
-        const token = localStorage.getItem("access_token");
+  const handleLogout = () => {
+    const token = localStorage.getItem("access_token");
 
-        logoutUser(
-            {},
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        )
-            .then(() => {
-                localStorage.clear();
-                navigate("/");
-            })
-            .catch((error) => {
-                console.error("Logout error:", error);
-                localStorage.clear();
-                navigate("/");
-            });
-    };
+    logoutUser(
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+      .then(() => {
+        localStorage.clear();
+        navigate("/");
+      })
+      .catch(() => {
+        localStorage.clear();
+        navigate("/");
+      });
+  };
 
   const handleChangePassword = () => {
     console.log("Change Password clicked");
-    // TODO: Implement actual password change logic/navigation
   };
 
   const formik = useFormik({
     initialValues: {
-      dropdownFilter: "", // Changed 'color' to 'dropdownFilter' to match usage
+      dropdownFilter: "",
     },
     validationSchema: Yup.object({
       dropdownFilter: Yup.string().required("Data center is required!"),
@@ -298,7 +270,7 @@ const handleLogout = () => {
         dispatch(setDataCenterOptions(options));
       })
       .catch(errorMessage);
-  }, [dispatch, user?.id]); // Added user?.id to dependency array
+  }, [dispatch, user?.id]);
 
   useEffect(() => {
     if (selectedDataCenter != null) {
@@ -308,7 +280,18 @@ const handleLogout = () => {
         })
         .catch(errorMessage);
     }
-  }, [selectedDataCenter, dispatch]); // Added dispatch to dependency array
+  }, [selectedDataCenter, dispatch]);
+
+  /* ✅ NEW: Sensor Real-Time API call (ID passed exactly like getTabDataCenters) */
+  useEffect(() => {
+    if (selectedDataCenter != null) {
+      fetchSensorRealTimeValueByDataCenter(selectedDataCenter)
+        .then((res) => {
+          console.log("Sensor Real-Time Values:", res.data);
+        })
+        .catch(errorMessage);
+    }
+  }, [selectedDataCenter]);
 
   return (
     <header
@@ -317,10 +300,8 @@ const handleLogout = () => {
       }`}
     >
       <div className="d-flex align-items-center justify-content-between w-100 h-100">
-        {/* Left: Sidebar toggle + DC name */}
         <div className="d-flex align-items-center gap-3">
           <button onClick={toggleSidebar} className="sidebar-toggle">
-            {/* REDESIGN: Using FaAngle icons for a nicer, sleeker look */}
             {isSidebarCollapsed ? (
               <FaAngleRight size={24} className="text-dark" />
             ) : (
@@ -330,12 +311,8 @@ const handleLogout = () => {
           <h6 className="text-dark mb-0">{defaultDataCenter}</h6>
         </div>
 
-        {/* Center: Form */}
         <div className="flex-grow-1 d-flex justify-content-center align-items-center mt-3">
-          <form
-            onSubmit={formik.handleSubmit}
-            className="d-flex align-items-center"
-          >
+          <form onSubmit={formik.handleSubmit} className="d-flex align-items-center">
             <DynamicSelectField
               label=""
               name="dropdownFilter"
@@ -357,34 +334,32 @@ const handleLogout = () => {
           </form>
         </div>
 
-        {/* Right: User */}
         <div className="dropdown">
           <button
-            onClick={()=>setDropdown(!dropdown)}
-            id="userDropdown"
+            onClick={() => setDropdown(!dropdown)}
             className="btn btn-transparent border-0"
             type="button"
           >
             <FaUserCircle size={30} className="text-success" />
           </button>
-          {dropdown && (<ul className="dropdown-menu d-block pt-0">
-            <li className="bg-secondary text-white text-center py-2">
-              {username}
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={handleChangePassword}>
-                Change Password
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={handleLogout}>
-                Logout
-              </button>
-            </li>
-          </ul>)}
+          {dropdown && (
+            <ul className="dropdown-menu d-block pt-0">
+              <li className="bg-secondary text-white text-center py-2">
+                {username}
+              </li>
+              <li>
+                <button className="dropdown-item" onClick={handleChangePassword}>
+                  Change Password
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item" onClick={handleLogout}>
+                  Logout
+                </button>
+              </li>
+            </ul>
+          )}
         </div>
-
-
       </div>
     </header>
   );

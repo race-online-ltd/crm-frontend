@@ -23,9 +23,13 @@ const Modal = ({ show, onClose, title, children, onSave }) => {
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
-              <button type="button" className="btn btn-primary" onClick={onSave}>
-                Acknowledge
-              </button>
+              <button
+    type="submit"
+    form="acknowledgeForm"
+    className="btn btn-primary"
+  >
+    Acknowledge
+  </button>
             </div>
           </div>
         </div>

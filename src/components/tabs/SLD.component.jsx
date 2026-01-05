@@ -1,158 +1,323 @@
-// import React, { useRef, useEffect } from 'react';
-
-// export const SLD = ({ data, live }) => {
-//   const circlePaths = useRef([]);
-
-//   useEffect(() => {
-//     if (!data?.svg_content) return;
-//     const paths = document.querySelectorAll('.svg-container svg path');
-//     const found = [];
-//     paths.forEach((path) => {
-//       const d = path.getAttribute('d');
-//       const id = path.getAttribute('id');
-//       const isCircleLike = /c 0,100\.239\d*/.test(d) && d.includes('181.5');
-//       if (isCircleLike && id) {
-//         found.push(id);
-//       }
-//     });
-//     circlePaths.current = found;
-//   }, [data]);
-
-//   useEffect(() => {
-//     if (!live?.sensors || !data?.svg_content) return;
-
-//     const applyStyles = () => {
-//       circlePaths?.current.forEach((targetId) => {
-//         const sensor = live?.sensors.find((item) => item.id === targetId);
-//         if (sensor) {
-//           const el = document.getElementById(sensor.id);
-//           if (el) {
-//             if (sensor.val === 1) {
-//               el.style.fill = 'green';
-//             } else if (sensor.val === 2) {
-//               el.style.fill = 'red';
-//             } else {
-//               el.style.fill = 'blue';
-//             }
-//           } else {
-//             el.style.fill = 'gray';
-//           }
-//         }
-//       });
-//     };
-//     setTimeout(applyStyles, 100);
-//   }, [live]);
-
-//   useEffect(() => {
-//     if (!data?.svg_content) return;
-
-//     circlePaths.current.forEach((id) => {
-//       const el = document.getElementById(id);
-//       if (el) el.classList.add('clickable-path');
-//     });
-//   }, [data?.svg_content]);
-
-//   // 2️⃣ Add click listener
-//   useEffect(() => {
-//     const handleClick = (e) => {
-//       const id = e.target.id;
-//       console.log('Clicked path:', id);
-//       alert(`You clicked ${id}`);
-//     };
-
-//     const elements = document.querySelectorAll('.svg-container path.clickable-path');
-//     elements.forEach((el) => el.addEventListener('click', handleClick));
-
-//     return () => {
-//       elements.forEach((el) => el.removeEventListener('click', handleClick));
-//     };
-//   }, [data?.svg_content]);
-
-//   console.log(circlePaths.current);
-//   console.log('svg', data?.svg_content);
-//   return <div className="svg-container" dangerouslySetInnerHTML={{ __html: data?.svg_content }} />;
-// };
-
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState,useContext } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 import Modal from '../shared/Modal';
+import { userContext } from '../../context/UserContext';
+import { acknowledgeAlarmStore } from '../../api/alarmApi';
+import { errorMessage, successMessage } from '../../api/api-config/apiResponseMessage';
+import {fetchSensorRealTimeValueByDataCenter} from '../../api/settings/dataCenterApi';
+import { fetchStateConfig } from '../../api/dashboardTabApi';
+import { useSelector } from 'react-redux';
+
+
+const acknowledgeSchema = Yup.object({
+  sensorId: Yup.number()
+    .required('Sensor ID missing'),
+
+  alarmValue: Yup.number()
+    .required('Alarm value missing'),
+
+  userId: Yup.number()
+    .required('User not found'),
+
+  message: Yup.string()
+    .trim()
+    .required('Message is required')
+});
+
 
 export const SLD = ({ data, live }) => {
+  const { user } = useContext(userContext);
+  const prevSensorStatesRef = useRef(new Map());
   const containerRef = useRef(null);
   const circlePaths = useRef([]);
+  const formikRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState(null);
+  const dataCenterId = useSelector((state) => state.updatedDataCenter.dataCenter);
 
   const handleSave = () => {
     console.log('Data saved!');
     setIsModalOpen(false);
   };
 
-  // 1️⃣ Inject SVG into container + detect circle-like paths
+  // 1️⃣ Inject SVG + detect clickable paths
   useEffect(() => {
     if (!data?.svg_content || !containerRef.current) return;
 
     containerRef.current.innerHTML = data.svg_content;
 
-    // detect paths after SVG is injected
     const paths = containerRef.current.querySelectorAll('svg path');
     const found = [];
+
     paths.forEach((path) => {
       const d = path.getAttribute('d');
       const id = path.getAttribute('id');
-      // example detection logic for circle-like paths
+
       const isCircleLike = /c 0,100\.239\d*/.test(d) && d.includes('181.5');
+
       if (isCircleLike && id) {
         found.push(id);
 
-        // make path clickable
         path.classList.add('clickable-path');
-        path.onclick = null; // remove previous listener
-        path.addEventListener('click', () => {
-          // 2️⃣ Add click listener
-          console.log(`Clicked path: ${id}`);
+        path.style.cursor = 'pointer';
+
+        // use `onclick` so this default handler can be replaced by sensor-specific handlers
+        path.onclick = () => {
           setIsModalOpen(true);
           setSelectedPathId(id);
+          // clear sensor-specific form fields for generic paths
+          if (formikRef.current) {
+            formikRef.current.setFieldValue('sensorId', '');
+            formikRef.current.setFieldValue('alarmValue', '');
+          }
+        };
+      }
+    });
+
+    circlePaths.current = found;
+  }, [data?.svg_content]);
+
+// Fetch initial realtime sensor values and apply colors based on state config
+useEffect(() => {
+  if (!dataCenterId || !data?.svg_content || !containerRef.current) return;
+
+  let cancelled = false;
+
+  const applyInitialValues = async () => {
+    try {
+      const [stateRes, realtimeRes] = await Promise.all([
+        fetchStateConfig(dataCenterId),
+        fetchSensorRealTimeValueByDataCenter(dataCenterId),
+      ]);
+
+      if (cancelled) return;
+
+      const stateConfig = stateRes || [];
+      const realtime = realtimeRes?.data || [];
+
+      if (!stateConfig.length || !realtime.length) return;
+
+      const svg = containerRef.current.querySelector('svg');
+      if (!svg) return;
+
+      // Build a map sensor_id -> states (path, valStr, color)
+      const localSensorMap = new Map();
+      stateConfig.forEach((cfg) => {
+        const sid = String(cfg.sensor_id);
+        if (!localSensorMap.has(sid)) {
+          localSensorMap.set(sid, []);
+        }
+        localSensorMap.get(sid).push({
+          path: cfg.path,
+          valStr: String(cfg.state_value),
+          color: cfg.color,
         });
+      });
+
+      // Only consider DI sensors (sensor_type === 3) from realtime API
+      realtime
+        .filter((s) => Number(s.sensor_type) === 3)
+        .forEach((s) => {
+          const sensorId = String(s.sensor_id ?? s.id); // normalize to string
+          const valStr = String(s.value ?? s.val);
+          if (!localSensorMap.has(sensorId)) return;
+
+          const states = localSensorMap.get(sensorId);
+          // find matching state by string comparison
+          const matched = states.find((st) => st.valStr === valStr);
+          if (!matched) return;
+
+          const pathEl = svg.getElementById(matched.path);
+          if (!pathEl) return;
+
+          // apply color
+          pathEl.style.fill = matched.color || '#ccc';
+
+          // blink if val === '0'
+          if (valStr === '0') pathEl.classList.add('sld-blink');
+          else pathEl.classList.remove('sld-blink');
+
+          // store prev state so live updates compare correctly (store strings)
+          prevSensorStatesRef.current.set(sensorId, {
+            pathId: matched.path,
+            val: valStr,
+            color: matched.color,
+          });
+
+          // Ensure clicking this path opens modal and populates the form with sensor info
+          try {
+            const handlerPathEl = svg.getElementById(matched.path);
+            if (handlerPathEl) {
+              handlerPathEl.onclick = () => {
+                setIsModalOpen(true);
+                setSelectedPathId(matched.path);
+                if (formikRef.current) {
+                  formikRef.current.setFieldValue('sensorId', Number(sensorId));
+                  const numVal = Number(valStr);
+                  formikRef.current.setFieldValue('alarmValue', Number.isNaN(numVal) ? valStr : numVal);
+                }
+              };
+            }
+          } catch (e) {
+            // ignore
+          }
+        });
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  applyInitialValues();
+
+  return () => {
+    cancelled = true;
+  };
+}, [dataCenterId, data?.svg_content]);
+
+useEffect(() => {
+  if (!live?.sensors?.length || !containerRef.current) return;
+
+  const svg = containerRef.current.querySelector('svg');
+  if (!svg) return;
+
+  live.sensors.forEach(sensor => {
+    if (!sensor.state?.length) return;
+
+    // ✅ current active state
+    const activeState = sensor.state.find(s => s.is_active);
+    if (!activeState) return;
+
+    // Get previous state for this sensor
+    const prevState = prevSensorStatesRef.current.get(String(sensor.id));
+    
+    // Check if this sensor's state actually changed (compare string values)
+    const hasChanged = !prevState ||
+               prevState.pathId !== activeState.path ||
+               String(prevState.val) !== String(activeState.val) ||
+               prevState.color !== activeState.color;
+
+    // Skip update if nothing changed for this sensor
+    if (!hasChanged) return;
+
+    const pathEl = svg.getElementById(activeState.path);
+    if (!pathEl) return;
+
+    // Apply color (no reset)
+    pathEl.style.fill = activeState.color || '#ccc';
+
+    // BLINK if val === 0
+    if (activeState.val === 0) {
+      pathEl.classList.add('sld-blink');
+    } else {
+      pathEl.classList.remove('sld-blink');
+    }
+
+    // click handler
+    pathEl.onclick = () => {
+      setIsModalOpen(true);
+      setSelectedPathId(activeState.path);
+
+      if (formikRef.current) {
+        formikRef.current.setFieldValue('sensorId', sensor.id);
+        formikRef.current.setFieldValue('alarmValue', activeState.val);
       }
+    };
+
+    // Store current state for next comparison (store val as string)
+    prevSensorStatesRef.current.set(String(sensor.id), {
+      pathId: activeState.path,
+      val: String(activeState.val),
+      color: activeState.color,
+    });
+  });
+}, [live]);
+
+
+
+
+
+   const formik = useFormik({
+      initialValues: {
+        sensorId: '',
+        alarmValue: '',
+        userId: user?.id || '',
+        message: '',
+      },
+      validationSchema: acknowledgeSchema,
+      onSubmit: (values, { resetForm }) => {
+        acknowledgeAlarmStore(values)
+        .then((res) => {
+          successMessage(res);
+          setIsModalOpen(false);
+          formik.resetForm();
+        })
+        .catch(errorMessage);
+      },
     });
 
-    circlePaths.current = found; // store IDs for reference
-  }, [data?.svg_content, live]);
+  // Store formik in ref so it's accessible in useEffect
+  formikRef.current = formik;
 
-  // 2️⃣ Update color based on live sensor data
-  useEffect(() => {
-    if (!live || !containerRef.current) return;
-
-    live.sensors?.forEach((sensor) => {
-      const pathEl = containerRef.current.querySelector(`#${sensor.id}`);
-      if (pathEl && sensor.color) {
-        pathEl.style.fill = sensor.color;
-      }
-    });
-  }, [live]);
+  console.log('data---:',formik.values, formik.errors);
 
   return (
     <div className="relative min-h-screen">
       {/* SVG Container */}
       <div ref={containerRef} className="svg-container w-full overflow-auto" />
+
       <Modal
         show={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         title={selectedPathId}
       >
-        <form>
+
+        <form id="acknowledgeForm" onSubmit={formik.handleSubmit}>
+          <div className="mb-3">
+                 <h6>
+                    Checked by{' '}
+                    <span className="text-success fw-bold">
+                      {user?.username
+                        ? user.username.charAt(0).toUpperCase() + user.username.slice(1)
+                        : ''}
+                    </span>
+                  </h6>   
+          </div>
           <div className="form-floating">
-            <textarea
+            {/* <textarea
               className="form-control"
-              placeholder="Leave a comment here"
+              placeholder="Message here"
               id="floatingTextarea"
+              name="message"
+              value={formik.values.message}
+              onChange={formik.handleChange}
               style={{ height: '100px' }}
-            ></textarea>
-            <label htmlFor="floatingTextarea">Comments</label>
+            /> */}
+            <textarea
+              className={`form-control ${
+                formik.touched.message && formik.errors.message ? 'is-invalid' : ''
+              }`}
+              placeholder="Message here"
+              id="floatingTextarea"
+              name="message"
+              value={formik.values.message}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              style={{ height: '100px' }}
+            />
+
+            {formik.touched.message && formik.errors.message && (
+              <div className="invalid-feedback">
+                {formik.errors.message}
+              </div>
+            )}
+
+            <label htmlFor="floatingTextarea">Message</label>
           </div>
         </form>
       </Modal>
     </div>
   );
 };
+
