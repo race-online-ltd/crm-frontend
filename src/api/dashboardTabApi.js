@@ -38,26 +38,35 @@ export const fetchExistingMappings = async (dataCenterId) => {
     }
   };
 
-export const fetchSensorThreshold = async (dataCenterId) => {
+export const fetchSensorThreshold = async (dataCenterIds) => {
     try {
-      const response = await apiClient.get(`/thresholds/by-data-center/${dataCenterId}`);
+      const ids = Array.isArray(dataCenterIds)
+      ? dataCenterIds.join(",")
+      : dataCenterIds;
+      const response = await apiClient.get(`/thresholds/by-data-center/${ids}`);
       return response.data;
     } catch (error) {
       throw error;
     }
   };
 
-  export const fetchSensorType = async (dataCenterId) => {
+  export const fetchSensorType = async (dataCenterIds) => {
     try {
-      const response = await apiClient.get(`/sensor-types/by-data-center/${dataCenterId}`);
+      const ids = Array.isArray(dataCenterIds)
+      ? dataCenterIds.join(",")
+      : dataCenterIds;
+      const response = await apiClient.get(`/sensor-types/by-data-center/${ids}`);
       return response.data;
     } catch (error) {
       throw error;
     }
   };
-  export const fetchStateConfig = async (dataCenterId) => {
+  export const fetchStateConfig = async (dataCenterIds) => {
     try {
-      const response = await apiClient.get(`/state/by-data-center/${dataCenterId}`);
+      const ids = Array.isArray(dataCenterIds)
+      ? dataCenterIds.join(",")
+      : dataCenterIds;
+      const response = await apiClient.get(`/state/by-data-center/${ids}`);
       return response.data;
     } catch (error) {
       throw error;

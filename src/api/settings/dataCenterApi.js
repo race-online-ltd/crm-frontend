@@ -96,9 +96,13 @@ export const uploadSvg = async (datacenterId, svgFile) => {
   }
 };
 
-  export const fetchDiagramSVG = async (id) => {
+  export const fetchDiagramSVG = async (dataCenterIds) => {
   try {
-    const response = await apiClient.get(`/diagrams/${id}`);
+    
+    const ids = Array.isArray(dataCenterIds)
+      ? dataCenterIds.join(",")
+      : dataCenterIds;
+    const response = await apiClient.get(`/diagrams/${ids}`);
     return response.data;
   } catch (error) {
     throw error;
