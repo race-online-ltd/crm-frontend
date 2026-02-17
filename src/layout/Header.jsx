@@ -219,7 +219,7 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
     if (dataCenterOptions?.length > 0) {
       setDefaultDataCenter(dataCenterOptions?.[0]?.label);
       setSelectedDefaultDataCenter(dataCenterOptions?.[0]?.value);
-      dispatch(setUpdatedDataCenter(dataCenterOptions?.[0]?.value));
+      // dispatch(setUpdatedDataCenter(dataCenterOptions?.[0]?.value));
     }
   }, [dataCenterOptions]);
 

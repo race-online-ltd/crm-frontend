@@ -36,15 +36,27 @@ const Home = () => {
 
   // sesor Type
   const [allowedSensorIds, setAllowedSensorIds] = useState(new Set([1, 2]));
-  const [allowedSmokeAndWaterSensorIds, setAllowedSmokeAndWaterSensorIds] = useState(new Set([4, 5]));
+  const [allowedSmokeAndWaterSensorIds, setAllowedSmokeAndWaterSensorIds] = useState(new Set([3,4, 5]));
   const [allowedSLDIds, setAllowedSLDIds] = useState(new Set([3]));
 
+
 const effectiveDataCenterIds = React.useMemo(() => {
-  if (dataCenterId != null) {
-    return [dataCenterId];
+
+  if (!user) return [];
+
+  // 🔥 If NO dataCenter selected → use all allowed
+  if (dataCenterId == null) {
+    console.log("Using userAllowedDataCenterIds");
+    return userAllowedDataCenterIds;
   }
-  return userAllowedDataCenterIds;
-}, [dataCenterId, userAllowedDataCenterIds]);
+
+  // 🔥 If selected
+  return [dataCenterId];
+
+}, [user, dataCenterId, userAllowedDataCenterIds]);
+
+
+
 
 
   // useEffect(() => {
@@ -66,25 +78,26 @@ const effectiveDataCenterIds = React.useMemo(() => {
   //   }
   // }, [dataCenterId]);
 
-  useEffect(() => {
-  if (effectiveDataCenterIds?.length > 0) {
+ useEffect(() => {
 
-    Promise.all([
-      fetchSensorThreshold(effectiveDataCenterIds),
-      fetchSensorType(effectiveDataCenterIds),
-      fetchStateConfig(effectiveDataCenterIds),
-      fetchDiagramSVG(effectiveDataCenterIds)
-    ])
-      .then(([thresholdRes, sensorTypeRes, stateRes, diagramSvg]) => {
-        setThreshold(thresholdRes);
-        setSensorType(sensorTypeRes);
-        setStateConfig(stateRes);
-        setDiagramContent(diagramSvg.data);
-      })
-      .catch(errorMessage);
-  }
+  if (!effectiveDataCenterIds.length) return;
 
-}, [dataCenterId, user]);
+  Promise.all([
+    fetchSensorThreshold(effectiveDataCenterIds),
+    fetchSensorType(effectiveDataCenterIds),
+    fetchStateConfig(effectiveDataCenterIds),
+    fetchDiagramSVG(effectiveDataCenterIds)
+  ])
+    .then(([thresholdRes, sensorTypeRes, stateRes, diagramSvg]) => {
+      setThreshold(thresholdRes);
+      setSensorType(sensorTypeRes);
+      setStateConfig(stateRes);
+      setDiagramContent(diagramSvg.data);
+    })
+    .catch(errorMessage);
+
+}, [effectiveDataCenterIds]);
+
 
 
 
@@ -295,7 +308,7 @@ useEffect(() => {
     if (sensorIds && sensorIds.length > 0) {
       // Functional equivalence to your original Link usage:
       // <Link to={`/admin/alarm-details/${dataCenterId}/${item.sensorId.join(",")}`}>
-      window.location.href = `/admin/alarm-details/${dataCenterId}/${sensorIds.join(",")}`;
+      window.location.href = `/admin/alarm-details/${sensorIds.join(",")}`;
     }
   };
 
@@ -304,10 +317,25 @@ useEffect(() => {
     if (totalAlarmedSensorIds && totalAlarmedSensorIds.length > 0) {
         // Functional equivalence to your original Link usage:
         // <Link to={`/admin/alarm-details/${dataCenterId}/${totalAlarmedSensorIds.join(",")}`}>
-        window.location.href = `/admin/alarm-details/${dataCenterId}/${totalAlarmedSensorIds.join(",")}`;
+        window.location.href = `/admin/alarm-details/${totalAlarmedSensorIds.join(",")}`;
     }
   };
 
+  // console.log("Effective Data Center IDs:", effectiveDataCenterIds);
+  // console.log("Incomming MQTT Data:", incommingMQTTData);
+  // console.log("Updated Alarm Data:", updatedAlarmData);
+  // console.log("Total Required Alarm Count:", totalRequiredAlarmCount);
+  console.log("Total Alarmed Sensor IDs:", totalAlarmedSensorIds);
+  // console.log("Should Play Alarm:", shouldPlayAlarm);
+  // console.log("Is Mute Alarm:", isMuteAlarm);
+  // console.log("Show Only Alarms:", showOnlyAlarms);
+  console.log("Alarm Filtered Data:", alarmFiltered);
+  console.log("Sensor Type:", sensorType);
+  // console.log("Threshold:", threshold);
+  console.log("State Config:", stateConfig);
+  // console.log("Diagram Content:", diagramContent);
+  // console.log("User Allowed Data Center IDs:", userAllowedDataCenterIds);
+  // console.log("selected dataCenterId from Redux:", dataCenterId);
 
   return (
     <div style={styles.container}>

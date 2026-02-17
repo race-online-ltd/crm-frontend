@@ -9,7 +9,7 @@ import { userContext } from '../context/UserContext';
 
 const AlarmDetails = () => {
   const { user } = useContext(userContext);
-const { dcId, id } = useParams();
+const { id } = useParams();
 
   const [detailsData, setDetailsData] = useState([]);
   const [show, setShow] = useState(false);
@@ -20,7 +20,7 @@ const { dcId, id } = useParams();
   const sensorIds = id.split(',').map(Number);
 
   useEffect(() => {
-    getAlarmDetails({ sensorIds: sensorIds,dc_id:dcId })
+    getAlarmDetails({ sensorIds: sensorIds })
       .then((res) => {
         setDetailsData(res.data);
       })
@@ -62,7 +62,7 @@ const { dcId, id } = useParams();
     onSubmit: (values, { resetForm }) => {
       acknowledgeAlarmStore(values)
         .then((res) => {
-          getAlarmDetails({ sensorIds: sensorIds,dc_id:dcId })
+          getAlarmDetails({ sensorIds: sensorIds })
       .then((res) => {
         setDetailsData(res.data);
       })
