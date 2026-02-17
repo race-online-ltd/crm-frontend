@@ -1491,6 +1491,9 @@ const Dashboard = () => {
   const [diagramContent, setDiagramContent] = useState([]);
   const [sensorRealTimeValues, setSensorRealTimeValues] = useState([]);
 
+
+  const [liveDieselData, setLiveDieselData] = useState(null);
+
   // sesor Type
   const [allowedSensorIds] = useState(new Set([1, 2]));
   const [allowedSmokeAndWaterSensorIds] = useState(new Set([4, 5, 6]));
@@ -1921,10 +1924,26 @@ const Dashboard = () => {
 }, [dataCenterId]);
 
 
+// disel data
+useEffect(() => {
+  if (!incommingMQTTData?.length || !dataCenterId) return;
+
+  const dieselPackets = incommingMQTTData.filter(
+    (item) => item.dt === "diesel" && item.dc === dataCenterId
+  );
+
+  if (!dieselPackets.length) return;
+
+  const latestDiesel = dieselPackets[dieselPackets.length - 1];
+
+  setLiveDieselData(latestDiesel);
+}, [incommingMQTTData, dataCenterId]);
+
+console.log("Live Diesel Data:", liveDieselData);
   const tabContentMap = {
     1: <SLD data={diagramContent} live={liveSLDSensorData?.sensor_types?.[0]} />,
     2: <Sensor data={liveSensorData} smokeAndwaterData={liveSomkeAndWaterSensorData} />,
-    3: <DieselGenerator />,
+    3: <DieselGenerator data={liveDieselData} />,
     4: <FuelTank />,
     5: <PAC />,
     6: <UPS />,
