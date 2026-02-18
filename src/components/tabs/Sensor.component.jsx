@@ -3,7 +3,7 @@
 // import { MdLocationOn } from "react-icons/md";
 
 // const Sensor = ({ data,smokeAndwaterData }) => {
-  
+
 //   return (
 //     <>
 //     <div>
@@ -13,9 +13,9 @@
 
 //           <div className="d-flex gap-3 flex-wrap mb-3">
 //             {sensorType.sensors.map((sensor) => (
-              
+
 //               <div className="sensor-box" key={sensor.id}>
-                
+
 //                 <GaugeComponent
 //                   type="semicircle"
 //                   arc={{
@@ -64,10 +64,10 @@
 //                   minValue={0}
 //                   maxValue={
 //                     sensor.thresholds?.sort((a, b) => b.threshold - a.threshold)[0]
-//                       ?.threshold || 100 
+//                       ?.threshold || 100
 //                   }
 //                 />
-                
+
 //               </div>
 //             ))}
 //           </div>
@@ -81,9 +81,9 @@
 
 //           <div className="d-flex gap-3 flex-wrap mb-3">
 //             {sensorType.sensors.map((sensor) => (
-              
+
 //               <div className="sensor-box" style={{width:'150px', background: `${sensor.color}`}} key={sensor.id}>
-                
+
 //                <h5 className="text-white fw-bold">{sensor.state_name}</h5>
 //                <h6 className="text-white"><MdLocationOn className="fs-4 fw-bold me-1"/>{sensor.location}</h6>
 //               </div>
@@ -98,29 +98,24 @@
 
 // export default Sensor;
 
+import React, { useState, useEffect, useRef } from 'react';
 
-import React, { useState, useEffect, useRef } from "react";
-
-import GaugeComponent from "react-gauge-component";
-import { MdLocationOn } from "react-icons/md";
+import GaugeComponent from 'react-gauge-component';
+import { MdLocationOn } from 'react-icons/md';
 
 const Sensor = ({ data, smokeAndwaterData }) => {
- 
   const dataRef = useRef(null);
   const smokeWaterRef = useRef(null);
-  
 
   const [displayData, setDisplayData] = useState(null);
   const [displaySmokeWaterData, setDisplaySmokeWaterData] = useState(null);
 
-  
+  console.log('🔍 Incoming sensor data:', data);
   useEffect(() => {
     if (data && data.sensor_types?.length > 0) {
       dataRef.current = data;
       setDisplayData(data);
-      console.log("✓ Sensor data received:", data);
     } else if (dataRef.current) {
-      
       setDisplayData(dataRef.current);
     }
   }, [data]);
@@ -129,9 +124,7 @@ const Sensor = ({ data, smokeAndwaterData }) => {
     if (smokeAndwaterData && smokeAndwaterData.sensor_types?.length > 0) {
       smokeWaterRef.current = smokeAndwaterData;
       setDisplaySmokeWaterData(smokeAndwaterData);
-      console.log("✓ Smoke/Water data received:", smokeAndwaterData);
     } else if (smokeWaterRef.current) {
-     
       setDisplaySmokeWaterData(smokeWaterRef.current);
     }
   }, [smokeAndwaterData]);
@@ -143,12 +136,20 @@ const Sensor = ({ data, smokeAndwaterData }) => {
 
   const combinedSensorTypes = [];
   if (displayData?.sensor_types) {
-    combinedSensorTypes.push(...displayData.sensor_types.filter(st => allowedSensorIds.includes(st.id)));
+    combinedSensorTypes.push(
+      ...displayData.sensor_types.filter((st) => allowedSensorIds.includes(st.id))
+    );
   }
   if (displaySmokeWaterData?.sensor_types) {
-    combinedSensorTypes.push(...displaySmokeWaterData.sensor_types.filter(st => allowedSmokeAndWaterSensorIds.includes(st.id)));
+    combinedSensorTypes.push(
+      ...displaySmokeWaterData.sensor_types.filter((st) =>
+        allowedSmokeAndWaterSensorIds.includes(st.id)
+      )
+    );
   }
 
+  const offlineIds = displayData?.offline_sensor_id || [];
+  console.log('offlineIds:', offlineIds);
   return (
     <>
       {/* Combined SENSOR DATA */}
@@ -160,10 +161,20 @@ const Sensor = ({ data, smokeAndwaterData }) => {
               {sensorType.sensors?.map((sensor) => {
                 // Check if this sensor type is for gauges (temp/humidity) or cards (smoke/water)
                 const isGaugeType = sensorType.id === 1 || sensorType.id === 2; // Assuming 1 and 2 are temp/humidity
-
+                const isOffline = offlineIds.includes(sensor.id);
                 if (isGaugeType) {
                   return (
-                    <div className="sensor-box" key={sensor.id}>
+                    <div
+                      className="sensor-box position-relative"
+                      key={sensor.id}
+                      style={{ opacity: isOffline ? 0.2 : 1 }}
+                    >
+                      {isOffline && (
+                        <div className="offline-overlay">
+                          <span className="offline-badge">Offline</span>
+                        </div>
+                      )}
+
                       <GaugeComponent
                         type="semicircle"
                         arc={{
@@ -182,23 +193,23 @@ const Sensor = ({ data, smokeAndwaterData }) => {
                             })),
                         }}
                         pointer={{
-                          color: "#345243",
+                          color: '#345243',
                           length: 0.8,
                           width: 15,
                         }}
                         labels={{
                           valueLabel: {
-                            formatTextValue: (value) => value + " ºC",
+                            formatTextValue: (value) => value + ' ºC',
                             style: {
-                              fill: "#97C3AC",
+                              fill: '#97C3AC',
                               fontSize: 40,
-                              fontWeight: "bold",
+                              fontWeight: 'bold',
                             },
                           },
                           tickLabels: {
-                            type: "outer",
+                            type: 'outer',
                             defaultTickValueConfig: {
-                              formatTextValue: (value) => value + " ºC",
+                              formatTextValue: (value) => value + ' ºC',
                               style: { fontSize: 10 },
                             },
                             ticks: sensor.thresholds
@@ -211,24 +222,41 @@ const Sensor = ({ data, smokeAndwaterData }) => {
                         value={sensor.val || 0}
                         minValue={0}
                         maxValue={
-                          sensor.thresholds?.sort(
-                            (a, b) => b.threshold - a.threshold
-                          )[0]?.threshold || 100
+                          sensor.thresholds?.sort((a, b) => b.threshold - a.threshold)[0]
+                            ?.threshold || 100
                         }
                       />
                       <div className="text-center mt-2">
                         <div className="fw-bold">{sensor.sensor_name}</div>
-                        <div><MdLocationOn className="me-1" />{sensor.location}</div>
+                        <div>
+                          <MdLocationOn className="me-1" />
+                          {sensor.location}
+                        </div>
                       </div>
                     </div>
                   );
                 } else {
                   return (
+                    // <div
+                    //   className="sensor-box"
+                    //   style={{ width: '150px', background: `${sensor.color}` }}
+                    //   key={sensor.id}
+                    // >
                     <div
-                      className="sensor-box"
-                      style={{ width: "150px", background: `${sensor.color}` }}
+                      className="sensor-box position-relative"
                       key={sensor.id}
+                      style={{
+                        width: '150px',
+                        background: `${sensor.color}`,
+                        opacity: isOffline ? 0.2 : 1,
+                      }}
                     >
+                      {isOffline && (
+                        <div className="offline-overlay">
+                          <span className="offline-badge2">Offline</span>
+                        </div>
+                      )}
+
                       <h5 className="text-white fw-bold">{sensor.state_name}</h5>
                       <h6 className="text-white">
                         <MdLocationOn className="fs-4 fw-bold me-1" />
