@@ -1329,7 +1329,7 @@ const Home = () => {
               <span style={{ color: '#6b7280', marginLeft: '10px' }}>📊 Database</span>
             )}
             {dataSource === 'hybrid' && (
-              <span style={{ color: '#10b981', marginLeft: '10px' }}>🟢 Live MQTT</span>
+              <span style={{ color: '#10b981', marginLeft: '10px' }}>🟢 Live</span>
             )}
           </p>
         </div>
@@ -1495,7 +1495,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
-    padding: '20px 24px',
+    padding: '5px 24px',
     backgroundColor: '#fef2f2',
     borderWidth: '2px',
     borderStyle: 'solid',
@@ -1521,7 +1521,7 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     borderRadius: '8px',
-    border: 'none',
+    border: '1px solid gray',
     cursor: 'pointer',
     transition: 'all 0.2s',
     whiteSpace: 'nowrap',
@@ -1535,51 +1535,97 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
     gap: '20px',
   },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', // 🔥 smaller width
+    gap: '12px', // less gap
+  },
+
   card: {
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: 'white',
-    borderWidth: '2px',
+    borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: '#e5e7eb',
-    borderRadius: '12px',
-    padding: '24px',
+    borderRadius: '10px',
+    padding: '12px', // 🔥 smaller padding
     cursor: 'pointer',
     transition: 'all 0.2s',
     position: 'relative',
     overflow: 'hidden',
     textAlign: 'left',
-    textDecoration: 'none',
   },
+
   cardAlarm: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fca5a5',
-    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#fff1f2',
+    borderColor: '#ef4444',
+    borderWidth: '2px',
+    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+    animation: 'pulse 1.5s infinite',
   },
-  cardHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' },
+
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px', // 🔥 smaller gap
+    marginBottom: '8px',
+  },
+
   alarmIndicator: {
-    width: '40px',
-    height: '40px',
+    width: '30px', // 🔥 smaller circle
+    height: '30px',
     backgroundColor: '#fee2e2',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  alarmIcon: { width: '24px', height: '24px', color: '#dc2626' },
-  cardTitle: { fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 },
-  cardBody: { textAlign: 'center', padding: '20px 0' },
+
+  alarmIcon: {
+    width: '18px', // 🔥 smaller icon
+    height: '18px',
+    color: '#dc2626',
+  },
+
+  cardTitle: {
+    fontSize: '14px', // 🔥 smaller title
+    fontWeight: '600',
+    color: '#111827',
+    margin: 0,
+  },
+
+  cardBody: {
+    textAlign: 'center',
+    padding: '5px 0',
+  },
+
   alarmCount: {
-    fontSize: '56px',
+    fontSize: '38px', // 🔥 smaller number
     fontWeight: '700',
     color: '#9ca3af',
     lineHeight: '1',
-    marginBottom: '8px',
+    marginBottom: '4px',
   },
-  alarmCountActive: { color: '#dc2626' },
-  alarmLabel: { fontSize: '14px', color: '#6b7280', margin: 0 },
-  cardFooter: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #fecaca' },
-  viewDetailsText: { fontSize: '14px', fontWeight: '600', color: '#dc2626' },
+
+  alarmLabel: {
+    fontSize: '12px', // 🔥 smaller label
+    color: '#6b7280',
+    margin: 0,
+  },
+
+  cardFooter: {
+    marginTop: '6px',
+    paddingTop: '6px',
+    borderTop: '1px solid #fecaca',
+  },
+
+  viewDetailsText: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#dc2626',
+  },
+
   audioIndicator: {
     position: 'fixed',
     bottom: '24px',
