@@ -2,14 +2,14 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import moment from 'moment';
 import { useParams } from 'react-router-dom';
 import { useFormik } from 'formik';
-import * as bootstrap from 'bootstrap'; 
+import * as bootstrap from 'bootstrap';
 import { acknowledgeAlarmStore, getAlarmDetails } from '../api/alarmApi';
 import { errorMessage, successMessage } from '../api/api-config/apiResponseMessage';
 import { userContext } from '../context/UserContext';
 
 const AlarmDetails = () => {
   const { user } = useContext(userContext);
-const { id } = useParams();
+  const { id } = useParams();
 
   const [detailsData, setDetailsData] = useState([]);
   const [show, setShow] = useState(false);
@@ -19,12 +19,18 @@ const { id } = useParams();
 
   const sensorIds = id.split(',').map(Number);
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
+    setLoading(true);
     getAlarmDetails({ sensorIds: sensorIds })
       .then((res) => {
         setDetailsData(res.data);
       })
-      .catch(errorMessage);
+      .catch(errorMessage)
+      .finally(() => {
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
@@ -62,11 +68,15 @@ const { id } = useParams();
     onSubmit: (values, { resetForm }) => {
       acknowledgeAlarmStore(values)
         .then((res) => {
+          setLoading(true);
           getAlarmDetails({ sensorIds: sensorIds })
-      .then((res) => {
-        setDetailsData(res.data);
-      })
-      .catch(errorMessage);
+            .then((res) => {
+              setDetailsData(res.data);
+            })
+            .catch(errorMessage)
+            .finally(() => {
+              setLoading(false);
+            });
           resetForm();
           setShow(false);
           successMessage(res);
@@ -96,7 +106,17 @@ const { id } = useParams();
                   </tr>
                 </thead>
                 <tbody>
-                  {detailsData.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="text-center">
+                        <div className="d-flex justify-content-center align-items-center py-3">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : detailsData.length > 0 ? (
                     detailsData.map((item, index) => (
                       <tr key={index}>
                         <td>{item.Data_Center}</td>
@@ -104,20 +124,22 @@ const { id } = useParams();
                         <td>{item.Sensor_type}</td>
                         <td>{item.Sensor_location}</td>
                         <td>
-                          <span className="badge bg-danger">
-                            {item.Sensor_value}
-                          </span>
+                          <span className="badge bg-danger">{item.Sensor_value}</span>
                         </td>
                         <td>{moment(item.created_at).format('MMMM Do YYYY, h:mm:ss a')}</td>
-                        <td>{item.acknowledged_at? moment(item.acknowledged_at).format('MMMM Do YYYY, h:mm:ss a'):''}</td>
-                        
+                        <td>
+                          {item.acknowledged_at
+                            ? moment(item.acknowledged_at).format('MMMM Do YYYY, h:mm:ss a')
+                            : ''}
+                        </td>
+
                         <td>
                           <button
                             onClick={() => handleModal(item)}
-                            className={`btn btn-sm ${item.is_acknowledged? 'btn-success' :'btn-danger'}`}
-                            disabled={item.is_acknowledged?true:false}
+                            className={`btn btn-sm ${item.is_acknowledged ? 'btn-success' : 'btn-danger'}`}
+                            disabled={item.is_acknowledged ? true : false}
                           >
-                            {item.is_acknowledged? 'Acknowledged':'Acknowledge'}
+                            {item.is_acknowledged ? 'Acknowledged' : 'Acknowledge'}
                           </button>
                         </td>
                       </tr>
@@ -147,7 +169,9 @@ const { id } = useParams();
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title" id="acknowledgeModalLabel">Acknowledge</h5>
+              <h5 className="modal-title" id="acknowledgeModalLabel">
+                Acknowledge
+              </h5>
               <button
                 type="button"
                 className="btn-close"
@@ -158,7 +182,7 @@ const { id } = useParams();
             <div className="modal-body">
               <form onSubmit={formik.handleSubmit}>
                 <div className="mb-3">
-                 <h6>
+                  <h6>
                     Checked by{' '}
                     <span className="text-success fw-bold">
                       {user?.username
@@ -166,7 +190,6 @@ const { id } = useParams();
                         : ''}
                     </span>
                   </h6>
-                  
                 </div>
 
                 <div className="mb-3">

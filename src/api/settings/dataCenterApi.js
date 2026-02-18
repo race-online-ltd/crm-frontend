@@ -1,8 +1,8 @@
-import { apiClient } from "../api-config/config";
+import { apiClient } from '../api-config/config';
 
 export const createDataCenter = async (payload) => {
   try {
-    const response = await apiClient.post("/data-centers", payload);
+    const response = await apiClient.post('/data-centers', payload);
     return response.data;
   } catch (error) {
     throw error;
@@ -38,7 +38,7 @@ export const fetchDataCenter = async (id) => {
 
 export const fetchDataCenters = async () => {
   try {
-    const response = await apiClient.get("/settings/data-centers");
+    const response = await apiClient.get('/settings/data-centers');
     return response.data;
   } catch (error) {
     throw error;
@@ -61,9 +61,9 @@ export const getTabDataCenters = async (id) => {
     throw error;
   }
 };
-  export const saveDiagram = async (diagramData) => {
+export const saveDiagram = async (diagramData) => {
   try {
-    const response = await apiClient.post("/diagrams", diagramData);
+    const response = await apiClient.post('/diagrams', diagramData);
     return response.data;
   } catch (error) {
     throw error;
@@ -87,21 +87,16 @@ export const uploadSvg = async (datacenterId, svgFile) => {
     return response.data;
   } catch (error) {
     if (error.response?.data?.errors) {
-      const messages = Object.values(error.response.data.errors)
-        .flat()
-        .join('\n');
+      const messages = Object.values(error.response.data.errors).flat().join('\n');
       throw new Error(messages);
     }
     throw new Error('Upload failed');
   }
 };
 
-  export const fetchDiagramSVG = async (dataCenterIds) => {
+export const fetchDiagramSVG = async (dataCenterIds) => {
   try {
-    
-    const ids = Array.isArray(dataCenterIds)
-      ? dataCenterIds.join(",")
-      : dataCenterIds;
+    const ids = Array.isArray(dataCenterIds) ? dataCenterIds.join(',') : dataCenterIds;
     const response = await apiClient.get(`/diagrams/${ids}`);
     return response.data;
   } catch (error) {
@@ -114,14 +109,24 @@ export const fetchDataCenterCount = async () => {
   return response.data;
 };
 
+// export const fetchSensorRealTimeValueByDataCenter = async (dataCenterId) => {
+//   try {
+//       const response = await apiClient.get(
+//         `/sensor-real-time/${dataCenterId}`
+//       );
+//       return response.data;
+//     } catch (error) {
+//       throw error;
+//     }
+//   };
 
-export const fetchSensorRealTimeValueByDataCenter = async (dataCenterId) => {
+export const fetchSensorRealTimeValueByDataCenter = async (dataCenterIds) => {
   try {
-      const response = await apiClient.get(
-        `/sensor-real-time/${dataCenterId}`
-      );
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
+    const ids = Array.isArray(dataCenterIds) ? dataCenterIds.join(',') : dataCenterIds;
+    const response = await apiClient.get(`/sensor-real-time/${ids}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching real-time sensor data:', error);
+    throw error;
+  }
+};
