@@ -652,7 +652,12 @@ import { useSelector } from 'react-redux';
 
 import { fetchDataCenterCount } from '../api/settings/dataCenterApi';
 import sound from '../assets/sounds/alarm.mp3';
-import { fetchSensorThreshold, fetchSensorType, fetchStateConfig } from '../api/dashboardTabApi';
+import {
+  fetchSensorThreshold,
+  fetchSensorType,
+  fetchStateConfig,
+  fetchDeviceStatus,
+} from '../api/dashboardTabApi';
 import { errorMessage } from '../api/api-config/apiResponseMessage';
 import { userContext } from '../context/UserContext';
 import {
@@ -661,6 +666,7 @@ import {
 } from '../api/settings/dataCenterApi';
 
 const Home = () => {
+  let arr = [];
   const { user } = useContext(userContext);
   const userAllowedDataCenterIds = user?.data_center_ids || [];
 
@@ -691,6 +697,9 @@ const Home = () => {
   const [allowedSensorIds] = useState(new Set([1, 2]));
   const [allowedSmokeAndWaterSensorIds] = useState(new Set([3, 4, 5, 6]));
 
+  const [deviceStatus, setDeviceStatus] = useState([]);
+  const [isLoadingStatusData, setIsLoadingStatusData] = useState(false);
+
   // ============================================================
   // Effective DataCenter IDs
   // ============================================================
@@ -714,6 +723,7 @@ const Home = () => {
     ])
       .then(([thresholdRes, sensorTypeRes, stateRes, diagramSvg]) => {
         setThreshold(thresholdRes);
+        arr = thresholdRes;
         setSensorType(sensorTypeRes);
         setStateConfig(stateRes);
         setDiagramContent(diagramSvg.data);
@@ -1254,6 +1264,57 @@ const Home = () => {
 
   const dataSource = liveSensorData ? 'hybrid' : 'db';
 
+  useEffect(() => {
+    if (!effectiveDataCenterIds.length) return;
+
+    let intervalId;
+
+    const fetchStatus = () => {
+      setIsLoadingStatusData(true);
+
+      fetchDeviceStatus(effectiveDataCenterIds)
+        .then((response) => {
+          setDeviceStatus(response.data);
+          setIsLoadingStatusData(false);
+        })
+        .catch((error) => {
+          console.error('❌ Failed to fetch DB data:', error);
+          setIsLoadingStatusData(false);
+        });
+    };
+
+    // 🔥 Initial call
+    fetchStatus();
+
+    // 🔥 Auto refresh every 5 seconds
+    intervalId = setInterval(fetchStatus, 5000);
+
+    // ✅ Cleanup when component unmounts
+    return () => clearInterval(intervalId);
+  }, [effectiveDataCenterIds]);
+
+  const [deviceOfflineIds, setDeviceOfflineIds] = useState([]);
+  const [deviceOfflineCount, setDeviceOfflineCount] = useState(0);
+
+  useEffect(() => {
+    if (!deviceStatus?.length) return;
+
+    const now = new Date().getTime();
+
+    const offlineDevices = deviceStatus.filter((device) => {
+      const updatedTime = new Date(device.updated_at).getTime();
+      const diffSeconds = (now - updatedTime) / 1000;
+      return diffSeconds > 15;
+    });
+
+    setDeviceOfflineIds(offlineDevices.map((d) => d.device_id));
+    setDeviceOfflineCount(offlineDevices.length);
+
+    console.log('⚠️ Offline Devices:', offlineDevices);
+  }, [deviceStatus]);
+
+  console.log('📊 Home Dashboard Rendered', deviceStatus);
+
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
@@ -1362,6 +1423,38 @@ const Home = () => {
             ))}
           </div>
         )}
+
+        {/* DEVICE OFFLINE COUNT CARD */}
+        <div className="mt-3">
+          {deviceOfflineCount > 0 && (
+            <button
+              onClick={() =>
+                (window.location.href = `/admin/device-details/${deviceOfflineIds.join(',')}`)
+              }
+              style={{ ...styles.card, ...styles.cardAlarm }}
+            >
+              <div style={styles.cardHeader}>
+                <div style={styles.alarmIndicator}>
+                  <AlertTriangle style={styles.alarmIcon} />
+                </div>
+                <h3 style={styles.cardTitle}>Device Offline</h3>
+              </div>
+
+              <div style={styles.cardBody}>
+                <div style={{ ...styles.alarmCount, ...styles.alarmCountActive }}>
+                  {deviceOfflineCount}
+                </div>
+                <p style={styles.alarmLabel}>
+                  {deviceOfflineCount === 1 ? 'Offline Device' : 'Offline Devices'}
+                </p>
+              </div>
+
+              <div style={styles.cardFooter}>
+                <span style={styles.viewDetailsText}>View Details →</span>
+              </div>
+            </button>
+          )}
+        </div>
 
         {shouldPlayAlarm && (
           <>
