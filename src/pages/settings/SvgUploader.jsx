@@ -76,9 +76,9 @@
 
 // export default SvgUploader;
 import React, { useEffect, useState } from 'react';
-import { Upload, AlertTriangle, CheckCircle, Server } from 'lucide-react'; 
+import { Upload, AlertTriangle, CheckCircle, Server } from 'lucide-react';
 import { fetchDataCenters, uploadSvg } from '../../api/settings/dataCenterApi';
-import CommonButton from "../../components/CommonButton";
+import CommonButton from '../../components/CommonButton';
 
 // ================================================
 // STYLES - MODERN UI KIT STYLE (ADJUSTED FOR NON-CARD LAYOUT)
@@ -86,60 +86,60 @@ import CommonButton from "../../components/CommonButton";
 const styles = {
   // Layout
   pageContainer: {
-    minHeight: "100vh",
-    backgroundColor: "#f8fafc",
-    padding: "3rem 4rem",
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc',
+    padding: '3rem 4rem',
     boxSizing: 'border-box',
   },
   headerSection: {
-    marginBottom: "2rem",
+    marginBottom: '2rem',
     textAlign: 'left',
     paddingBottom: '1rem',
     borderBottom: '1px solid #e5e7eb',
   },
   heading: {
-    fontSize: "2rem",
+    fontSize: '2rem',
     fontWeight: 600,
-    color: "#111827",
-    marginBottom: "0.25rem",
+    color: '#111827',
+    marginBottom: '0.25rem',
     letterSpacing: '-0.02em',
   },
   description: {
-    fontSize: "1rem",
-    color: "#6b7280",
+    fontSize: '1rem',
+    color: '#6b7280',
     lineHeight: 1.5,
   },
-  
+
   // Alerts
   alert: {
-    padding: "0.75rem 1rem",
-    borderRadius: "0.5rem",
-    fontSize: "0.9rem",
-    marginBottom: "1.5rem",
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.9rem',
+    marginBottom: '1.5rem',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
     fontWeight: 500,
   },
   alertError: {
-    backgroundColor: "#fef2f2",
-    color: "#b91c1c",
-    border: "1px solid #fecaca",
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca',
   },
   alertSuccess: {
-    backgroundColor: "#f0fdf4",
-    color: "#047857",
-    border: "1px solid #bbf7d0",
+    backgroundColor: '#f0fdf4',
+    color: '#047857',
+    border: '1px solid #bbf7d0',
   },
 
   // Form Wrapper (Non-Card) - Now just a container for content
   formWrapper: {
-    padding: "0", 
-    backgroundColor: "transparent", 
+    padding: '0',
+    backgroundColor: 'transparent',
     maxWidth: '800px', // Increased max-width for better use of space
     margin: '0 auto', // Center the content
   },
-  
+
   // Form elements (inline styles)
   inputStyle: {
     width: '100%',
@@ -185,19 +185,26 @@ const SvgUploader = () => {
   const [dataCenters, setDataCenters] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [svgFile, setSvgFile] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState({ success: null, error: null, isSubmitting: false });
+  const [uploadStatus, setUploadStatus] = useState({
+    success: null,
+    error: null,
+    isSubmitting: false,
+  });
   const [isLoadingDCs, setIsLoadingDCs] = useState(true);
 
   // --- Data Center Fetching ---
   useEffect(() => {
     setIsLoadingDCs(true);
     fetchDataCenters()
-      .then(result => {
+      .then((result) => {
         setDataCenters(result);
         setIsLoadingDCs(false);
       })
-      .catch(err => {
-        setUploadStatus(prev => ({ ...prev, error: 'Failed to load data centers: ' + err.message }));
+      .catch((err) => {
+        setUploadStatus((prev) => ({
+          ...prev,
+          error: 'Failed to load data centers: ' + err.message,
+        }));
         setIsLoadingDCs(false);
       });
   }, []);
@@ -207,12 +214,16 @@ const SvgUploader = () => {
     // Clear status when a new file is selected
     setUploadStatus({ success: null, error: null, isSubmitting: false });
     const file = e.target.files[0];
-    
+
     // Validate file type
     if (file && file.type !== 'image/svg+xml') {
-      setUploadStatus({ success: null, error: 'Invalid file type. Please upload an SVG file (.svg).', isSubmitting: false });
+      setUploadStatus({
+        success: null,
+        error: 'Invalid file type. Please upload an SVG file (.svg).',
+        isSubmitting: false,
+      });
       setSvgFile(null);
-      e.target.value = null; 
+      e.target.value = null;
       return;
     }
     setSvgFile(file);
@@ -224,28 +235,34 @@ const SvgUploader = () => {
     setUploadStatus({ success: null, error: null, isSubmitting: true });
 
     if (!selectedId || !svgFile) {
-      setUploadStatus({ success: null, error: 'Please select a data center and an SVG file.', isSubmitting: false });
+      setUploadStatus({
+        success: null,
+        error: 'Please select a data center and an SVG file.',
+        isSubmitting: false,
+      });
       return;
     }
 
     try {
-      await uploadSvg(selectedId, svgFile); 
+      await uploadSvg(selectedId, svgFile);
 
       setUploadStatus({ success: 'SVG uploaded successfully.', error: null, isSubmitting: false });
-      
-      setSvgFile(null); 
-      setSelectedId(''); 
-      document.getElementById('svg-file-input').value = null; 
 
+      setSvgFile(null);
+      setSelectedId('');
+      document.getElementById('svg-file-input').value = null;
     } catch (error) {
-      setUploadStatus({ success: null, error: 'Upload failed: ' + (error.message || 'An unexpected error occurred.'), isSubmitting: false });
+      setUploadStatus({
+        success: null,
+        error: 'Upload failed: ' + (error.message || 'An unexpected error occurred.'),
+        isSubmitting: false,
+      });
       console.error(error);
     }
   };
 
   return (
     <div style={styles.pageContainer}>
-      
       {/* Header Section */}
       <header style={styles.headerSection}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -275,12 +292,22 @@ const SvgUploader = () => {
 
       {/* Form Wrapper (Non-Card) */}
       <div style={styles.formWrapper}>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '30px', padding: '20px 0' }}>
-          
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '30px', padding: '20px 0' }}
+        >
           {/* Data Center Selection */}
-          <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <label htmlFor="data_center_select" style={styles.labelStyle}>Select Data Center</label>
+          <div
+            style={{
+              padding: '20px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb',
+            }}
+          >
+            <label htmlFor="data_center_select" style={styles.labelStyle}>
+              Select Data Center
+            </label>
             <select
               id="data_center_select"
               style={styles.inputStyle}
@@ -291,11 +318,13 @@ const SvgUploader = () => {
               disabled={isLoadingDCs || dataCenters.length === 0 || uploadStatus.isSubmitting}
             >
               <option value="">
-                {isLoadingDCs ? 'Loading Data Centers...' : 
-                 dataCenters.length === 0 ? 'No Data Centers Found' : 
-                 '-- Select Data Center --'}
+                {isLoadingDCs
+                  ? 'Loading Data Centers...'
+                  : dataCenters.length === 0
+                    ? 'No Data Centers Found'
+                    : '-- Select Data Center --'}
               </option>
-              {dataCenters.map(dc => (
+              {dataCenters.map((dc) => (
                 <option key={dc.id} value={dc.id}>
                   {dc.name}
                 </option>
@@ -304,10 +333,19 @@ const SvgUploader = () => {
           </div>
 
           {/* SVG File Upload */}
-          <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <label htmlFor="svg-file-input" style={styles.labelStyle}>Upload SVG File (.svg)</label>
-            
-            <div 
+          <div
+            style={{
+              padding: '20px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb',
+            }}
+          >
+            <label htmlFor="svg-file-input" style={styles.labelStyle}>
+              Upload SVG File (.svg)
+            </label>
+
+            <div
               style={styles.fileInputContainer}
               // Drag and drop is supported here
               onDragOver={(e) => e.preventDefault()}
@@ -316,11 +354,15 @@ const SvgUploader = () => {
                 handleFileChange({ target: { files: e.dataTransfer.files } });
               }}
             >
-              <Upload style={{ width: '28px', height: '28px', color: '#6b7280' }}/>
+              <Upload style={{ width: '28px', height: '28px', color: '#6b7280' }} />
               <p style={styles.fileInputText}>
-                {svgFile ? 
-                  <span style={{color: '#3b82f6', fontWeight: 600}}>File Selected: {svgFile.name}</span> : 
-                  'Drag and drop an SVG here, or click to browse.'}
+                {svgFile ? (
+                  <span style={{ color: '#3b82f6', fontWeight: 600 }}>
+                    File Selected: {svgFile.name}
+                  </span>
+                ) : (
+                  'Drag and drop an SVG here, or click to browse.'
+                )}
               </p>
               <input
                 id="svg-file-input"
@@ -329,19 +371,30 @@ const SvgUploader = () => {
                 onChange={handleFileChange}
                 required
                 // Hide the actual input and let the div handle the click/drop target
-                style={{ opacity: 0, position: 'absolute', width: '100%', height: '100%', cursor: 'pointer' }}
+                style={{
+                  opacity: 0,
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  cursor: 'pointer',
+                }}
                 disabled={uploadStatus.isSubmitting}
               />
             </div>
           </div>
-          
+
           {/* Submit Button */}
-          <div style={{ marginTop: '10px', alignSelf: 'flex-start' }}>
-            <CommonButton 
+
+          {/* <CommonButton 
               name={uploadStatus.isSubmitting ? "Uploading..." : "Upload"} 
               type="submit" // FIX: Ensure this button is the submit action
               disabled={!selectedId || !svgFile || uploadStatus.isSubmitting}
-            />
+            /> */}
+          {/* Submit Button */}
+          <div style={{ marginTop: '10px', alignSelf: 'flex-start' }}>
+            <button className="btn btn-primary" type="submit">
+              Upload
+            </button>
           </div>
         </form>
       </div>
