@@ -34,7 +34,7 @@ body {
 .svg-container svg {
   width: 100% !important;
   height: auto !important;
-  margin: -180px 0;
+  /* margin: -180px 0; */
 }
 
 .card-header-tabs {
