@@ -1654,7 +1654,7 @@ const Home = () => {
     const offlineDevices = deviceStatus.filter((device) => {
       const updatedTime = new Date(device.updated_at).getTime();
       const diffSeconds = (now - updatedTime) / 1000;
-      return diffSeconds > 15;
+      return diffSeconds > 30; // offline if no update for 30 seconds
     });
 
     setDeviceOfflineIds(offlineDevices.map((d) => d.device_id));

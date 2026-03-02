@@ -64,24 +64,8 @@ export const SLD = ({ data, live }) => {
   // 1️⃣ Inject SVG + detect clickable paths
   useEffect(() => {
     if (!data?.svg_content || !containerRef.current) return;
-
-    // containerRef.current.innerHTML = '';
-    // containerRef.current.innerHTML = data.svg_content;
-
-    const parser = new DOMParser();
-  const doc = parser.parseFromString(data.svg_content, 'image/svg+xml');
-  const svg = doc.querySelector('svg');
-
-  if (!svg) {
-    console.log('SVG NOT FOUND');
-    return;
-  }
-
-  // Clear container
-  containerRef.current.innerHTML = '';
-
-  // Append parsed SVG
-  containerRef.current.appendChild(svg);
+    containerRef.current.innerHTML = '';
+    containerRef.current.innerHTML = data.svg_content;
 
     const paths = containerRef.current.querySelectorAll('svg path');
     const found = [];
@@ -90,10 +74,10 @@ export const SLD = ({ data, live }) => {
       const d = path.getAttribute('d');
       const id = path.getAttribute('id');
 
-
       // const isCircleLike = /c 0,100\.239\d*/.test(d) && d.includes('181.5');
-       const isCircleLike =
-    /c\s*0,\d+(\.\d+)?\s*-?\d+(\.\d+)?,\d+(\.\d+)?/.test(d);
+    //   const isCircleLike =
+    // /^m\s[\d.]+,[\d.]+\s+c\s0,[\d.]+\s-?[\d.]+,[\d.]+\s-?[\d.]+,[\d.]+/i.test(d);
+    const isCircleLike = /-169\.5,169\.5/.test(d);
 
       if (isCircleLike && id) {
         found.push(id);
@@ -117,7 +101,6 @@ export const SLD = ({ data, live }) => {
     circlePaths.current = found;
   }, [data?.svg_content]);
 
-  
 // Fetch initial realtime sensor values and apply colors based on state config
 useEffect(() => {
   if (!dataCenterId || !data?.svg_content || !containerRef.current) return;
@@ -299,8 +282,8 @@ useEffect(() => {
   // Store formik in ref so it's accessible in useEffect
   formikRef.current = formik;
 
-  // console.log('data---:',formik.values, formik.errors);
-  // console.log('svg-content-load--',data?.svg_content);
+
+
 
   return (
     <div className="relative min-h-screen">
@@ -361,7 +344,4 @@ useEffect(() => {
     </div>
   );
 };
-
-
-
 
