@@ -1190,7 +1190,8 @@ const ThresholdValues = () => {
                     {currentThresholdValues.length > 0 ? (
                       currentThresholdValues.map((value, index) => (
                         <tr key={value.id} className="list-row" style={{ borderBottom: '1px solid #e5e7eb', transition: 'background-color 150ms ease-in-out' }}>
-                          <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>{(currentPage - 1) * thresholdsPerPage + index + 1}</td>
+                          {/* <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>{(currentPage - 1) * thresholdsPerPage + index + 1}</td> */}
+                          <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>{value.id}</td>
                           {/* CORRECTED: Using the data path from the original HTML rendering logic */}
                           <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>{value.sensor?.data_center?.name || 'N/A'}</td>
                           <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>{value.sensor?.name || `Sensor ${value.sensor_id}`}</td>

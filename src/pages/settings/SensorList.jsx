@@ -549,7 +549,7 @@ const SensorList = () => {
                         title="Sensor Records"
                         data={sensors}
                         columns={columns}
-                        showId={true} // Display sequential ID column
+                        showId={false} // Display sequential ID column
                         initialPageSize={10}
                         searchable={true}
                         selection={false}

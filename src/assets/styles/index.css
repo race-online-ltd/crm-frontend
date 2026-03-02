@@ -114,7 +114,7 @@ p {
 .dashboard-tabs {
   display: flex;
   gap: 8px;
-  padding: 12px;
+  /* padding: 12px; */
   background: transparent;
   align-items: center;
 }

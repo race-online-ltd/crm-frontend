@@ -155,7 +155,7 @@ export default function DataTable({
 
   // ---- search & sort ----
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState(() => initialSort || { key: inferredCols[0]?.key, dir: "asc" });
+  const [sort, setSort] = useState(() => initialSort || { key: inferredCols[0]?.key, dir: "desc" });
 
   const handleQueryChange = (newQuery) => {
     setQuery(newQuery);

@@ -1100,8 +1100,11 @@ const StateConfigs = () => {
                             transition: 'background-color 150ms ease-in-out',
                           }}
                         >
-                          <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>
+                          {/* <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>
                             {(currentPage - 1) * configsPerPage + index + 1}
+                          </td> */}
+                          <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>
+                            {config.id}
                           </td>
                           {/* Data Center path from the original table: config.sensor?.device?.data_center?.name */}
                           <td style={{ padding: '16px 24px', fontSize: '14px', color: '#374151' }}>

@@ -440,6 +440,7 @@ const DataCenterList = () => {
   // --- DATATABLE COLUMN CONFIGURATION (useMemo for stability) ---
   const columns = useMemo(() => [
     // DataTable automatically handles the "No" column if `showId` is true, but we'll manually configure more readable columns
+    { key: "id", header: "ID" }, 
     { key: "name", header: "Name" },
     { key: "division", header: "Division" },
     { key: "address", header: "Address" },
@@ -555,7 +556,7 @@ const DataCenterList = () => {
               title="Data Center Records" // Title can be used internally by DataTable
               data={dataCenters} 
               columns={columns} 
-              showId={true} // Display a sequential ID column
+              showId={false} // Display a sequential ID column
               initialPageSize={10} // Keep 10 per page
               searchable={true} 
               selection={false}
