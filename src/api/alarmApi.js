@@ -16,3 +16,13 @@ export const acknowledgeAlarmStore = async (data) => {
     throw error;
   }
 };
+
+
+export const getAcknowledgeAlarm = async (data) => {
+  try {
+    const response = await apiClient.post('/alarm/acknowledge', data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

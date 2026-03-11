@@ -2005,6 +2005,8 @@ import {
   fetchDiagramSVG,
 } from '../api/settings/dataCenterApi';
 
+import {getAcknowledgeAlarm} from '../api/alarmApi';
+
 const Home = () => {
   let arr = [];
   const { user } = useContext(userContext);
@@ -2642,6 +2644,53 @@ const Home = () => {
 
     console.log('⚠️ Offline Devices:', offlineDevices);
   }, [deviceStatus]);
+
+
+
+
+  // useEffect(() => {
+  //  const alarmSendorIds = updatedAlarmData
+  //     ?.filter((item) => item.alarm > 0)
+  //     .flatMap((item) => item.sensorId) || [];
+
+  //     getAcknowledgeAlarm({sensor_ids: alarmSendorIds})
+  //       .then((response) => {
+  //         console.log('✅ Acknowledge response:', response);
+  //        setIsMuteAlarm((prev) =>
+  //       response.acknowledged_count == alarmSendorIds.length ? false : prev
+  //     );
+  //       })
+  //       .catch((error) => {
+  //         console.error('❌ Failed to acknowledge alarms:', error);
+  //       });
+
+  //   console.log('📢 Alarm Sensor IDs for Details View:', alarmSendorIds);
+  // }, [updatedAlarmData]);
+
+
+  useEffect(() => {
+  const alarmSendorIds =
+    updatedAlarmData
+      ?.filter((item) => item.alarm > 0)
+      .flatMap((item) => item.sensorId) || [];
+
+  if (alarmSendorIds.length === 0) return;
+
+  getAcknowledgeAlarm({ sensor_ids: alarmSendorIds })
+    .then((response) => {
+      console.log('✅ Acknowledge response:', response);
+
+      setIsMuteAlarm((prev) =>
+        response.acknowledged_count === alarmSendorIds.length ? true : prev
+      );
+    })
+    .catch((error) => {
+      console.error('❌ Failed to acknowledge alarms:', error);
+    });
+
+  console.log('📢 Alarm Sensor IDs for Details View:', alarmSendorIds);
+}, [updatedAlarmData]);
+
 
   return (
     <div style={styles.container}>
