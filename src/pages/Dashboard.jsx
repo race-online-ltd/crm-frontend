@@ -45,7 +45,11 @@ const Dashboard = () => {
   const [diagramContent, setDiagramContent] = useState([]);
   const [sensorRealTimeValues, setSensorRealTimeValues] = useState([]);
 
-  const [liveDieselData, setLiveDieselData] = useState(null);
+  // const [liveDieselData, setLiveDieselData] = useState(null);
+  const [liveDieselData, setLiveDieselData] = useState(() => {
+  const saved = localStorage.getItem("liveDieselData");
+  return saved ? JSON.parse(saved) : null;
+});
 
   // sesor Type
   const [allowedSensorIds] = useState(new Set([1, 2]));
@@ -503,19 +507,38 @@ const Dashboard = () => {
   }, [dataCenterId]);
 
   // disel data
+  // useEffect(() => {
+  //   if (!incommingMQTTData?.length || !dataCenterId) return;
+
+  //   const dieselPackets = incommingMQTTData.filter(
+  //     (item) => item.dt === 'diesel' && item.dc === dataCenterId
+  //   );
+
+  //   if (!dieselPackets.length) return;
+
+  //   const latestDiesel = dieselPackets[dieselPackets.length - 1];
+
+  //   setLiveDieselData(latestDiesel);
+  // }, [incommingMQTTData, dataCenterId]);
+
+  // disel data persistance
   useEffect(() => {
-    if (!incommingMQTTData?.length || !dataCenterId) return;
+  if (!incommingMQTTData?.length || !dataCenterId) return;
 
-    const dieselPackets = incommingMQTTData.filter(
-      (item) => item.dt === 'diesel' && item.dc === dataCenterId
-    );
+  const dieselPackets = incommingMQTTData.filter(
+    (item) => item.dt === "diesel" && item.dc === dataCenterId
+  );
 
-    if (!dieselPackets.length) return;
+  if (!dieselPackets.length) return;
 
-    const latestDiesel = dieselPackets[dieselPackets.length - 1];
+  const latestDiesel = dieselPackets[dieselPackets.length - 1];
 
-    setLiveDieselData(latestDiesel);
-  }, [incommingMQTTData, dataCenterId]);
+  setLiveDieselData(latestDiesel);
+
+  // persist data
+  localStorage.setItem("liveDieselData", JSON.stringify(latestDiesel));
+
+}, [incommingMQTTData, dataCenterId]);
 
   // console.log('incommingMQTTData:', incommingMQTTData);
   const tabContentMap = {
