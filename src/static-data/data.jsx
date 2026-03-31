@@ -23,6 +23,10 @@ export const sidebarMenu = [
         title: 'Log',
         path: '/admin/reports/log',
       },
+      {
+        title: 'Alarm Log',
+        path: '/admin/reports/alarm',
+      },
     ],
   },
   {

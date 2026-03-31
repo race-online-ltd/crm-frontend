@@ -2005,7 +2005,7 @@ import {
   fetchDiagramSVG,
 } from '../api/settings/dataCenterApi';
 
-import {getAcknowledgeAlarm} from '../api/alarmApi';
+import {getAcknowledgeAlarm,storeSensorFault} from '../api/alarmApi';
 
 const Home = () => {
   let arr = [];
@@ -2690,6 +2690,99 @@ const Home = () => {
 
   console.log('📢 Alarm Sensor IDs for Details View:', alarmSendorIds);
 }, [updatedAlarmData]);
+
+
+
+// 🔥 insert alarm
+const prevAlarmRef = React.useRef([]);
+
+useEffect(() => {
+  const alarmData = [];
+  const currentIds = [];
+
+  const now = new Date().toISOString();
+
+  // Threshold sensors
+  alarmSensors.forEach((sensor) => {
+    currentIds.push(sensor.sensor_id);
+    alarmData.push({
+      sensor_id: sensor.sensor_id,
+      value: sensor.val,
+      alarm_time: now
+    });
+  });
+
+  // Smoke/Water sensors
+  alarmSmokeWaterSensors.forEach((sensor) => {
+    currentIds.push(sensor.sensor_id);
+    alarmData.push({
+      sensor_id: sensor.sensor_id,
+      value: sensor.val,
+      alarm_time: now
+    });
+  });
+
+  if (alarmData.length === 0) return;
+
+  const prevIds = prevAlarmRef.current;
+
+  // 🔥 only new alarms
+  const newAlarms = alarmData.filter(
+    (item) => !prevIds.includes(item.sensor_id)
+  );
+
+  if (newAlarms.length === 0) {
+    console.log("⛔ No new alarms → skip API");
+    return;
+  }
+
+  console.log("🚨 NEW alarms:", newAlarms);
+
+  prevAlarmRef.current = currentIds;
+
+  storeSensorFault({
+    sensors: newAlarms
+  }).then((res) => {
+    console.log("✅ Alarms stored:", res);
+  }).catch((error) => {
+    console.error("❌ Failed to store alarms:", error);
+  });
+
+}, [alarmSensors, alarmSmokeWaterSensors]);
+
+
+// useEffect(() => {
+//   const alarmData = [];
+
+//   const now = new Date().toISOString(); // 🔥 UTC time
+
+//   alarmSensors.forEach((sensor) => {
+//     alarmData.push({
+//       sensor_id: sensor.sensor_id,
+//       value: sensor.val,
+//       alarm_time: now
+//     });
+//   });
+
+//   alarmSmokeWaterSensors.forEach((sensor) => {
+//     alarmData.push({
+//       sensor_id: sensor.sensor_id,
+//       value: sensor.val,
+//       alarm_time: now
+//     });
+//   });
+
+//   if (alarmData.length === 0) return;
+
+//   storeSensorFault({
+//     sensors: alarmData
+//   }).then((res) => {
+//     console.log("✅ Alarms stored:", res);
+//   }).catch((error) => {
+//     console.error("❌ Failed to store alarms:", error);
+//   });
+
+// }, [alarmSensors, alarmSmokeWaterSensors]);
 
 
   return (

@@ -26,3 +26,21 @@ export const getAcknowledgeAlarm = async (data) => {
     throw error;
   }
 };
+
+export const storeSensorFault = async (data) => {
+  try {
+    const response = await apiClient.post('/alarm/sensor-fault/store', data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const alarmLogs = async (data) => {
+  try {
+    const response = await apiClient.get('/alarm/report', { params: data });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
