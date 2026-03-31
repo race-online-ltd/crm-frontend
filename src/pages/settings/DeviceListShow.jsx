@@ -441,6 +441,7 @@ const DeviceListShow = () => {
     // --- DATATABLE COLUMN CONFIGURATION (useMemo for stability) ---
     const columns = useMemo(() => [
         // DataTable handles the "No" column via showId={true}
+        { key: "id", header: "Device ID" },
         { key: "name", header: "Name" },
         { 
             key: "data_center", 

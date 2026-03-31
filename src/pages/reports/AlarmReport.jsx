@@ -74,6 +74,7 @@ const AlarmReport = () => {
   };
 
   const columns = [
+    { key: "sensor_id", header: "Sensor ID" },
     { key: "datacenter_name", header: "Datacenter" },
     { key: "sensor_type", header: "Sensor Type" },
     { key: "sensor_name", header: "Sensor" },
@@ -120,7 +121,7 @@ const AlarmReport = () => {
 
         searchable={true}
         selection={false}
-        showId={true}
+        showId={false}
 
         // 🔥 ONLY DATACENTER FILTER
         filterComponent={
