@@ -1,0 +1,199 @@
+/* src/components/messaging/MessagingLayout.css */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.mly-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  /* background: #f0f2f5; */
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Navbar */
+/* .mly-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: #ffffff;
+  border-bottom: 1px solid #e4e6eb;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  z-index: 50;
+} */
+.mly-nav-left  { display: flex; align-items: center; gap: 14px; }
+.mly-nav-right { display: flex; align-items: center; gap: 12px; }
+.mly-hamburger { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
+.mly-hamburger span { display: block; width: 20px; height: 2px; background: #555; border-radius: 2px; }
+.mly-nav-title { font-size: 15px; font-weight: 800; color: #1c1e21; letter-spacing: 1.5px; }
+.mly-notif-btn { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; border-radius: 50%; }
+.mly-notif-btn:hover { background: #f0f2f5; }
+.mly-notif-badge { position: absolute; top: 1px; right: 1px; width: 17px; height: 17px; background: #e41e3f; color: #fff; font-size: 10px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.mly-user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#0084ff,#00c6ff); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Body */
+.mly-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 8px 16px 0; gap: 10px; }
+
+/* Company Cards */
+/* Company container */
+.mly-companies {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Company card */
+.mly-company-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1.5px solid #e4e6eb;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1e21;
+  transition: all 0.18s ease;
+  min-width: 150px;
+}
+
+/* Hover */
+.mly-company-card:hover:not(.mly-company-active) {
+  border-color: #c7cbd1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* Active */
+.mly-company-active {
+  border-color: #0084ff;
+  background: #f0f6ff;
+  box-shadow: 0 0 0 3px rgba(0,132,255,0.12);
+}
+
+/* Logo box — SAME size for all logos */
+.mly-company-logo {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 8px;
+  background: #f5f6f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Logo image fit */
+.mly-company-logo img {
+  width: 22px;          /* smaller logo */
+  height: 22px;
+  object-fit: contain;  /* keeps aspect ratio */
+}
+
+/* Company name */
+.mly-company-name {
+  white-space: nowrap;
+}
+/* .mly-companies { display: flex; gap: 2px; flex-shrink: 0; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.mly-company-card { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #fff; border: 2px solid #e4e6eb; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: #1c1e21; transition: border-color 0.15s, box-shadow 0.15s; min-width: 130px; }
+.mly-company-card:hover:not(.mly-company-active) { border-color: #b0b3b8; }
+.mly-company-active { border-color: #0084ff; box-shadow: 0 0 0 3px rgba(0,132,255,0.12); } */
+/* .mly-company-logo { width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg,#0084ff,#00c6ff); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; } */
+.mly-company-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.mly-company-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mly-company-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Platform Tabs */
+.mly-tabs { display: flex; gap: 8px; flex-shrink: 0; }
+.mly-tab { display: flex; align-items: center; gap: 6px; padding: 7px 20px; border-radius: 22px; border: 2px solid #e4e6eb; background: #fff; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; transition: all 0.15s; }
+.mly-tab:hover:not(.mly-tab-active) { border-color: #b0b3b8; background: #f7f7f7; }
+.mly-tab-emoji { font-size: 15px; }
+
+/* Chat Panel — THE KEY LAYOUT */
+.mly-panel {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+  padding-bottom: 16px;
+}
+
+/* Sidebar: fixed wider width */
+.mly-sidebar {
+  width: 340px;
+  min-width: 310px;
+  max-width: 360px;
+  flex-shrink: 0;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* Chat window: fills ALL remaining width */
+.mly-chatwin {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  background: #fff;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mly-sidebar { width: 310px; min-width: 280px; }
+}
+@media (max-width: 768px) {
+  .mly-sidebar { width: 280px; min-width: 250px; }
+  .mly-tab { padding: 7px 14px; font-size: 13px; }
+}
+@media (max-width: 640px) {
+  .mly-body { padding: 10px 10px 0; gap: 8px; }
+  .mly-panel { position: relative; }
+  .mly-sidebar,
+  .mly-chatwin {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 10px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .mly-hide { transform: translateX(-110%); opacity: 0; pointer-events: none; }
+  .mly-tab { padding: 6px 12px; font-size: 12px; gap: 4px; }
+  .mly-company-card { min-width: auto; padding: 7px 10px; gap: 7px; }
+  .mly-company-logo { width: 24px; height: 24px; font-size: 12px; }
+  .mly-company-name { display: none; }
+}
+@media (max-width: 400px) {
+  /* .mly-navbar { padding: 0 12px; } */
+  /* .mly-nav-title { font-size: 13px; } */
+  .mly-body { padding: 8px 8px 0; gap: 6px; }
+}

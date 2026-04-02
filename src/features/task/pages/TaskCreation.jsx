@@ -1,0 +1,86 @@
+// src/features/tasks/pages/TaskCreation.jsx
+import React from 'react';
+import {
+  Box, Typography, Stack, Breadcrumbs, Link, Divider,
+} from '@mui/material';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import EventNoteIcon    from '@mui/icons-material/EventNote';
+import EditNoteIcon     from '@mui/icons-material/EditNote';
+import TaskForm         from '../components/TaskForm';
+
+/**
+ * Props:
+ *  - initialValues: null → create mode | task object → edit mode
+ *  - onCancel()
+ *  - onSubmit(payload)
+ */
+export default function TaskCreation({ initialValues = null, onCancel, onSubmit }) {
+  const isEdit = Boolean(initialValues);
+
+  // Map a task record back to formik shape
+  const formikInitial = initialValues
+    ? {
+        lead:        initialValues.leadId    || '',
+        client:      initialValues.clientId  || '',
+        taskType:    initialValues.taskType  || '',
+        title:       initialValues.title     || '',
+        details:     initialValues.details   || '',
+        scheduledAt: initialValues.scheduledAt ? new Date(initialValues.scheduledAt) : null,
+        location:    initialValues.location  || null,
+      }
+    : undefined; // TaskForm will use its own INITIAL_VALUES
+
+  return (
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 4, md: 6 }, py: { xs: 3, sm: 5 } }}>
+
+      {/* ── Header ── */}
+      <Box mb={3}>
+        <Breadcrumbs
+          separator={<NavigateNextIcon sx={{ fontSize: 14, color: '#94a3b8' }} />}
+          sx={{ mb: 1.5 }}
+        >
+          <Link
+            underline="hover"
+            onClick={onCancel}
+            sx={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500, cursor: 'pointer' }}
+          >
+            Tasks
+          </Link>
+          <Typography sx={{ fontSize: '0.78rem', color: '#1e293b', fontWeight: 600 }}>
+            {isEdit ? 'Edit Task' : 'New Task'}
+          </Typography>
+        </Breadcrumbs>
+
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Box sx={{
+            width: 42, height: 42, borderRadius: '12px',
+            bgcolor: '#eff6ff', border: '1px solid #bfdbfe',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            {isEdit
+              ? <EditNoteIcon  sx={{ fontSize: 22, color: '#2563eb' }} />
+              : <EventNoteIcon sx={{ fontSize: 22, color: '#2563eb' }} />}
+          </Box>
+          <Box>
+            <Typography variant="h5" fontWeight={700} color="#0f172a" lineHeight={1.2}>
+              {isEdit ? 'Edit Task' : 'Create New Task'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.3}>
+              {isEdit
+                ? 'Update the details of this activity.'
+                : 'Log a call, meeting, or follow-up against a lead.'}
+            </Typography>
+          </Box>
+        </Stack>
+      </Box>
+
+      <Divider sx={{ mb: 3 }} />
+
+      <TaskForm
+        initialValues={formikInitial}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />
+    </Box>
+  );
+}

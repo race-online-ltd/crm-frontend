@@ -1,0 +1,43 @@
+/* Lorad CSS */
+/* Container to center everything */
+.loader-container {
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  height: 100vh;
+  background-color: #ffffff; /* Your white system background */
+}
+
+.loader {
+  font-size: 48px;
+  display: inline-block;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  color: #e0e0e0; /* Light gray: visible but "empty" looking */
+  letter-spacing: 2px;
+  position: relative;
+}
+
+.loader::after {
+  content: 'Loading';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #FF3D00; /* Your orange: this will "fill" the letters */
+  width: 0%; /* Starts at 0 */
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: animloader 4s ease-in-out infinite; /* Smoother timing */
+  border-right: 3px solid #FF3D00; /* Optional: adds a "cursor" effect */
+}
+
+@keyframes animloader {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+/* End Loader CSS */
