@@ -402,7 +402,7 @@ export default function ActivityCalendar() {
         </DialogTitle>
 
         <DialogContent sx={{ px: 3.5, py: 3 }}>
-          <ActivityForm
+          <TaskForm
             onCancel={() => setIsModalOpen(false)}
             onSubmit={handleActivitySubmit}
           />

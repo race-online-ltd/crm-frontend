@@ -1,7 +1,5 @@
 // src/components/shared/DateTimePickerField.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
   format as formatDate,
   isValid,
@@ -264,8 +262,7 @@ export default function DateTimePickerField({
   })();
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      {/* Trigger field */}
+    <>
       <TextField
         fullWidth={fullWidth}
         size={size}
@@ -338,7 +335,7 @@ export default function DateTimePickerField({
           </Button>
         </Box>
       </Popover>
-    </LocalizationProvider>
+    </>
   );
 }
 

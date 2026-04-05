@@ -68,9 +68,6 @@ const singleLeadSchema = Yup.object({
   source:    Yup.string().required('Source is required'),
   products:        Yup.array().min(1, 'Select at least one product'),
   client:          Yup.string().required('Client is required'),
-  expectedRevenue: Yup.string()
-    .required('Expected revenue is required')
-    .test('gt-zero', 'Revenue must be greater than 0', (v) => parseFloat(v || 0) > 0),
   stage:    Yup.string().required('Stage is required'),
   deadline: Yup.date().nullable().required('Deadline is required'),
 });
@@ -84,8 +81,6 @@ const INITIAL_VALUES = {
   stage:          '',
   deadline:       null,
 };
-
-
 
 // ─── InfoRow ─────────────────────────────────────────────────────────────────
 function InfoRow({ icon, text, isLink }) {
@@ -238,17 +233,8 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
     handleSubmit,
   } = formik;
 
-  // Keep clientMeta in sync whenever the client field changes
-  const handleClientChange = (fieldName, selectedId) => {
-    setFieldValue(fieldName, selectedId);
-    setClientMeta(CLIENT_META[selectedId] ?? null);
-  };
-
   return (
     <Box sx={{ width: '100%' }}>
-
-      {/* ── Tab switcher ── */}
-   
 
       {/* ── Bulk Upload tab ── */}
       {tab === 1 && <BulkUploadTab onCancel={onCancel} />}
@@ -312,10 +298,6 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
                 alignItems: 'start',
               }}
             >
-              {/*
-               * Pass a custom onChange so we can sync clientMeta
-               * alongside Formik's setFieldValue.
-               */}
               <SelectDropdownSingle
                 name="client"
                 label="Select Client *"
@@ -344,65 +326,62 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
               </Button>
             </Box>
 
-            {/* Map */}
-            <Paper
-              variant="outlined"
-              sx={{
-                height: 210, borderRadius: '12px', overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                mb: 3, bgcolor: '#f8fafc',
-              }}
-            >
-              {clientMeta ? (
-                <iframe
-                  title="client-map"
-                  width="100%" height="100%"
-                  style={{ border: 0, display: 'block' }}
-                  loading="lazy"
-                  src={`https://maps.google.com/maps?q=${clientMeta.lat},${clientMeta.lng}&z=13&output=embed`}
-                />
-              ) : (
-                <Stack alignItems="center" spacing={1}>
-                  <MapIcon sx={{ fontSize: 34, color: '#cbd5e0' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={500} textAlign="center">
-                    Select a client to view location
-                  </Typography>
-                </Stack>
-              )}
-            </Paper>
+            {/* Conditional Map & Info Section */}
+            {clientMeta && (
+              <Box
+                sx={{
+                  gridColumn: '1 / -1',
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gap: '20px',
+                }}
+              >
+                {/* Map */}
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    height: 210, borderRadius: '12px', overflow: 'hidden',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    mb: 3, bgcolor: '#f8fafc',
+                  }}
+                >
+                  <iframe
+                    title="client-map"
+                    width="100%" height="100%"
+                    style={{ border: 0, display: 'block' }}
+                    loading="lazy"
+                    src={`https://maps.google.com/maps?q=${clientMeta.lat},${clientMeta.lng}&z=13&output=embed`}
+                  />
+                </Paper>
 
-            {/* Client info card */}
-            <Paper
-              variant="outlined"
-              sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
-            >
-              <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
-                <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
-                  Client Information
-                </Typography>
-              </Stack>
-              <Divider sx={{ mb: 1.25 }} />
-              {clientMeta ? (
-                <Stack spacing={0.75}>
-                  <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson} />
-                  <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone} />
-                  <InfoRow icon={<EmailIcon />}      text={clientMeta.email} isLink />
-                  <InfoRow icon={<LocationOnIcon />} text={clientMeta.address} />
-                  <InfoRow icon={<MapIcon />}        text={clientMeta.city} />
-                  <InfoRow icon={<PublicIcon />}     text={clientMeta.region} />
-                </Stack>
-              ) : (
-                <Stack alignItems="center" justifyContent="center" sx={{ height: 'calc(100% - 40px)' }}>
-                  <Typography variant="caption" color="text.secondary">No client selected</Typography>
-                </Stack>
-              )}
-            </Paper>
+                {/* Client info card */}
+                <Paper
+                  variant="outlined"
+                  sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
+                    <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+                      Client Information
+                    </Typography>
+                  </Stack>
+                  <Divider sx={{ mb: 1.25 }} />
+                  <Stack spacing={0.75}>
+                    <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson} />
+                    <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone} />
+                    <InfoRow icon={<EmailIcon />}      text={clientMeta.email} isLink />
+                    <InfoRow icon={<LocationOnIcon />} text={clientMeta.address} />
+                    <InfoRow icon={<MapIcon />}        text={clientMeta.city} />
+                    <InfoRow icon={<PublicIcon />}     text={clientMeta.region} />
+                  </Stack>
+                </Paper>
+              </Box>
+            )}
 
             {/* Expected Revenue */}
             <AmountInputField
               name="expectedRevenue"
-              label="Expected Revenue (৳) *"
+              label="Expected Revenue (৳)"
               value={values.expectedRevenue}
               onChange={(e) => setFieldValue('expectedRevenue', e.target.value)}
               onBlur={handleBlur}

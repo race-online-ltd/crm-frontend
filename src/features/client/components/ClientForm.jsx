@@ -14,8 +14,7 @@ import SearchIcon             from '@mui/icons-material/Search';
 import ClearIcon              from '@mui/icons-material/Clear';
 import MyLocationIcon         from '@mui/icons-material/MyLocation';
 import CloseIcon              from '@mui/icons-material/Close';
-import AddLocationAltIcon     from '@mui/icons-material/AddLocationAlt';
-import EditLocationAltIcon    from '@mui/icons-material/EditLocationAlt';
+import MapIcon                from '@mui/icons-material/Map';
 
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import TextInputField       from '../../../components/shared/TextInputField';
@@ -35,13 +34,14 @@ const fetchSource = async () => [
 const fetchDivisions = async () => [
   { id: 'd1', label: 'Dhaka' },
   { id: 'd2', label: 'Chittagong' },
-  { id: 'd3', label: 'Sylhet' },
-  { id: 'd4', label: 'Rajshahi' },
 ];
-const fetchZones = async () => [
-  { id: 'z1', label: 'Zone A' },
-  { id: 'z2', label: 'Zone B' },
-  { id: 'z3', label: 'Zone C' },
+const fetchDistricts = async () => [
+  { id: 'dis1', label: 'Dhaka' },
+  { id: 'dis2', label: 'Gazipur' },
+];
+const fetchThanas = async () => [
+  { id: 't1', label: 'Gulshan' },
+  { id: 't2', label: 'Banani' },
 ];
 const fetchLicenseStatuses = async () => [
   { id: 'active',  label: 'Active' },
@@ -54,20 +54,19 @@ const fetchLicenseStatuses = async () => [
 const clientSchema = Yup.object({
   name:          Yup.string().trim().required('Client name is required'),
   businessEntity:Yup.string().required('Business entity is required'),
-  source:        Yup.string(),                                          // optional
   contactPerson: Yup.string().trim().required('Contact person is required'),
   contactNumber: Yup.string().trim().required('Contact number is required'),
   email:         Yup.string().email('Invalid email').required('Email is required'),
   address:       Yup.string().trim().required('Address is required'),
   division:      Yup.string().required('Division is required'),
-  zone:          Yup.string().required('Zone is required'),
-  licenseStatus: Yup.string(),                                          // optional
+  district:      Yup.string().required('District is required'),
+  thana:         Yup.string().required('Thana is required'),
 });
 
 const INITIAL_VALUES = {
   name: '', businessEntity: '', source: '',
   contactPerson: '', contactNumber: '', email: '',
-  address: '', division: '', zone: '', licenseStatus: '',
+  address: '', division: '', district: '', thana: '', licenseStatus: '',
   location: null,
 };
 
@@ -265,20 +264,7 @@ export default function ClientForm({ onCancel, onSubmit }) {
     initialValues: INITIAL_VALUES,
     validationSchema: clientSchema,
     onSubmit: (values, { setSubmitting }) => {
-      const payload = {
-        name:          values.name.trim(),
-        businessEntity:values.businessEntity,
-        ...(values.source        ? { source: values.source }               : {}),
-        contactPerson: values.contactPerson.trim(),
-        contactNumber: values.contactNumber.trim(),
-        email:         values.email.trim(),
-        address:       values.address.trim(),
-        division:      values.division,
-        zone:          values.zone,
-        ...(values.licenseStatus ? { licenseStatus: values.licenseStatus } : {}),
-        ...(values.location      ? { location: values.location }           : {}),
-      };
-      onSubmit?.(payload);
+      onSubmit?.(values);
       setSubmitting(false);
     },
   });
@@ -290,7 +276,6 @@ export default function ClientForm({ onCancel, onSubmit }) {
     helperText: touched[name] && errors[name] ? errors[name] : ' ',
   });
 
-  // Confirm location from modal
   const handleConfirmLocation = () => {
     if (pendingLocation) setFieldValue('location', pendingLocation);
     setMapModalOpen(false);
@@ -312,11 +297,8 @@ export default function ClientForm({ onCancel, onSubmit }) {
             width: '100%',
           }}
         >
-
           {/* ── Basic Info ── */}
           <SectionHeader icon={<BusinessIcon />} title="Basic Information" />
-
-          {/* Name full width */}
           <Box sx={{ gridColumn: '1 / -1' }}>
             <TextInputField
               name="name" label="Client Name *"
@@ -324,7 +306,6 @@ export default function ClientForm({ onCancel, onSubmit }) {
               {...field('name')}
             />
           </Box>
-
           <SelectDropdownSingle
             name="businessEntity" label="Business Entity *"
             fetchOptions={fetchBusinessEntities}
@@ -333,7 +314,6 @@ export default function ClientForm({ onCancel, onSubmit }) {
             onBlur={handleBlur}
             {...field('businessEntity')}
           />
-
           <SelectDropdownSingle
             name="source" label="Source"
             fetchOptions={fetchSource}
@@ -343,14 +323,10 @@ export default function ClientForm({ onCancel, onSubmit }) {
             error={false} helperText=" "
           />
 
-          <Box sx={{ gridColumn: '1 / -1', mt: 0.5, mb: 0.5 }}>
-            <Divider />
-          </Box>
+          <Box sx={{ gridColumn: '1 / -1', mt: 0.5, mb: 0.5 }}><Divider /></Box>
 
           {/* ── Contact Info ── */}
           <SectionHeader icon={<BusinessIcon />} title="Contact Information" mt={1} />
-
-          {/* Three fields in one row */}
           <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: '4px 20px' }}>
             <TextInputField
               name="contactPerson" label="Contact Person *"
@@ -369,21 +345,18 @@ export default function ClientForm({ onCancel, onSubmit }) {
             />
           </Box>
 
-          {/* Address + location pin button on same row */}
           <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'start' }}>
             <TextareaInputField
               name="address" label="Address *"
               value={values.address} onChange={handleChange} onBlur={handleBlur}
               {...field('address')}
             />
-
-            {/* Location pin button */}
             <Stack alignItems="center" spacing={0.5} sx={{ pt: '2px' }}>
               <IconButton
                 onClick={handleOpenMap}
                 sx={{
                   width: 44, height: 44,
-                  bgcolor: values.location ? '#eff6ff' : '#f8fafc',
+                  bgcolor: values.location ? '#eff6ff' : '#e3e8ec',
                   border: `1px solid ${values.location ? '#bfdbfe' : '#e2e8f0'}`,
                   borderRadius: '10px',
                   color: values.location ? '#2563eb' : '#94a3b8',
@@ -391,15 +364,14 @@ export default function ClientForm({ onCancel, onSubmit }) {
                   '&:focus': { outline: 'none' },
                 }}
               >
-                {values.location ? <EditLocationAltIcon fontSize="small" /> : <AddLocationAltIcon fontSize="small" />}
+                <MapIcon fontSize="small" />
               </IconButton>
               <Typography sx={{ fontSize: '0.6rem', color: values.location ? '#2563eb' : '#94a3b8', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
-                {values.location ? 'Edit' : 'Pin'}
+                Map Location
               </Typography>
             </Stack>
           </Box>
 
-          {/* Pinned address preview pill */}
           {values.location?.address && (
             <Box sx={{ gridColumn: '1 / -1', mt: '-8px' }}>
               <Stack direction="row" spacing={1} alignItems="center"
@@ -416,31 +388,40 @@ export default function ClientForm({ onCancel, onSubmit }) {
             </Box>
           )}
 
-          <Box sx={{ gridColumn: '1 / -1', mt: 0.75, mb: 0.5 }}>
-            <Divider />
-          </Box>
+          <Box sx={{ gridColumn: '1 / -1', mt: 0.75, mb: 0.5 }}><Divider /></Box>
 
           {/* ── Classification ── */}
           <SectionHeader icon={<BusinessIcon />} title="Classification" mt={1} />
+          
+          {/* Row 1: Division, District, Thana */}
+          <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: '4px 20px' }}>
+            <SelectDropdownSingle
+              name="division" label="Division *"
+              fetchOptions={fetchDivisions}
+              value={values.division}
+              onChange={(id) => setFieldValue('division', id)}
+              onBlur={handleBlur}
+              {...field('division')}
+            />
+            <SelectDropdownSingle
+              name="district" label="District *"
+              fetchOptions={fetchDistricts}
+              value={values.district}
+              onChange={(id) => setFieldValue('district', id)}
+              onBlur={handleBlur}
+              {...field('district')}
+            />
+            <SelectDropdownSingle
+              name="thana" label="Thana *"
+              fetchOptions={fetchThanas}
+              value={values.thana}
+              onChange={(id) => setFieldValue('thana', id)}
+              onBlur={handleBlur}
+              {...field('thana')}
+            />
+          </Box>
 
-          <SelectDropdownSingle
-            name="division" label="Division *"
-            fetchOptions={fetchDivisions}
-            value={values.division}
-            onChange={(id) => setFieldValue('division', id)}
-            onBlur={handleBlur}
-            {...field('division')}
-          />
-
-          <SelectDropdownSingle
-            name="zone" label="Zone *"
-            fetchOptions={fetchZones}
-            value={values.zone}
-            onChange={(id) => setFieldValue('zone', id)}
-            onBlur={handleBlur}
-            {...field('zone')}
-          />
-
+          {/* Row 2: License Status */}
           <Box sx={{ gridColumn: '1 / -1' }}>
             <SelectDropdownSingle
               name="licenseStatus" label="License Status"
@@ -451,106 +432,35 @@ export default function ClientForm({ onCancel, onSubmit }) {
               error={false} helperText=" "
             />
           </Box>
-
         </Box>
 
         {/* ── Actions ── */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={1}>
-          <Button
-            fullWidth variant="outlined" onClick={onCancel}
-            sx={{
-              fontWeight: 600, borderRadius: '10px',
-              borderColor: '#e2e8f0', color: '#64748b',
-              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
-            }}
-          >
+          <Button fullWidth variant="outlined" onClick={onCancel} sx={{ fontWeight: 600, borderRadius: '10px', borderColor: '#e2e8f0', color: '#64748b' }}>
             Cancel
           </Button>
-          <Button
-            fullWidth type="submit" variant="contained"
-            disabled={isSubmitting}
-            startIcon={<CheckCircleOutlineIcon />}
-            sx={{
-              fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb',
-              py: 1.2, boxShadow: 'none',
-              '&:hover': { bgcolor: '#1d4ed8', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' },
-              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-            }}
-          >
+          <Button fullWidth type="submit" variant="contained" disabled={isSubmitting} startIcon={<CheckCircleOutlineIcon />} sx={{ fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb', py: 1.2, boxShadow: 'none' }}>
             Create Client
           </Button>
         </Stack>
       </form>
 
       {/* ── Map Modal ── */}
-      <Dialog
-        open={mapModalOpen}
-        onClose={() => setMapModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: '16px', boxShadow: '0 8px 40px rgba(15,23,42,0.12)' },
-        }}
-      >
+      <Dialog open={mapModalOpen} onClose={() => setMapModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}>
         <DialogTitle sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid #f1f5f9' }}>
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{
-              width: 34, height: 34, borderRadius: '9px',
-              bgcolor: '#eff6ff', border: '1px solid #bfdbfe',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <PinDropIcon sx={{ fontSize: 17, color: '#2563eb' }} />
-            </Box>
-            <Box>
-              <Typography fontWeight={700} fontSize="0.95rem" color="#0f172a">
-                Pin Location
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Search, click on the map, or use your current location.
-              </Typography>
-            </Box>
+            <PinDropIcon sx={{ color: '#2563eb' }} />
+            <Typography fontWeight={700} fontSize="0.95rem">Pin Location</Typography>
             <Box flex={1} />
-            <IconButton size="small" onClick={() => setMapModalOpen(false)}
-              sx={{ color: '#94a3b8', '&:hover': { bgcolor: '#f1f5f9' }, '&:focus': { outline: 'none' } }}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
+            <IconButton size="small" onClick={() => setMapModalOpen(false)}><CloseIcon fontSize="small" /></IconButton>
           </Stack>
         </DialogTitle>
-
         <DialogContent sx={{ px: 3, py: 2.5 }}>
-          <LocationPicker
-            value={pendingLocation}
-            onChange={setPendingLocation}
-          />
+          <LocationPicker value={pendingLocation} onChange={setPendingLocation} />
         </DialogContent>
-
-        {/* Modal actions */}
         <Stack direction="row" spacing={1.5} sx={{ px: 3, py: 2, borderTop: '1px solid #f1f5f9' }}>
-          <Button
-            fullWidth variant="outlined"
-            onClick={() => setMapModalOpen(false)}
-            sx={{
-              fontWeight: 600, borderRadius: '10px',
-              borderColor: '#e2e8f0', color: '#64748b',
-              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            fullWidth variant="contained"
-            disabled={!pendingLocation}
-            onClick={handleConfirmLocation}
-            startIcon={<PinDropIcon />}
-            sx={{
-              fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb',
-              boxShadow: 'none',
-              '&:hover': { bgcolor: '#1d4ed8' },
-              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-            }}
-          >
-            Confirm Location
-          </Button>
+          <Button fullWidth variant="outlined" onClick={() => setMapModalOpen(false)}>Cancel</Button>
+          <Button fullWidth variant="contained" disabled={!pendingLocation} onClick={handleConfirmLocation} startIcon={<PinDropIcon />}>Confirm Location</Button>
         </Stack>
       </Dialog>
     </Box>

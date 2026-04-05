@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Button, Typography, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, InputAdornment, TextField, IconButton, Tabs, Tab,
+  DialogActions, InputAdornment, TextField, IconButton,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -233,14 +233,6 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
 
   const { values, errors, touched, setFieldValue, handleChange, handleSubmit, isSubmitting } = formik;
 
-  // Handle switching between tabs
-  const handleTabChange = (event, newValue) => {
-    setMode(newValue);
-    // Reset specific fields when switching modes
-    setFieldValue('lead', '');
-    setFieldValue('client', '');
-  };
-
   const entity = {
     lead:   { name: 'lead',   label: 'Lead *',   fetch: fetchLeads },
     client: { name: 'client', label: 'Client *', fetch: fetchClients },
@@ -254,18 +246,34 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
 
-      {/* TAB SELECTOR */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs 
-          value={mode} 
-          onChange={handleTabChange} 
-          variant="fullWidth" 
-          indicatorColor="primary" 
-          textColor="primary"
-        >
-          <Tab label="Lead Based" value="lead" sx={{ fontWeight: 600 }} />
-          <Tab label="Client Based" value="client" sx={{ fontWeight: 600 }} />
-        </Tabs>
+      {/* ── Tab Switcher ── */}
+      <Box sx={{ display: 'inline-flex', bgcolor: '#f1f5f9', borderRadius: '12px', p: '4px', mb: 2 }}>
+        {['Lead Based', 'Client Based'].map((label, i) => {
+          const tabValue = i === 0 ? 'lead' : 'client';
+          return (
+            <Box
+              key={label}
+              onClick={() => {
+                setMode(tabValue);
+                setFieldValue('lead', '');
+                setFieldValue('client', '');
+              }}
+              sx={{
+                px: 2.5, py: 0.8, borderRadius: '9px', cursor: 'pointer',
+                fontSize: '0.825rem',
+                fontWeight: mode === tabValue ? 700 : 500,
+                color:     mode === tabValue ? '#1e293b' : '#64748b',
+                bgcolor:   mode === tabValue ? '#fff' : 'transparent',
+                boxShadow: mode === tabValue ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.18s ease',
+                userSelect: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {label}
+            </Box>
+          );
+        })}
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>

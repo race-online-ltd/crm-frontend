@@ -32,7 +32,7 @@ const menuItems = [
   { text: "Social",     icon: <ForumIcon />,                 path: "/social" },
   { text: "Social V1",  icon: <ForumIcon />,                 path: "/social_v1" },
   { text: "Components", icon: <DragIndicatorOutlinedIcon />, path: "/components" },
-  { text: "Settings",   icon: <SettingsIcon />,              path: "/settings" },
+  { text: "Target",   icon: <SettingsIcon />,              path: "/target" },
   { text: "Leads",      icon: <PeopleIcon />,                path: "/leads/new" },
   { text: "Tasks",      icon: <BarChartIcon />,              path: "/tasks" },
 ];

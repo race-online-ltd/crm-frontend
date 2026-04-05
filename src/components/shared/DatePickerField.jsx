@@ -1,8 +1,6 @@
 // src/components/shared/DatePickerField.jsx
 import React, { useRef } from 'react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 export default function DatePickerField({
   label = 'Select Date',
@@ -26,28 +24,27 @@ export default function DatePickerField({
   const pickerRef = useRef(null);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <DatePicker
-        label={label}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        readOnly={readOnly}
-        minDate={minDate}
-        maxDate={maxDate}
-        disablePast={disablePast}
-        disableFuture={disableFuture}
-        format={format}
-        views={['year', 'month', 'day']} // Year → Month → Day
-        slotProps={{
-          textField: {
-            fullWidth,
-            size,
-            placeholder,
-            error,
-            helperText,
-            ref: pickerRef,
-            onClick: () => {
+    <DatePicker
+      label={label}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      readOnly={readOnly}
+      minDate={minDate}
+      maxDate={maxDate}
+      disablePast={disablePast}
+      disableFuture={disableFuture}
+      format={format}
+      views={['year', 'month', 'day']} // Year → Month → Day
+      slotProps={{
+        textField: {
+          fullWidth,
+          size,
+          placeholder,
+          error,
+          helperText,
+          ref: pickerRef,
+          onClick: () => {
               if (!disabled && pickerRef.current) {
                 // Programmatically open the picker
                 const button = pickerRef.current.querySelector('button');
@@ -114,6 +111,5 @@ export default function DatePickerField({
           },
         }}
       />
-    </LocalizationProvider>
   );
 }
