@@ -20,6 +20,8 @@ const SetTargetPage = React.lazy(() => import("./features/target/pages/SetTarget
 const SystemUsersPage = React.lazy(() => import("./features/settings/pages/SystemUsersPage"));
 const CreateUserPage = React.lazy(() => import("./features/settings/pages/CreateUserPage"));
 const DataAccessControlPage = React.lazy(() => import("./features/settings/pages/DataAccessControlPage"));
+const TeamPage = React.lazy(() => import("./features/settings/pages/TeamPage"));
+const GroupPage = React.lazy(() => import("./features/settings/pages/GroupPage"));
 const KamPerformancePage = React.lazy(() => import("./features/performance/pages/KamPerformancePage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
@@ -55,6 +57,8 @@ export default function App() {
             <Route path="/settings/users" element={<SystemUsersPage />} />
             <Route path="/settings/users/create" element={<CreateUserPage />} />
             <Route path="/settings/data-access-control" element={<DataAccessControlPage />} />
+            <Route path="/settings/team" element={<TeamPage />} />
+            <Route path="/settings/group" element={<GroupPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
