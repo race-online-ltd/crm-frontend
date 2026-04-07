@@ -11,11 +11,13 @@ import * as Yup from 'yup';
 import DateTimePickerField      from '../../../components/shared/DateTimePickerField';
 import SelectDropdownSingle     from '../../../components/shared/SelectDropdownSingle';
 import TextInputField           from '../../../components/shared/TextInputField';
+import AttachmentField          from '../../../components/shared/AttachmentField';
 import CheckCircleOutlineIcon   from '@mui/icons-material/CheckCircleOutline';
 import PinDropIcon              from '@mui/icons-material/PinDrop';
 import SearchIcon               from '@mui/icons-material/Search';
 import CloseIcon                from '@mui/icons-material/Close';
 import MyLocationIcon           from '@mui/icons-material/MyLocation';
+import { buildMultipartFormData } from '../../../utils/formData';
 
 const LIGHT_BORDER_COLOR = '#e3eaf2';
 const LIGHT_BORDER_HOVER = '#d3deea';
@@ -69,6 +71,7 @@ const DEFAULT_VALUES = {
   details:     '',
   scheduledAt: null,
   location:    null,
+  attachment:  [],
 };
 
 // ─── REVERSE GEOCODE ────────────────────────
@@ -230,6 +233,11 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       const associationId = isAssociationLocked
         ? lockedAssociation.option.id
         : (effectiveMode === 'lead' ? values.lead : values.client);
+      const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
+      if (totalAttachmentSize > 25 * 1024 * 1024) {
+        setSubmitting(false);
+        return;
+      }
 
       const payload = {
         ...(effectiveMode === 'lead' ? { leadId: associationId } : { clientId: associationId }),
@@ -240,8 +248,10 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         location: values.location
           ? { address: values.location.address, latitude: values.location.latitude, longitude: values.location.longitude }
           : null,
+        attachment: values.attachment,
       };
-      onSubmit?.(payload);
+      const formData = buildMultipartFormData(payload);
+      onSubmit?.(payload, formData);
       setSubmitting(false);
     },
   });
@@ -359,6 +369,14 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
             multiline rows={4}
             error={touched.details && Boolean(errors.details)}
             helperText={touched.details && errors.details}
+          />
+        </Box>
+
+        <Box sx={{ gridColumn: '1 / -1' }}>
+          <AttachmentField
+            label="Attachment"
+            value={values.attachment}
+            onChange={(files) => setFieldValue('attachment', files)}
           />
         </Box>
 

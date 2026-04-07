@@ -41,6 +41,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
         details:     initialValues.details   || '',
         scheduledAt: initialValues.scheduledAt ? new Date(initialValues.scheduledAt) : null,
         location:    initialValues.location  || null,
+        attachment:  Array.isArray(initialValues.attachment) ? initialValues.attachment : [],
       }
     : undefined; // TaskForm will use its own INITIAL_VALUES
 

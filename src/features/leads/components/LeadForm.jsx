@@ -25,6 +25,8 @@ import SelectDropdownSingle   from '../../../components/shared/SelectDropdownSin
 import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
 import AmountInputField       from '../../../components/shared/AmountInputField';
 import DatePickerField        from '../../../components/shared/DatePickerField';
+import AttachmentField        from '../../../components/shared/AttachmentField';
+import { buildMultipartFormData } from '../../../utils/formData';
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 const fetchBusinessEntities = async () => [
@@ -80,6 +82,7 @@ const INITIAL_VALUES = {
   expectedRevenue: '',
   stage:          '',
   deadline:       null,
+  attachment:     [],
 };
 
 // ─── InfoRow ─────────────────────────────────────────────────────────────────
@@ -219,7 +222,25 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     validationSchema: singleLeadSchema,
     enableReinitialize: true,
     onSubmit: (values, { setSubmitting }) => {
-      onSubmit?.(values);
+      const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
+      if (totalAttachmentSize > 25 * 1024 * 1024) {
+        setSubmitting(false);
+        return;
+      }
+
+      const payload = {
+        businessEntity: values.businessEntity,
+        source: values.source,
+        products: values.products,
+        client: values.client,
+        expectedRevenue: values.expectedRevenue,
+        stage: values.stage,
+        deadline: values.deadline?.toISOString() || null,
+        attachment: values.attachment,
+      };
+
+      const formData = buildMultipartFormData(payload);
+      onSubmit?.(payload, formData);
       setSubmitting(false);
     },
   });
@@ -425,6 +446,14 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                     ? errors.deadline
                     : ' '
                 }
+              />
+            </Box>
+
+            <Box sx={{ gridColumn: '1 / -1' }}>
+              <AttachmentField
+                label="Attachment"
+                value={values.attachment}
+                onChange={(files) => setFieldValue('attachment', files)}
               />
             </Box>
 

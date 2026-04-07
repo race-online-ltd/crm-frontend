@@ -504,14 +504,15 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         </DialogTitle>
         <DialogContent sx={{ pt: 2.5, overflow: 'visible' }}>
           <TaskForm
-            initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null }}
+            initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null, attachment: [] }}
             lockedAssociation={taskDialog.lead ? {
               mode: 'lead',
               option: { id: taskDialog.lead.id, label: taskDialog.lead.name },
             } : null}
             onCancel={() => setTaskDialog({ open: false, lead: null })}
-            onSubmit={(payload) => {
+            onSubmit={(payload, formData) => {
               console.log('Task created:', payload);
+              console.log('Task multipart payload:', Array.from(formData.entries()));
               // TODO: Send to backend API
               setTaskDialog({ open: false, lead: null });
             }}

@@ -106,40 +106,30 @@ export default function DataAccessControlPage() {
         </Typography> */}
       </Box>
 
-      <Paper
-        elevation={0}
+      <Box
         sx={{
           mb: 3,
-          p: { xs: 2, sm: 2.5 },
-          borderRadius: 2.5,
-          border: '1px solid #d1d9e0',
-          bgcolor: '#fff',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 2,
         }}
       >
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 2,
-          }}
-        >
-          <SelectDropdownSingle
-            name="roleId"
-            label="Role *"
-            fetchOptions={fetchRoleOptions}
-            value={selectedRole}
-            onChange={handleRoleChange}
-          />
+        <SelectDropdownSingle
+          name="roleId"
+          label="Role *"
+          fetchOptions={fetchRoleOptions}
+          value={selectedRole}
+          onChange={handleRoleChange}
+        />
 
-          <SelectDropdownSingle
-            name="featureKey"
-            label="Feature *"
-            fetchOptions={fetchFeatureOptions}
-            value={selectedFeature}
-            onChange={handleFeatureChange}
-          />
-        </Box>
-      </Paper>
+        <SelectDropdownSingle
+          name="featureKey"
+          label="Feature *"
+          fetchOptions={fetchFeatureOptions}
+          value={selectedFeature}
+          onChange={handleFeatureChange}
+        />
+      </Box>
 
       <Paper
         elevation={0}

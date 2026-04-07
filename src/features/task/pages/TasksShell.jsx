@@ -41,8 +41,9 @@ export default function TasksShell() {
     <TaskCreation
       initialValues={editTask}   // null → create mode; task object → edit mode
       onCancel={handleBack}
-      onSubmit={(payload) => {
+      onSubmit={(payload, formData) => {
         console.log(view === 'edit' ? 'Updating task:' : 'Creating task:', payload);
+        console.log('Task multipart payload:', Array.from(formData.entries()));
         // TODO: POST or PATCH to your API, then:
         handleBack();
       }}

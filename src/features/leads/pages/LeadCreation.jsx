@@ -23,6 +23,7 @@ export default function LeadCreation() {
           expectedRevenue: editLead.expectedRevenue || '',
           stage: editLead.stage || '',
           deadline: editLead.deadline ? new Date(editLead.deadline) : null,
+          attachment: Array.isArray(editLead.attachment) ? editLead.attachment : [],
         }
       : null
   ), [editLead]);
@@ -121,8 +122,9 @@ export default function LeadCreation() {
         initialValues={initialValues}
         isEdit={isEdit}
         onCancel={() => navigate(-1)}
-        onSubmit={(values) => {
-          console.log(isEdit ? 'Lead updated:' : 'Lead submitted:', values);
+        onSubmit={(payload, formData) => {
+          console.log(isEdit ? 'Lead updated:' : 'Lead submitted:', payload);
+          console.log('Lead multipart payload:', Array.from(formData.entries()));
         }}
       />
     </Box>

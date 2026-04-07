@@ -26,6 +26,7 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import GroupIcon from "@mui/icons-material/Group";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { Link, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import logo from "../../assets/earth.png";
@@ -149,6 +150,18 @@ export default function Sidebar({ open, handleToggle }) {
                 <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
               </ListItemIcon>
               <ListItemText primary="Data Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+            </ListItemButton>
+            <ListItemButton
+              component={Link}
+              to="/settings/social"
+              selected={location.pathname === "/settings/social"}
+              onClick={isMobile ? handleToggle : undefined}
+              sx={{ pl: 7 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                <HubOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+              </ListItemIcon>
+              <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
             </ListItemButton>
           </List>
         </Collapse>
