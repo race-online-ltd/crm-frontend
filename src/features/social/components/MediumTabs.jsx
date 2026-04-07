@@ -122,7 +122,7 @@ const MediumTabs = () => {
                     className="medium-tab__icon"
                   />
                 </Badge>
-                <span className="medium-tab__label">{label}</span>
+                <span className="medium-tab__label" style={{ marginLeft: 4 }}>{label}</span>
               </button>
             );
           })}

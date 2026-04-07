@@ -117,6 +117,13 @@ export default function BaseTable({
   onDeleteRow,
   onFilter,
   onExport,
+  showToolbar = true,
+  showExportButton = true,
+  showFilterButton = true,
+  showDenseToggle = true,
+  toolbarContent = null,
+  showEditAction = true,
+  showDeleteAction = true,
 }) {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState(columns[0]?.id || "");
@@ -177,23 +184,30 @@ export default function BaseTable({
           border: "1px solid #e2e8f0"
         }}
       >
-        {/* Table Header Section */}
-        <Stack 
-          direction="row" 
-          justifyContent="space-between" 
-          alignItems="center" 
-          sx={{ p: 2.5, backgroundColor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1e293b" }}>
-            {title}
-          </Typography>
-          <Stack direction="row" spacing={1.5}>
-            <ExportCSVButton columns={columns} rows={rows} filename={`${title}.csv`} onClick={onExport} />
-            <FilterButton onClick={onFilter}/>
-          </Stack>
-        </Stack>
+        {showToolbar && (
+          <>
+            <Stack 
+              direction="row" 
+              justifyContent="space-between" 
+              alignItems="center" 
+              sx={{ p: 2.5, backgroundColor: "#fff" }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700, color: "#1e293b" }}>
+                {title}
+              </Typography>
+              {toolbarContent || (
+                <Stack direction="row" spacing={1.5}>
+                  {showExportButton && (
+                    <ExportCSVButton columns={columns} rows={rows} filename={`${title}.csv`} onClick={onExport} />
+                  )}
+                  {showFilterButton && onFilter && <FilterButton onClick={onFilter} />}
+                </Stack>
+              )}
+            </Stack>
 
-        <Divider />
+            <Divider />
+          </>
+        )}
 
         {/* Table Content with Sticky Header */}
         <TableContainer sx={{ maxHeight: 440 }}> {/* আপনি আপনার প্রয়োজন মতো হাইট সেট করতে পারেন */}
@@ -209,7 +223,17 @@ export default function BaseTable({
               hasAction={hasAction}
             />
             <TableBody>
-              {visibleRows.map((row, index) => {
+              {visibleRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (selectable ? 1 : 0) + (hasAction ? 1 : 0)}
+                    align="center"
+                    sx={{ py: 7, color: "#94a3b8", fontSize: "0.875rem" }}
+                  >
+                    No data found
+                  </TableCell>
+                </TableRow>
+              ) : visibleRows.map((row) => {
                 const isItemSelected = selected.includes(row.id);
                 return (
                   <TableRow
@@ -239,16 +263,20 @@ export default function BaseTable({
                     {hasAction && (
                       <TableCell align="center">
                         <Stack direction="row" spacing={0.5} justifyContent="center">
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEditRow?.(row); }}>
-                              <EditIcon sx={{ color: "#94a3b8", fontSize: "1.2rem" }} /> {/* Gray Edit Icon */}
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDeleteRow?.(row); }}>
-                              <DeleteIcon sx={{ color: "#ef4444", fontSize: "1.2rem" }} />
-                            </IconButton>
-                          </Tooltip>
+                          {showEditAction && (
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEditRow?.(row); }}>
+                                <EditIcon sx={{ color: "#94a3b8", fontSize: "1.2rem" }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {showDeleteAction && (
+                            <Tooltip title="Delete">
+                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDeleteRow?.(row); }}>
+                                <DeleteIcon sx={{ color: "#ef4444", fontSize: "1.2rem" }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Stack>
                       </TableCell>
                     )}
@@ -274,12 +302,13 @@ export default function BaseTable({
         />
       </Paper>
 
-      {/* Dense Switch */}
-      <FormControlLabel
-        control={<Switch checked={dense} onChange={(e) => setDense(e.target.checked)} size="small" />}
-        label={<Typography variant="body2" color="textSecondary">Dense padding</Typography>}
-        sx={{ ml: 0.5 }}
-      />
+      {showDenseToggle && (
+        <FormControlLabel
+          control={<Switch checked={dense} onChange={(e) => setDense(e.target.checked)} size="small" />}
+          label={<Typography variant="body2" color="textSecondary">Dense padding</Typography>}
+          sx={{ ml: 0.5 }}
+        />
+      )}
     </Box>
   );
 }
@@ -294,4 +323,11 @@ BaseTable.propTypes = {
   onDeleteRow: PropTypes.func,
   onFilter: PropTypes.func,
   onExport: PropTypes.func,
+  showToolbar: PropTypes.bool,
+  showExportButton: PropTypes.bool,
+  showFilterButton: PropTypes.bool,
+  showDenseToggle: PropTypes.bool,
+  toolbarContent: PropTypes.node,
+  showEditAction: PropTypes.bool,
+  showDeleteAction: PropTypes.bool,
 };

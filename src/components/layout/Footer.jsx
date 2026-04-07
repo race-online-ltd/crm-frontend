@@ -1,6 +1,6 @@
 // src/components/Footer.jsx
 import React from 'react';
-import { Stack, Typography, Link, Box } from '@mui/material';
+import { Stack, Typography, Box } from '@mui/material';
 
 export default function Footer() {
   return (
@@ -23,7 +23,7 @@ export default function Footer() {
       >
         {/* center side: Copyright */}
         <Typography variant="caption" color="text.secondary">
-          &copy; {new Date().getFullYear()} <a href='https://www.race.net.bd/' target='_blank'>Race Online Ltd</a> - Software Division
+          &copy; {new Date().getFullYear()} <a href='https://www.race.net.bd/' target='_blank' rel="noreferrer" style={{ color: 'rgb(136, 182, 68)' }}>Race Online Ltd</a> - Software Division
         </Typography>
       </Stack>
     </Box>

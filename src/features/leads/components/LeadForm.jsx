@@ -209,14 +209,15 @@ function BulkUploadTab({ onCancel }) {
 }
 
 // ─── Main LeadForm ────────────────────────────────────────────────────────────
-export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
+export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = null, isEdit = false }) {
   const navigate = useNavigate();
-  const [clientMeta, setClientMeta] = useState(null);
+  const formInitialValues = initialValues ?? INITIAL_VALUES;
 
   // ── useFormik hook ──────────────────────────────────────────────────────────
   const formik = useFormik({
-    initialValues:    INITIAL_VALUES,
+    initialValues:    formInitialValues,
     validationSchema: singleLeadSchema,
+    enableReinitialize: true,
     onSubmit: (values, { setSubmitting }) => {
       onSubmit?.(values);
       setSubmitting(false);
@@ -232,6 +233,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
     handleBlur,
     handleSubmit,
   } = formik;
+  const clientMeta = values.client ? CLIENT_META[values.client] ?? null : null;
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -260,6 +262,8 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
               onBlur={handleBlur}
               error={Boolean(touched.businessEntity && errors.businessEntity)}
               helperText={touched.businessEntity && errors.businessEntity ? errors.businessEntity : ' '}
+              disabled={isEdit}
+              searchable={!isEdit}
             />
 
             {/* Source */}
@@ -305,25 +309,28 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
                 value={values.client}
                 onChange={(id) => {
                   setFieldValue('client', id);
-                  setClientMeta(CLIENT_META[id] ?? null);
                 }}
                 onBlur={handleBlur}
                 error={Boolean(touched.client && errors.client)}
                 helperText={touched.client && errors.client ? errors.client : ' '}
+                disabled={isEdit}
+                searchable={!isEdit}
               />
-              <Button
-                variant="contained"
-                startIcon={<PersonAddAltIcon />}
-                onClick={() => navigate('/client/new')}
-                sx={{
-                  height: '45px', fontWeight: 600, fontSize: '0.8rem',
-                  bgcolor: '#2563eb', borderRadius: '8px', boxShadow: 'none',
-                  whiteSpace: 'nowrap', px: 2,
-                  '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' },
-                }}
-              >
-                Add Client
-              </Button>
+              {!isEdit && (
+                <Button
+                  variant="contained"
+                  startIcon={<PersonAddAltIcon />}
+                  onClick={() => navigate('/client/new')}
+                  sx={{
+                    height: '45px', fontWeight: 600, fontSize: '0.8rem',
+                    bgcolor: '#2563eb', borderRadius: '8px', boxShadow: 'none',
+                    whiteSpace: 'nowrap', px: 2,
+                    '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' },
+                  }}
+                >
+                  Add Client
+                </Button>
+              )}
             </Box>
 
             {/* Conditional Map & Info Section */}
@@ -448,7 +455,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0 }) {
                 '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
               }}
             >
-              Create Lead
+              {isEdit ? 'Update Lead' : 'Create Lead'}
             </Button>
           </Stack>
         </form>

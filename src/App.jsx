@@ -11,11 +11,17 @@ const TestPage = React.lazy(() => import("./pages/TestPage"));
 const Social = React.lazy(() => import("./pages/Social"));
 const Components = React.lazy(() => import("./pages/Components"));
 const LeadCreation = React.lazy(() => import("./features/leads/pages/LeadCreation"));
+const LeadListPage = React.lazy(() => import("./features/leads/pages/LeadListPage"));
 const ClientCreation = React.lazy(() => import("./features/client/pages/ClientCreation"));
 const TaskCreation = React.lazy(() => import("./features/task/pages/TaskCreation"));
 const TasksShell = React.lazy(() => import("./features/task/pages/TasksShell"));
 const TargetList = React.lazy(() => import("./features/target/pages/TargetList"));
 const SetTargetPage = React.lazy(() => import("./features/target/pages/SetTargetPage"));
+const SystemUsersPage = React.lazy(() => import("./features/settings/pages/SystemUsersPage"));
+const CreateUserPage = React.lazy(() => import("./features/settings/pages/CreateUserPage"));
+const DataAccessControlPage = React.lazy(() => import("./features/settings/pages/DataAccessControlPage"));
+const KamPerformancePage = React.lazy(() => import("./features/performance/pages/KamPerformancePage"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const Loading = () => (
   <div className="loader-container">
@@ -35,6 +41,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/test" element={<TestPage />} />
+            <Route path="/leads" element={<LeadListPage />} />
             <Route path="/leads/new" element={<LeadCreation />} />
             <Route path="/tasks" element={<TasksShell />} />
             <Route path="/tasks/new" element={<TasksShell />} />
@@ -44,9 +51,13 @@ export default function App() {
             <Route path="/components" element={<Components />} />
             <Route path="/target" element={<TargetList />} />
             <Route path="/target/set" element={<SetTargetPage />} />
+            <Route path="/performance" element={<KamPerformancePage />} />
+            <Route path="/settings/users" element={<SystemUsersPage />} />
+            <Route path="/settings/users/create" element={<CreateUserPage />} />
+            <Route path="/settings/data-access-control" element={<DataAccessControlPage />} />
           </Route>
 
-          <Route path="*" element={<div>Page Not Found</div>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </LocalizationProvider>

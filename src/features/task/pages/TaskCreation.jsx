@@ -19,12 +19,23 @@ import TaskForm         from '../components/TaskForm';
 export default function TaskCreation({ initialValues = null, onCancel, onSubmit }) {
   const navigate = useNavigate();
   const isEdit = Boolean(initialValues);
+  const associationMode = initialValues?.assocType === 'client' ? 'client' : 'lead';
+  const associationOption = isEdit
+    ? {
+        id: associationMode === 'lead'
+          ? (initialValues.leadId || initialValues.lead || '')
+          : (initialValues.clientId || initialValues.client || ''),
+        label: associationMode === 'lead'
+          ? (initialValues.lead || initialValues.leadName || '')
+          : (initialValues.client || initialValues.clientName || ''),
+      }
+    : null;
 
   // Map a task record back to formik shape
   const formikInitial = initialValues
     ? {
-        lead:        initialValues.leadId    || '',
-        client:      initialValues.clientId  || '',
+        lead:        initialValues.leadId    || initialValues.lead || '',
+        client:      initialValues.clientId  || initialValues.client || '',
         taskType:    initialValues.taskType  || '',
         title:       initialValues.title     || '',
         details:     initialValues.details   || '',
@@ -103,6 +114,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
         initialValues={formikInitial}
         onCancel={onCancel}
         onSubmit={onSubmit}
+        lockedAssociation={isEdit ? { mode: associationMode, option: associationOption } : null}
       />
     </Box>
   );

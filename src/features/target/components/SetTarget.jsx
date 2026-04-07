@@ -25,11 +25,11 @@ const fetchDivisions = async () => [
 ];
 const fetchTargetTypes = async () => [
   { id: 'revenue', label: 'Revenue' },
-  { id: 'client', label: 'Clients' },
+  { id: 'client',  label: 'Clients'  },
 ];
 const PRODUCT_OPTIONS = [
   { id: 'p1', label: 'Product Alpha' },
-  { id: 'p2', label: 'Product Beta' },
+  { id: 'p2', label: 'Product Beta'  },
   { id: 'p3', label: 'Product Gamma' },
   { id: 'p4', label: 'Product Delta' },
 ];
@@ -45,7 +45,7 @@ const setTargetSchema = Yup.object({
     .typeError('Must be a number')
     .positive('Must be greater than 0')
     .required('Target value is required'),
-  reward:           Yup.string(), // optional
+  reward:           Yup.string(),
 });
 
 const INITIAL_VALUES = {
@@ -83,7 +83,6 @@ export default function SetTarget({ onCancel, onSubmit }) {
     handleSubmit,
   } = formik;
 
-  // Derived label for amount field
   const amountLabel = values.targetType === 'client'
     ? 'Number of Clients *'
     : 'Revenue Target (৳) *';
@@ -110,9 +109,9 @@ export default function SetTarget({ onCancel, onSubmit }) {
               name="businessEntities"
               label="Business Entity *"
               options={[
-                { id: 'be1', label: 'Alpha Corp' },
-                { id: 'be2', label: 'Beta Holdings' },
-                { id: 'be3', label: 'Gamma Ltd' },
+                { id: 'be1', label: 'Alpha Corp'      },
+                { id: 'be2', label: 'Beta Holdings'   },
+                { id: 'be3', label: 'Gamma Ltd'       },
               ]}
               value={values.businessEntities}
               onChange={(ids) => setFieldValue('businessEntities', ids)}
@@ -203,7 +202,6 @@ export default function SetTarget({ onCancel, onSubmit }) {
                 ? 'Enter number of new clients to acquire'
                 : 'Enter revenue target in BDT'
             }
-            // Override prefix for client type
             {...(values.targetType === 'client' ? { currencySymbol: '#' } : {})}
           />
 
@@ -238,11 +236,26 @@ export default function SetTarget({ onCancel, onSubmit }) {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
+                  minHeight: '45px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px 10px !important',
                   borderRadius: '8px',
                   fontSize: '0.875rem',
                   '& fieldset': { borderColor: '#e2e8f0' },
                   '&:hover fieldset': { borderColor: '#94a3b8' },
                   '&.Mui-focused fieldset': { borderColor: '#2563eb' },
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: '0.8125rem',
+                  padding: '4px 0 !important',
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.8125rem',
+                  transform: 'translate(14px, 12.857px) scale(1)',
+                },
+                '& .MuiInputLabel-shrink': {
+                  transform: 'translate(14px, -6px) scale(0.75)',
                 },
               }}
               helperText=" "

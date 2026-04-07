@@ -67,17 +67,11 @@
 // };
 
 // export default WhatsAppConversation;
-
-
-// Keep only Search + MoreVert in header actions.
-
 import IconButton from '@mui/material/IconButton';
 import SendIcon from '@mui/icons-material/Send';
 import MicIcon from '@mui/icons-material/Mic';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import SearchIcon from '@mui/icons-material/Search';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
@@ -99,24 +93,40 @@ const WhatsAppConversation = ({ contact, messages }) => {
           </div>
         </div>
         <div className="whatsapp-conv__actions">
-          {/* Phone + Videocam removed */}
-          <Button size="small" variant="contained"
-              sx={{
-                backgroundColor: '#25D366',
-                marginLeft: "auto",
-                textTransform: "none",
-                fontSize: 12,
-                borderRadius: 50,
-              }}
-            >
-              Convert +
-            </Button>
-          {/* <IconButton size="small" sx={{ color: '#fff' }}>
-            <SearchIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" sx={{ color: '#fff' }}>
-            <MoreVertIcon fontSize="small" />
-          </IconButton> */}
+          <Button
+            size="small"
+            variant="contained"
+            sx={{
+              backgroundColor: '#25D366',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              boxShadow: 'none',
+              '&:hover': {
+                backgroundColor: '#1ebe5a',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            Convert to lead
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{
+              color: '#fff',
+              borderColor: 'rgba(255, 255, 255, 0.7)',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              '&:hover': {
+                borderColor: '#fff',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            }}
+          >
+            Convert to task
+          </Button>
         </div>
       </div>
 

@@ -1,83 +1,165 @@
 // src/features/target/components/MonthPickerField.jsx
-// A month-only picker field following the same pattern as DatePickerField.
-// Uses MUI DatePicker with views limited to ['year', 'month'] and openTo="month".
-// If your project already uses @mui/x-date-pickers, this drops in seamlessly.
-
 import React, { useState } from 'react';
-import { DatePicker }      from '@mui/x-date-pickers/DatePicker';
-import CalendarMonthIcon   from '@mui/icons-material/CalendarMonth';
+import {
+  format as formatDate,
+  isValid,
+  addYears,
+  subYears,
+  isPast,
+  endOfMonth,
+  startOfMonth,
+  isToday,
+} from 'date-fns';
+import {
+  Popover,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Box,
+  Typography,
+} from '@mui/material';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CloseIcon         from '@mui/icons-material/Close';
+import ChevronLeftIcon   from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon  from '@mui/icons-material/ChevronRight';
+import { fieldSx }       from '../../../components/shared/SelectDropdownSingle';
 
-/**
- * MonthPickerField
- * @param {string}    label
- * @param {Date|null} value
- * @param {Function}  onChange    — called with (Date | null)
- * @param {boolean}   error
- * @param {string}    helperText
- * @param {boolean}   disablePast — prevents selecting past months
- */
-export default function MonthPickerField({
-  label      = 'Target Month',
-  value      = null,
-  onChange,
-  error      = false,
-  helperText = ' ',
-  disablePast = false,
-}) {
-  const [open, setOpen] = useState(false);
+const FIELD_HEIGHT = 45;
+
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr',
+  'May', 'Jun', 'Jul', 'Aug',
+  'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+// ─── MONTH GRID ───────────────────────────────────────────────────────────────
+function MonthGrid({ selectedDate, onSelectMonth, disablePast }) {
+  const [year, setYear] = useState(
+    selectedDate && isValid(selectedDate) ? selectedDate.getFullYear() : new Date().getFullYear()
+  );
 
   return (
-    <DatePicker
-      open={open}
-      label={label}
-      value={value}
-      onChange={(newValue) => {
-        onChange?.(newValue);
-      }}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      views={['year', 'month']}
-      openTo="month"
-      disablePast={disablePast}
-      slotProps={{
-        textField: {
-          fullWidth:  true,
-          size:       'small',
-            error:      error,
-            helperText: helperText,
-            onClick: () => setOpen(true),
-            InputProps: {
-              sx: {
+    <Box sx={{ width: 260, p: 2 }}>
+      {/* Year nav */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <IconButton size="small" onClick={() => setYear((y) => y - 1)}>
+          <ChevronLeftIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+        <Typography
+          fontWeight={700}
+          sx={{ flex: 1, textAlign: 'center', color: 'primary.main', fontSize: 15 }}
+        >
+          {year}
+        </Typography>
+        <IconButton size="small" onClick={() => setYear((y) => y + 1)}>
+          <ChevronRightIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Box>
+
+      {/* Month grid */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+        {MONTHS.map((label, idx) => {
+          const monthDate  = new Date(year, idx, 1);
+          const isSel      = selectedDate && isValid(selectedDate)
+            && selectedDate.getFullYear() === year
+            && selectedDate.getMonth()    === idx;
+          const isPastMonth = disablePast && isPast(endOfMonth(monthDate)) && !isToday(endOfMonth(monthDate));
+
+          return (
+            <Box
+              key={label}
+              onClick={() => !isPastMonth && onSelectMonth(monthDate)}
+              sx={{
+                py:           1,
                 borderRadius: '8px',
-                fontSize:     '0.875rem',
-              },
-            },
-            sx: {
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-              fontSize:     '0.875rem',
-              '& fieldset':        { borderColor: '#e2e8f0' },
-              '&:hover fieldset':  { borderColor: '#94a3b8' },
-              '&.Mui-focused fieldset': { borderColor: '#2563eb', borderWidth: 2 },
-              '&.Mui-error fieldset':   { borderColor: '#ef4444' },
-            },
-            '& .MuiInputLabel-root': {
-              fontSize: '0.875rem',
-              '&.Mui-focused': { color: '#2563eb' },
-              '&.Mui-error':   { color: '#ef4444' },
-            },
-            '& .MuiFormHelperText-root': {
-              mx: 0,
-              '&.Mui-error': { color: '#ef4444' },
-            },
-          },
-        },
-        openPickerIcon: {
-          component: () => (
-            <CalendarMonthIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+                textAlign:    'center',
+                fontSize:     13,
+                fontWeight:   isSel ? 700 : 400,
+                cursor:       isPastMonth ? 'default' : 'pointer',
+                color:        isSel ? '#fff' : isPastMonth ? 'text.disabled' : 'text.primary',
+                bgcolor:      isSel ? 'primary.main' : 'transparent',
+                userSelect:   'none',
+                '&:hover': { bgcolor: isPastMonth ? 'transparent' : isSel ? 'primary.main' : 'action.hover' },
+              }}
+            >
+              {label}
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+export default function MonthPickerField({
+  label       = 'Target Month',
+  value       = null,
+  onChange,
+  error       = false,
+  helperText  = ' ',
+  disablePast = false,
+}) {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  function handleOpen(e)  { setAnchorEl(e.currentTarget); }
+  function handleClose()  { setAnchorEl(null); }
+  function handleSelect(monthDate) { onChange?.(monthDate); handleClose(); }
+  function handleClear(e) { e.stopPropagation(); onChange?.(null); }
+
+  const displayValue = value && isValid(new Date(value))
+    ? formatDate(new Date(value), 'MMM yyyy')
+    : '';
+
+  return (
+    <>
+      <TextField
+        fullWidth
+        size="small"
+        label={label}
+        value={displayValue}
+        placeholder="MMM YYYY"
+        error={error}
+        helperText={helperText}
+        onClick={handleOpen}
+        inputProps={{ readOnly: true }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <CalendarMonthIcon sx={{ fontSize: 18, color: open ? 'primary.main' : '#94a3b8' }} />
+            </InputAdornment>
           ),
-        },
-      }}
-    />
+          endAdornment: value ? (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={handleClear}
+                sx={{ padding: '4px', width: '28px', height: '28px' }}>
+                <CloseIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
+        }}
+        sx={{
+          cursor: 'pointer',
+          ...fieldSx(FIELD_HEIGHT),
+          '& .MuiInputBase-input': { cursor: 'pointer' },
+        }}
+      />
+
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ elevation: 4, sx: { borderRadius: '12px', overflow: 'hidden', mt: 0.5 } }}
+      >
+        <MonthGrid
+          selectedDate={value && isValid(new Date(value)) ? new Date(value) : null}
+          onSelectMonth={handleSelect}
+          disablePast={disablePast}
+        />
+      </Popover>
+    </>
   );
 }

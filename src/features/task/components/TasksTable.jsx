@@ -1,29 +1,28 @@
 // src/features/tasks/components/TasksTable.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Box, Typography, Stack, Button, IconButton, Menu, MenuItem,
-  Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Tooltip, Paper, Pagination,
+  Tooltip, Paper, Pagination,
   useMediaQuery, useTheme,
 } from '@mui/material';
 import EditOutlinedIcon       from '@mui/icons-material/EditOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import DeleteOutlineIcon      from '@mui/icons-material/DeleteOutline';
 import PinDropIcon            from '@mui/icons-material/PinDrop';
 import AccessTimeIcon         from '@mui/icons-material/AccessTime';
 import PhoneIcon              from '@mui/icons-material/Phone';
 import VideocamOutlinedIcon   from '@mui/icons-material/VideocamOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
-import TaskAltIcon            from '@mui/icons-material/TaskAlt';
-import GpsFixedIcon           from '@mui/icons-material/GpsFixed';
-import WarningAmberIcon       from '@mui/icons-material/WarningAmber';
 import MoreHorizIcon          from '@mui/icons-material/MoreHoriz';
 import AddIcon                from '@mui/icons-material/Add';
 import PersonOutlineIcon      from '@mui/icons-material/PersonOutline';
+import BlockIcon              from '@mui/icons-material/Block';
 import { format }             from 'date-fns';
 
 // Shared config and chips live in TaskDetails so they stay in sync
-import TaskDetails, { TYPE_CONFIG, STATUS_CONFIG, TypeChip, StatusChip } from './TaskDetails';
+import TaskDetails, { TYPE_CONFIG, TypeChip, StatusChip } from './TaskDetails';
+import TaskCheckInDialog from './TaskCheckInDialog';
+import TaskCancelDialog from './TaskCancelDialog';
+import TaskCompleteDialog from './TaskCompleteDialog';
 
 const ROWS_PER_PAGE = 5;
 
@@ -72,126 +71,10 @@ function ScheduledCell({ scheduledAt, status }) {
   );
 }
 
-// ─── CHECK-IN DIALOG ──────────────────────────────────────────────────────────
-function CheckInDialog({ open, task, onClose, onSuccess }) {
-  const [state, setState]       = useState('idle');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  function haversine(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (d) => (d * Math.PI) / 180;
-    const dφ = toRad(lat2 - lat1), dλ = toRad(lon2 - lon1);
-    const a  = Math.sin(dφ / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dλ / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  async function handleCheckIn() {
-    if (!navigator.geolocation) { setErrorMsg('Geolocation not supported.'); setState('error'); return; }
-    setState('locating');
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        setState('checking');
-        const dist = haversine(pos.coords.latitude, pos.coords.longitude, task.location.latitude, task.location.longitude);
-        await new Promise((r) => setTimeout(r, 700));
-        if (dist <= 200) {
-          setState('success');
-          setTimeout(() => { onSuccess(task.id); onClose(); setState('idle'); }, 1200);
-        } else {
-          setErrorMsg(`You are ${Math.round(dist)} m away. Must be within 200 m to check in.`);
-          setState('error');
-        }
-      },
-      (err) => {
-        setErrorMsg(err.code === 1 ? 'Location permission denied.' : 'Unable to get your location.');
-        setState('error');
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
-
-  function handleClose() { setState('idle'); setErrorMsg(''); onClose(); }
-
-  return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <GpsFixedIcon color="primary" fontSize="small" />
-          <Typography fontWeight={700} fontSize={15}>Check In</Typography>
-        </Stack>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" fontWeight={600} mb={1.5}>{task?.title}</Typography>
-        {task?.location?.address && (
-          <Box sx={{ display: 'flex', gap: 1, mb: 2, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
-            <PinDropIcon fontSize="small" color="primary" sx={{ flexShrink: 0 }} />
-            <Typography variant="body2" color="text.secondary">{task.location.address}</Typography>
-          </Box>
-        )}
-        {state === 'idle' && (
-          <Typography variant="body2" color="text.secondary">
-            We'll verify your GPS matches the venue (within 200 m).
-          </Typography>
-        )}
-        {(state === 'locating' || state === 'checking') && (
-          <Stack alignItems="center" gap={1.5} py={2}>
-            <CircularProgress size={36} />
-            <Typography variant="body2" color="text.secondary">
-              {state === 'locating' ? 'Acquiring location…' : 'Verifying…'}
-            </Typography>
-          </Stack>
-        )}
-        {state === 'success' && (
-          <Stack alignItems="center" gap={1} py={2}>
-            <TaskAltIcon sx={{ fontSize: 44, color: '#16a34a' }} />
-            <Typography fontWeight={700} color="#16a34a">Check-in successful!</Typography>
-          </Stack>
-        )}
-        {state === 'error' && (
-          <Stack direction="row" gap={1} p={1.5} bgcolor="#fff7ed" borderRadius={2} border="1px solid #fed7aa" mt={1}>
-            <WarningAmberIcon sx={{ color: '#ea580c', flexShrink: 0, fontSize: 18 }} />
-            <Typography variant="body2" color="#9a3412">{errorMsg}</Typography>
-          </Stack>
-        )}
-      </DialogContent>
-      <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
-        <Button onClick={handleClose} variant="outlined" color="inherit" size="small" sx={{ borderRadius: 2 }}>
-          Cancel
-        </Button>
-        {(state === 'idle' || state === 'error') && (
-          <Button onClick={handleCheckIn} variant="contained" size="small" startIcon={<GpsFixedIcon />} sx={{ borderRadius: 2 }}>
-            {state === 'error' ? 'Retry' : 'Share Location & Check In'}
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-// ─── DELETE DIALOG ────────────────────────────────────────────────────────────
-function DeleteDialog({ open, task, onClose, onConfirm }) {
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <DialogTitle><Typography fontWeight={700}>Delete Task?</Typography></DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary">
-          Are you sure you want to delete <strong>"{task?.title}"</strong>? This cannot be undone.
-        </Typography>
-      </DialogContent>
-      <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" color="inherit" size="small" sx={{ borderRadius: 2 }}>
-          Cancel
-        </Button>
-        <Button onClick={() => onConfirm(task?.id)} variant="contained" color="error" size="small" sx={{ borderRadius: 2 }}>
-          Delete
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 // ─── ROW MENU ─────────────────────────────────────────────────────────────────
-function RowMenu({ task, onEdit, onMarkComplete, onDelete }) {
+function RowMenu({ task, onEdit, onMarkComplete, onCancelTask }) {
   const [anchor, setAnchor] = useState(null);
+  const isDone = task.status === 'completed' || task.status === 'cancelled';
   return (
     <>
       <IconButton
@@ -213,15 +96,16 @@ function RowMenu({ task, onEdit, onMarkComplete, onDelete }) {
         <MenuItem onClick={(e) => { e.stopPropagation(); onEdit(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13 }}>
           <EditOutlinedIcon fontSize="small" sx={{ color: '#64748b' }} />Edit
         </MenuItem>
-        {task.status !== 'completed' && (
-          <MenuItem onClick={(e) => { e.stopPropagation(); onMarkComplete(task.id); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13 }}>
+        {!isDone && (
+          <MenuItem onClick={(e) => { e.stopPropagation(); onMarkComplete(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13 }}>
             <CheckCircleOutlineIcon fontSize="small" sx={{ color: '#16a34a' }} />Mark as Complete
           </MenuItem>
         )}
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem onClick={(e) => { e.stopPropagation(); onDelete(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13, color: '#dc2626' }}>
-          <DeleteOutlineIcon fontSize="small" />Delete
-        </MenuItem>
+        {!isDone && (
+          <MenuItem onClick={(e) => { e.stopPropagation(); onCancelTask(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13, color: '#dc2626' }}>
+            <BlockIcon fontSize="small" />Cancel
+          </MenuItem>
+        )}
       </Menu>
     </>
   );
@@ -237,8 +121,9 @@ function RowMenu({ task, onEdit, onMarkComplete, onDelete }) {
  *   5. Status chip
  *   6. Check In button (physical only) + ⋯ menu
  */
-function DesktopRow({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowClick, isLast }) {
+function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRowClick, isLast }) {
   const isCompleted = task.status === 'completed';
+  const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
 
   return (
@@ -296,7 +181,7 @@ function DesktopRow({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowCl
         direction="row" alignItems="center" gap={0.5} justifyContent="flex-end"
         onClick={(e) => e.stopPropagation()}
       >
-        {isPhysical && task.location && !isCompleted && (
+        {isPhysical && task.location && !isCompleted && !isCancelled && (
           <Tooltip title="GPS check-in required">
             <Button
               size="small"
@@ -314,16 +199,17 @@ function DesktopRow({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowCl
             </Button>
           </Tooltip>
         )}
-        <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onDelete={onDelete} />
+        <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
       </Stack>
     </Box>
   );
 }
 
 // ─── MOBILE CARD ─────────────────────────────────────────────────────────────
-function MobileCard({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowClick }) {
+function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRowClick }) {
   const isOverdue   = task.status === 'overdue';
   const isCompleted = task.status === 'completed';
+  const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
 
   return (
@@ -357,7 +243,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowCl
           </Box>
         </Stack>
         <Box onClick={(e) => e.stopPropagation()}>
-          <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onDelete={onDelete} />
+          <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
         </Box>
       </Stack>
 
@@ -378,7 +264,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowCl
         {task.lead && (
           <Typography fontSize={11} color="#94a3b8">{task.lead}</Typography>
         )}
-        {isPhysical && task.location && !isCompleted && (
+        {isPhysical && task.location && !isCompleted && !isCancelled && (
           <Box mt={1} onClick={(e) => e.stopPropagation()}>
             <Button
               size="small"
@@ -408,7 +294,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onDelete, onCheckIn, onRowCl
  *   tasks         {Array}    – task objects (managed by parent)
  *   onEdit        {Function} – (task) => void
  *   onNewTask     {Function} – () => void — used in empty-state CTA
- *   onTasksChange {Function} – (updatedTasks) => void — fires on complete/delete
+ *   onTasksChange {Function} – (updatedTasks) => void — fires on complete/cancel
  *   searchQuery   {string}   – filters rows (optional, default '')
  *
  * Task shape — see TaskDetails.jsx for full JSDoc.
@@ -419,7 +305,8 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
 
   const [page, setPage]               = useState(1);
   const [checkInTask, setCheckInTask] = useState(null);
-  const [deleteTask, setDeleteTask]   = useState(null);
+  const [cancelTask, setCancelTask]   = useState(null);
+  const [completeTask, setCompleteTask] = useState(null);
   const [detailTask, setDetailTask]   = useState(null); // drives <TaskDetails>
 
   const filtered = tasks.filter((t) => {
@@ -436,19 +323,34 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
   const safePage   = Math.min(page, totalPages);
   const paginated  = filtered.slice((safePage - 1) * ROWS_PER_PAGE, safePage * ROWS_PER_PAGE);
 
-  const handleMarkComplete = useCallback((id) => {
-    onTasksChange?.(tasks.map((t) => t.id === id ? { ...t, status: 'completed' } : t));
-  }, [tasks, onTasksChange]);
-
-  const handleDelete = useCallback((id) => {
-    onTasksChange?.(tasks.filter((t) => t.id !== id));
-    setDeleteTask(null);
+  const handleMarkComplete = (task) => {
     setDetailTask(null);
-  }, [tasks, onTasksChange]);
+    setCompleteTask(task);
+  };
 
-  const handleCheckInSuccess = useCallback((id) => {
+  const handleCompleteTask = (id, payload) => {
+    onTasksChange?.(tasks.map((t) => (
+      t.id === id
+        ? { ...t, status: 'completed', completionMessage: payload.completionMessage }
+        : t
+    )));
+    setCompleteTask(null);
+    setDetailTask(null);
+  };
+
+  const handleCancelTask = (id, payload) => {
+    onTasksChange?.(tasks.map((t) => (
+      t.id === id
+        ? { ...t, status: 'cancelled', cancellationReason: payload.cancellationReason }
+        : t
+    )));
+    setCancelTask(null);
+    setDetailTask(null);
+  };
+
+  const handleCheckInSuccess = (id) => {
     onTasksChange?.(tasks.map((t) => t.id === id ? { ...t, status: 'completed' } : t));
-  }, [tasks, onTasksChange]);
+  };
 
   React.useEffect(() => { setPage(1); }, [searchQuery]);
 
@@ -501,7 +403,7 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
                 task={task}
                 onEdit={onEdit || (() => {})}
                 onMarkComplete={handleMarkComplete}
-                onDelete={(t) => setDeleteTask(t)}
+                onCancelTask={(t) => setCancelTask(t)}
                 onCheckIn={(t) => setCheckInTask(t)}
                 onRowClick={(t) => setDetailTask(t)}
               />
@@ -512,7 +414,7 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
                 isLast={i === paginated.length - 1}
                 onEdit={onEdit || (() => {})}
                 onMarkComplete={handleMarkComplete}
-                onDelete={(t) => setDeleteTask(t)}
+                onCancelTask={(t) => setCancelTask(t)}
                 onCheckIn={(t) => setCheckInTask(t)}
                 onRowClick={(t) => setDetailTask(t)}
               />
@@ -552,25 +454,32 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
         task={detailTask}
         onClose={() => setDetailTask(null)}
         onEdit={(t) => { setDetailTask(null); onEdit?.(t); }}
-        onDelete={(t) => { setDetailTask(null); setDeleteTask(t); }}
+        onCancelTask={(t) => { setDetailTask(null); setCancelTask(t); }}
         onMarkComplete={handleMarkComplete}
         onCheckIn={(t) => { setDetailTask(null); setCheckInTask(t); }}
       />
 
       {/* ── Check-in dialog ── */}
-      <CheckInDialog
+      <TaskCheckInDialog
         open={Boolean(checkInTask)}
         task={checkInTask}
         onClose={() => setCheckInTask(null)}
         onSuccess={handleCheckInSuccess}
       />
 
-      {/* ── Delete confirm dialog ── */}
-      <DeleteDialog
-        open={Boolean(deleteTask)}
-        task={deleteTask}
-        onClose={() => setDeleteTask(null)}
-        onConfirm={handleDelete}
+      <TaskCompleteDialog
+        open={Boolean(completeTask)}
+        task={completeTask}
+        onClose={() => setCompleteTask(null)}
+        onConfirm={handleCompleteTask}
+      />
+
+      {/* ── Cancel task dialog ── */}
+      <TaskCancelDialog
+        open={Boolean(cancelTask)}
+        task={cancelTask}
+        onClose={() => setCancelTask(null)}
+        onConfirm={handleCancelTask}
       />
     </>
   );

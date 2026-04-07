@@ -64,18 +64,11 @@
 // };
 
 // export default MessengerConversation;
-
-
-
-// Remove PhoneIcon and VideocamIcon imports and their IconButtons.
-// Keep only InfoIcon in the header actions.
-
 import IconButton from '@mui/material/IconButton';
 import SendIcon from '@mui/icons-material/Send';
 import ImageIcon from '@mui/icons-material/Image';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import InfoIcon from '@mui/icons-material/Info';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
@@ -100,20 +93,38 @@ const MessengerConversation = ({ contact, messages }) => {
           </div>
         </div>
         <div className="messenger-conv__actions">
-          {/* Phone + Video removed */}
-          <Button size="small" variant="contained"
-          sx={{
-            marginLeft: "auto",
-            textTransform: "none",
-            fontSize: 12,
-            borderRadius: 50,
-          }}
+          <Button
+            size="small"
+            variant="contained"
+            sx={{
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: 'none',
+              },
+            }}
           >
-            Convert +
+            Convert to lead
           </Button>
-          {/* <IconButton size="small" sx={{ color: '#0084FF' }}>
-            <InfoIcon fontSize="small" />
-          </IconButton> */}
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{
+              color: '#0084FF',
+              borderColor: '#0084FF',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              '&:hover': {
+                borderColor: '#006fe0',
+                backgroundColor: 'rgba(0, 132, 255, 0.06)',
+              },
+            }}
+          >
+            Convert to task
+          </Button>
         </div>
       </div>
 
