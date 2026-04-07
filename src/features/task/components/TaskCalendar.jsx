@@ -198,10 +198,10 @@ export default function ActivityCalendar() {
               '&:hover': { bgcolor: '#1d4ed8', boxShadow: '0 4px 14px rgba(37,99,235,0.25)' },
             }}
           >
-            {isMobile ? 'Add' : 'Add Activity'}
+            {isMobile ? 'Add' : 'New Task'}
           </Button>
         </Stack>
-      </Stack>
+      </Stack>            
 
       {/* ── Main layout: calendar + sidebar ── */}
       <Box
@@ -402,7 +402,7 @@ export default function ActivityCalendar() {
         </DialogTitle>
 
         <DialogContent sx={{ px: 3.5, py: 3 }}>
-          <ActivityForm
+          <TaskForm
             onCancel={() => setIsModalOpen(false)}
             onSubmit={handleActivitySubmit}
           />

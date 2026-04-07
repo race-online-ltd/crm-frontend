@@ -1,9 +1,11 @@
 // src/features/tasks/pages/TaskCreation.jsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Stack, Breadcrumbs, Link, Divider,
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import ArrowBackIcon    from '@mui/icons-material/ArrowBack';
 import EventNoteIcon    from '@mui/icons-material/EventNote';
 import EditNoteIcon     from '@mui/icons-material/EditNote';
 import TaskForm         from '../components/TaskForm';
@@ -15,13 +17,25 @@ import TaskForm         from '../components/TaskForm';
  *  - onSubmit(payload)
  */
 export default function TaskCreation({ initialValues = null, onCancel, onSubmit }) {
+  const navigate = useNavigate();
   const isEdit = Boolean(initialValues);
+  const associationMode = initialValues?.assocType === 'client' ? 'client' : 'lead';
+  const associationOption = isEdit
+    ? {
+        id: associationMode === 'lead'
+          ? (initialValues.leadId || initialValues.lead || '')
+          : (initialValues.clientId || initialValues.client || ''),
+        label: associationMode === 'lead'
+          ? (initialValues.lead || initialValues.leadName || '')
+          : (initialValues.client || initialValues.clientName || ''),
+      }
+    : null;
 
   // Map a task record back to formik shape
   const formikInitial = initialValues
     ? {
-        lead:        initialValues.leadId    || '',
-        client:      initialValues.clientId  || '',
+        lead:        initialValues.leadId    || initialValues.lead || '',
+        client:      initialValues.clientId  || initialValues.client || '',
         taskType:    initialValues.taskType  || '',
         title:       initialValues.title     || '',
         details:     initialValues.details   || '',
@@ -31,11 +45,11 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
     : undefined; // TaskForm will use its own INITIAL_VALUES
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 4, md: 6 }, py: { xs: 3, sm: 5 } }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
 
       {/* ── Header ── */}
       <Box mb={3}>
-        <Breadcrumbs
+        {/* <Breadcrumbs
           separator={<NavigateNextIcon sx={{ fontSize: 14, color: '#94a3b8' }} />}
           sx={{ mb: 1.5 }}
         >
@@ -49,10 +63,30 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
           <Typography sx={{ fontSize: '0.78rem', color: '#1e293b', fontWeight: 600 }}>
             {isEdit ? 'Edit Task' : 'New Task'}
           </Typography>
-        </Breadcrumbs>
+        </Breadcrumbs> */}
 
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Box sx={{
+        <Stack direction="row" alignItems="center" spacing={2}>          {/* Back Button */}
+          <Box
+            onClick={() => navigate(-1)}
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#475569',
+              flexShrink: 0,
+              '&:hover': {
+                bgcolor: '#f1f5f9',
+              },
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 18 }} />
+          </Box>
+
+          {/* Icon */}          <Box sx={{
             width: 42, height: 42, borderRadius: '12px',
             bgcolor: '#eff6ff', border: '1px solid #bfdbfe',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -80,6 +114,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
         initialValues={formikInitial}
         onCancel={onCancel}
         onSubmit={onSubmit}
+        lockedAssociation={isEdit ? { mode: associationMode, option: associationOption } : null}
       />
     </Box>
   );

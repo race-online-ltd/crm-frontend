@@ -1,6 +1,6 @@
 
 // src/components/layout/Sidebar.jsx
-import React from "react";
+import React, { useState } from "react";
 import {
   Drawer,
   Divider,
@@ -11,13 +11,21 @@ import {
   Toolbar,
   useTheme,
   useMediaQuery,
+  Collapse,
 } from "@mui/material";
 import ForumIcon from '@mui/icons-material/Forum';
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import InsightsIcon from "@mui/icons-material/Insights";
 import SettingsIcon from "@mui/icons-material/Settings";
-import DragIndicatorOutlinedIcon from '@mui/icons-material/DragIndicatorOutlined';
+import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import LeaderboardIcon from "@mui/icons-material/Leaderboard";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import GroupIcon from "@mui/icons-material/Group";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { Link, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import logo from "../../assets/earth.png";
@@ -30,11 +38,11 @@ const menuItems = [
   { text: "Users",      icon: <PeopleIcon />,                path: "/users" },
   { text: "Reports",    icon: <BarChartIcon />,              path: "/reports" },
   { text: "Social",     icon: <ForumIcon />,                 path: "/social" },
-  { text: "Social V1",  icon: <ForumIcon />,                 path: "/social_v1" },
-  { text: "Components", icon: <DragIndicatorOutlinedIcon />, path: "/components" },
-  { text: "Settings",   icon: <SettingsIcon />,              path: "/settings" },
-  { text: "Leads",      icon: <PeopleIcon />,                path: "/leads/new" },
-  { text: "Tasks",      icon: <BarChartIcon />,              path: "/tasks" },
+  { text: "Components", icon: <SettingsIcon />,               path: "/components" },
+  { text: "Performance", icon: <InsightsIcon />,             path: "/performance" },
+  { text: "Target",     icon: <TrackChangesIcon />,           path: "/target" },
+  { text: "Leads",      icon: <LeaderboardIcon />,            path: "/leads" },
+  { text: "Tasks",      icon: <TaskAltIcon />,                path: "/tasks" },
 ];
 
 const sharedPaperSx = {
@@ -50,6 +58,7 @@ export default function Sidebar({ open, handleToggle }) {
   const theme = useTheme();
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [settingsOpen, setSettingsOpen] = useState(location.pathname.startsWith("/settings"));
 
   const drawerContent = (
     <>
@@ -102,6 +111,47 @@ export default function Sidebar({ open, handleToggle }) {
             {open && <ListItemText primary={item.text} />}
           </ListItemButton>
         ))}
+
+        {/* Settings with collapsible subtabs */}
+        <ListItemButton
+          onClick={() => setSettingsOpen((prev) => !prev)}
+          sx={{ justifyContent: open ? "initial" : "center", px: 2.5 }}
+        >
+          <ListItemIcon sx={{ minWidth: 0, mr: open ? 3 : "auto", justifyContent: "center" }}>
+            <SettingsIcon />
+          </ListItemIcon>
+          {open && <ListItemText primary="Settings" />}
+          {open && (settingsOpen ? <ExpandLess /> : <ExpandMore />)}
+        </ListItemButton>
+
+        <Collapse in={settingsOpen && open} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItemButton
+              component={Link}
+              to="/settings/users"
+              selected={location.pathname === "/settings/users"}
+              onClick={isMobile ? handleToggle : undefined}
+              sx={{ pl: 7 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                <GroupIcon sx={{ fontSize: '1.2rem' }} />
+              </ListItemIcon>
+              <ListItemText primary="System Users" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+            </ListItemButton>
+            <ListItemButton
+              component={Link}
+              to="/settings/data-access-control"
+              selected={location.pathname === "/settings/data-access-control"}
+              onClick={isMobile ? handleToggle : undefined}
+              sx={{ pl: 7 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+              </ListItemIcon>
+              <ListItemText primary="Data Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+            </ListItemButton>
+          </List>
+        </Collapse>
       </List>
     </>
   );

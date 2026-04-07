@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Button, Typography, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, InputAdornment, TextField, IconButton, Tabs, Tab,
+  DialogActions, InputAdornment, TextField, IconButton,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -16,6 +16,9 @@ import PinDropIcon              from '@mui/icons-material/PinDrop';
 import SearchIcon               from '@mui/icons-material/Search';
 import CloseIcon                from '@mui/icons-material/Close';
 import MyLocationIcon           from '@mui/icons-material/MyLocation';
+
+const LIGHT_BORDER_COLOR = '#e3eaf2';
+const LIGHT_BORDER_HOVER = '#d3deea';
 
 // ─── MOCK DATA ─────────────────────────────
 const fetchLeads = async () => [
@@ -92,6 +95,18 @@ function LocationPicker({ value, onChange }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]         = useState(false);
 
+  function placeMarker({ lat, lng }) {
+    if (!mapInstance.current) return;
+    if (markerRef.current) {
+      markerRef.current.setPosition({ lat, lng });
+    } else {
+      markerRef.current = new window.google.maps.Marker({
+        position: { lat, lng }, map: mapInstance.current,
+        animation: window.google.maps.Animation.DROP,
+      });
+    }
+  }
+
   useEffect(() => {
     if (!mapRef.current || !window.google || mapInstance.current) return;
     const center = value?.latitude
@@ -139,18 +154,6 @@ function LocationPicker({ value, onChange }) {
     });
   }, [onChange]);
 
-  function placeMarker({ lat, lng }) {
-    if (!mapInstance.current) return;
-    if (markerRef.current) {
-      markerRef.current.setPosition({ lat, lng });
-    } else {
-      markerRef.current = new window.google.maps.Marker({
-        position: { lat, lng }, map: mapInstance.current,
-        animation: window.google.maps.Animation.DROP,
-      });
-    }
-  }
-
   function handleMyLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -183,6 +186,12 @@ function LocationPicker({ value, onChange }) {
               </InputAdornment>
             ) : null,
           }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              '& fieldset': { borderColor: LIGHT_BORDER_COLOR },
+              '&:hover fieldset': { borderColor: LIGHT_BORDER_HOVER },
+            },
+          }}
         />
         <Button variant="outlined" size="small" onClick={handleMyLocation}
           startIcon={<MyLocationIcon fontSize="small" />}
@@ -204,20 +213,26 @@ function LocationPicker({ value, onChange }) {
 }
 
 // ─── MAIN COMPONENT ─────────────────────────
-export default function TaskForm({ initialValues, onCancel, onSubmit }) {
-  const startMode = initialValues?.client ? 'client' : 'lead';
+export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAssociation = null }) {
+  const startMode = lockedAssociation?.mode ?? (initialValues?.client ? 'client' : 'lead');
   const [mode, setMode]               = useState(startMode);
   const [locationOpen, setLocationOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
+  const isAssociationLocked = Boolean(lockedAssociation?.mode && lockedAssociation?.option);
+  const effectiveMode = isAssociationLocked ? lockedAssociation.mode : mode;
 
   const formik = useFormik({
     initialValues: initialValues ?? DEFAULT_VALUES,
-    validationSchema: taskSchema(mode),
+    validationSchema: taskSchema(effectiveMode),
     enableReinitialize: true,
 
     onSubmit: (values, { setSubmitting }) => {
+      const associationId = isAssociationLocked
+        ? lockedAssociation.option.id
+        : (effectiveMode === 'lead' ? values.lead : values.client);
+
       const payload = {
-        ...(mode === 'lead' ? { leadId: values.lead } : { clientId: values.client }),
+        ...(effectiveMode === 'lead' ? { leadId: associationId } : { clientId: associationId }),
         taskType:    values.taskType,
         title:       values.title.trim(),
         details:     values.details.trim(),
@@ -233,18 +248,14 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
 
   const { values, errors, touched, setFieldValue, handleChange, handleSubmit, isSubmitting } = formik;
 
-  // Handle switching between tabs
-  const handleTabChange = (event, newValue) => {
-    setMode(newValue);
-    // Reset specific fields when switching modes
-    setFieldValue('lead', '');
-    setFieldValue('client', '');
-  };
-
   const entity = {
     lead:   { name: 'lead',   label: 'Lead *',   fetch: fetchLeads },
     client: { name: 'client', label: 'Client *', fetch: fetchClients },
-  }[mode];
+  }[effectiveMode];
+
+  const entityFetchOptions = isAssociationLocked
+    ? async () => [lockedAssociation.option]
+    : entity.fetch;
 
   function handleOpenLocationDialog() { setTempLocation(values.location); setLocationOpen(true); }
   function handleConfirmLocation()    { setFieldValue('location', tempLocation); setLocationOpen(false); }
@@ -254,19 +265,37 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
 
-      {/* TAB SELECTOR */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs 
-          value={mode} 
-          onChange={handleTabChange} 
-          variant="fullWidth" 
-          indicatorColor="primary" 
-          textColor="primary"
-        >
-          <Tab label="Lead Based" value="lead" sx={{ fontWeight: 600 }} />
-          <Tab label="Client Based" value="client" sx={{ fontWeight: 600 }} />
-        </Tabs>
-      </Box>
+      {/* ── Tab Switcher ── */}
+      {!isAssociationLocked && (
+        <Box sx={{ display: 'inline-flex', bgcolor: '#f1f5f9', borderRadius: '12px', p: '4px', mb: 2 }}>
+          {['Lead Based', 'Client Based'].map((label, i) => {
+            const tabValue = i === 0 ? 'lead' : 'client';
+            return (
+              <Box
+                key={label}
+                onClick={() => {
+                  setMode(tabValue);
+                  setFieldValue('lead', '');
+                  setFieldValue('client', '');
+                }}
+                sx={{
+                  px: 2.5, py: 0.8, borderRadius: '9px', cursor: 'pointer',
+                  fontSize: '0.825rem',
+                  fontWeight: effectiveMode === tabValue ? 700 : 500,
+                  color:     effectiveMode === tabValue ? '#1e293b' : '#64748b',
+                  bgcolor:   effectiveMode === tabValue ? '#fff' : 'transparent',
+                  boxShadow: effectiveMode === tabValue ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.18s ease',
+                  userSelect: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </Box>
+            );
+          })}
+        </Box>
+      )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
 
@@ -274,11 +303,13 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
         <SelectDropdownSingle
           name={entity.name}
           label={entity.label}
-          fetchOptions={entity.fetch}
+          fetchOptions={entityFetchOptions}
           value={values[entity.name]}
           onChange={(id) => setFieldValue(entity.name, id)}
           error={touched[entity.name] && Boolean(errors[entity.name])}
           helperText={touched[entity.name] && errors[entity.name]}
+          disabled={isAssociationLocked}
+          searchable={!isAssociationLocked}
         />
 
         {/* TASK TYPE */}
@@ -300,12 +331,23 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
         />
 
         {/* TITLE */}
-        <Box sx={{ gridColumn: '1 / -1' }}>
+        <Box>
           <TextInputField
             name="title" label="Title *"
             value={values.title} onChange={handleChange}
             error={touched.title && Boolean(errors.title)}
             helperText={touched.title && errors.title}
+          />
+        </Box>
+
+        {/* DATE */}
+        <Box>
+          <DateTimePickerField
+            label="Scheduled Time *"
+            value={values.scheduledAt}
+            onChange={(v) => setFieldValue('scheduledAt', v)}
+            error={touched.scheduledAt && Boolean(errors.scheduledAt)}
+            helperText={touched.scheduledAt && errors.scheduledAt}
           />
         </Box>
 
@@ -317,17 +359,6 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
             multiline rows={4}
             error={touched.details && Boolean(errors.details)}
             helperText={touched.details && errors.details}
-          />
-        </Box>
-
-        {/* DATE */}
-        <Box sx={{ gridColumn: '1 / -1' }}>
-          <DateTimePickerField
-            label="Scheduled Time *"
-            value={values.scheduledAt}
-            onChange={(v) => setFieldValue('scheduledAt', v)}
-            error={touched.scheduledAt && Boolean(errors.scheduledAt)}
-            helperText={touched.scheduledAt && errors.scheduledAt}
           />
         </Box>
 
@@ -364,7 +395,14 @@ export default function TaskForm({ initialValues, onCancel, onSubmit }) {
               }}
               sx={{
                 '& .MuiInputBase-input': { cursor: 'pointer' },
-                '& fieldset': { borderColor: values.location ? 'primary.main' : undefined },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_COLOR,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_HOVER,
+                  },
+                },
               }}
               onClick={handleOpenLocationDialog}
             />

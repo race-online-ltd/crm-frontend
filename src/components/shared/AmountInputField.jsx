@@ -1,5 +1,10 @@
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
+// src/components/shared/AmountInputField.jsx
+import React from 'react';
+import TextField        from '@mui/material/TextField';
+import InputAdornment   from '@mui/material/InputAdornment';
+import { fieldSx }      from './SelectDropdownSingle';
+
+const FIELD_HEIGHT = 45;
 
 export default function AmountInputField({
   name,
@@ -7,27 +12,17 @@ export default function AmountInputField({
   value,
   onChange,
   onBlur,
-  error = false,
-  helperText = '',
-  size = 'small',
-  fullWidth = true,
-  sx = {},
+  error        = false,
+  helperText   = '',
+  fullWidth    = true,
+  currencySymbol = '৳',
+  sx           = {},
   ...rest
 }) {
-
   const handleChange = (e) => {
-    let val = e.target.value;
-
-    // Remove all characters except digits and dot
-    val = val.replace(/[^0-9.]/g, '');
-
-    // Keep only first dot
+    let val = e.target.value.replace(/[^0-9.]/g, '');
     const parts = val.split('.');
-    if (parts.length > 2) {
-      val = parts[0] + '.' + parts.slice(1).join('');
-    }
-
-    // Call the onChange with sanitized value
+    if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
     e.target.value = val;
     onChange(e);
   };
@@ -43,23 +38,15 @@ export default function AmountInputField({
       helperText={helperText}
       variant="outlined"
       fullWidth={fullWidth}
+      size="small"
       InputProps={{
-        startAdornment: <InputAdornment position="start">৳</InputAdornment>,
+        startAdornment: (
+          <InputAdornment position="start">{currencySymbol}</InputAdornment>
+        ),
       }}
-      size={size}
       sx={{
         width: fullWidth ? '100%' : '240px',
-        '& .MuiInputBase-input': {
-          fontSize: '0.8125rem',
-          padding: '12px 10px',
-        },
-        '& .MuiInputLabel-root': {
-          fontSize: '0.8125rem',
-          transform: 'translate(14px, 12px) scale(1)',
-        },
-        '& .MuiInputLabel-shrink': {
-          transform: 'translate(14px, -6px) scale(0.75)',
-        },
+        ...fieldSx(FIELD_HEIGHT),
         ...sx,
       }}
       {...rest}

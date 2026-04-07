@@ -17,7 +17,7 @@ import {
   Avatar,
   ListItemIcon,
 } from "@mui/material";
-import FormatIndentDecreaseIcon from "@mui/icons-material/FormatIndentDecrease";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -54,7 +54,7 @@ export default function Topbar({ open, handleToggle }) {
           duration: theme.transitions.duration.leavingScreen,
         }),
         bgcolor: "#F9F9F9",
-        color: "#111",
+        color: "#757272",
         // Flat bottom edge — no rounded corners that create a gap
         borderRadius: 0,
         boxShadow: "0px 0px 10px #e0e0e0",
@@ -67,7 +67,7 @@ export default function Topbar({ open, handleToggle }) {
           onClick={handleToggle}
           sx={{ mr: 2, "&:focus": { outline: "none", boxShadow: "none" } }}
         >
-          {open && !isMobile ? <FormatIndentDecreaseIcon /> : <MenuIcon />}
+          {open && !isMobile ? <MenuOpenIcon /> : <MenuIcon />}
         </IconButton>
 
         {/* <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
