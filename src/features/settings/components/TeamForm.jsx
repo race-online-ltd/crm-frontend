@@ -88,6 +88,15 @@ export default function TeamForm({
     }
   };
 
+  const toggleRowSx = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    minHeight: 24,
+    mt: -0.25,
+    mb: 0.25,
+  };
+
   return (
     <Box component="form" onSubmit={formik.handleSubmit} noValidate sx={{ width: '100%' }}>
       <Box
@@ -98,42 +107,6 @@ export default function TeamForm({
           width: '100%',
         }}
       >
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            minHeight: 45,
-          }}
-        />
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'flex-start',
-            minHeight: 45,
-            mt: { xs: -0.25, md: 0.25 },
-            mb: { xs: 1, md: 0 },
-            gridColumn: { xs: '1', md: '2' },
-            gridRow: { xs: '3', md: '1' },
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 0.5, sm: 1.25 }}
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-          >
-            <Typography fontSize={13} fontWeight={600} color="#475569">
-              Select All Business Entity
-            </Typography>
-            <CustomToggle
-              size="sm"
-              label={formik.values.selectAllBusinessEntities ? 'Enabled' : 'Manual'}
-              checked={values.selectAllBusinessEntities}
-              onChange={handleBusinessEntityToggle}
-            />
-          </Stack>
-        </Box>
-
         <TextInputField
           name="teamName"
           label="Team Name *"
@@ -142,10 +115,27 @@ export default function TeamForm({
           onBlur={formik.handleBlur}
           error={formik.touched.teamName && Boolean(formik.errors.teamName)}
           helperText={formik.touched.teamName && formik.errors.teamName ? formik.errors.teamName : ' '}
-          sx={{ gridRow: { xs: '2', md: '2' } }}
         />
 
-        <Box sx={{ gridRow: { xs: '4', md: '2' } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={toggleRowSx}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 0.5, sm: 1.25 }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+            >
+              <Typography fontSize={13} fontWeight={600} color="#475569">
+                Select All
+              </Typography>
+              <CustomToggle
+                size="sm"
+                label={formik.values.selectAllBusinessEntities ? 'Enabled' : 'Manual'}
+                checked={values.selectAllBusinessEntities}
+                onChange={handleBusinessEntityToggle}
+              />
+            </Stack>
+          </Box>
+
           <SelectDropdownMultiple
             name="businessEntity"
             label="Business Entity *"
@@ -174,7 +164,6 @@ export default function TeamForm({
           onBlur={formik.handleBlur}
           error={formik.touched.supervisor && Boolean(formik.errors.supervisor)}
           helperText={formik.touched.supervisor && formik.errors.supervisor ? formik.errors.supervisor : ' '}
-          sx={{ gridRow: { xs: '5', md: '3' } }}
         />
 
         <SelectDropdownMultiple
@@ -186,7 +175,6 @@ export default function TeamForm({
           onBlur={formik.handleBlur}
           error={formik.touched.assignKAM && Boolean(formik.errors.assignKAM)}
           helperText={formik.touched.assignKAM && formik.errors.assignKAM ? formik.errors.assignKAM : ' '}
-          sx={{ gridRow: { xs: '6', md: '3' } }}
         />
       </Box>
 
@@ -213,7 +201,7 @@ export default function TeamForm({
         </Stack>
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+      <Stack direction={{ xs: 'column', sm: 'row', mt: 2 }} spacing={2}>
         <Button
           fullWidth
           variant="outlined"

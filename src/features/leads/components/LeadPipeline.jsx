@@ -21,6 +21,7 @@ import ForwardIcon from '@mui/icons-material/Forward';
 import AddTaskIcon from '@mui/icons-material/AddTask';
 import StageChangeDialog from './StageChangeDialog';
 import LeadForwardDialog from './LeadForwardDialog';
+import ViewDetailsDrawer from './ViewDetailsDrawer';
 import TaskForm from '../../task/components/TaskForm';
 
 // ── Stage config ──
@@ -254,14 +255,50 @@ function KanbanLeadCard({ item, index, onAction }) {
 // ── Main Pipeline Component ──
 export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead }) {
   const [view, setView] = useState('kanban');
-  const [kanbanMenuAnchor, setKanbanMenuAnchor] = useState(null);
-  const [kanbanMenuLeadId, setKanbanMenuLeadId] = useState(null);
   const [forwardDialog, setForwardDialog] = useState({ open: false, lead: null });
   const [taskDialog, setTaskDialog] = useState({ open: false, lead: null });
+  const [viewDetailsDrawer, setViewDetailsDrawer] = useState({ open: false, lead: null });
+  const [leadNotes, setLeadNotes] = useState({});
+  const [leadActivities, setLeadActivities] = useState({});
   const [stageChangeDialog, setStageChangeDialog] = useState({
     open: false, lead: null, fromStage: '', toStage: '', pendingResult: null,
   });
   const getStageTitle = (id) => STAGES.find((s) => s.id === id)?.title || id;
+
+  const appendLeadActivity = (leadId, activity) => {
+    if (!leadId) return;
+
+    setLeadActivities((prev) => ({
+      ...prev,
+      [leadId]: [
+        {
+          id: `${leadId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp: new Date().toISOString(),
+          ...activity,
+        },
+        ...(prev[leadId] || []),
+      ],
+    }));
+  };
+
+  const handleAddNote = (leadId, content) => {
+    const note = {
+      id: `${leadId}-note-${Date.now()}`,
+      content,
+      author: 'You',
+      createdAt: new Date().toISOString(),
+    };
+
+    setLeadNotes((prev) => ({
+      ...prev,
+      [leadId]: [note, ...(prev[leadId] || [])],
+    }));
+
+    appendLeadActivity(leadId, {
+      title: 'Note added',
+      description: content,
+    });
+  };
 
   // Called from both kanban drag and list dropdown
   const handleStageChangeRequest = (lead, fromStageId, toStageId, pendingResult) => {
@@ -297,7 +334,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
   };
 
   const handleConfirmStageChange = (note) => {
-    const { lead, fromStageId, toStageId, pendingResult } = stageChangeDialog;
+    const { lead, fromStageId, toStageId } = stageChangeDialog;
 
     // Update lead with note
     const updatedLead = { ...lead, stageChangeNote: note };
@@ -318,6 +355,10 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
     // TODO: Send stage change to backend API
     // api.updateLeadStage(lead.id, toStageId, note);
     console.log('Stage changed:', { leadId: lead.id, from: fromStageId, to: toStageId, note });
+    appendLeadActivity(lead.id, {
+      title: 'Stage updated',
+      description: `${lead.name} moved from ${getStageTitle(fromStageId)} to ${getStageTitle(toStageId)}.${note ? ` Note: ${note}` : ''}`,
+    });
 
     setStageChangeDialog({ open: false, lead: null, fromStage: '', toStage: '', pendingResult: null });
   };
@@ -341,7 +382,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         setTaskDialog({ open: true, lead });
         break;
       case 'view':
-        console.log('View details:', lead.id);
+        setViewDetailsDrawer({ open: true, lead });
         break;
       case 'edit':
         onEditLead?.(lead);
@@ -484,7 +525,12 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         onClose={() => setForwardDialog({ open: false, lead: null })}
         onForward={(data) => {
           console.log('Forward lead:', { leadId: forwardDialog.lead?.id, ...data });
+          appendLeadActivity(forwardDialog.lead?.id, {
+            title: 'Lead forwarded',
+            description: `Lead was forwarded${data?.to ? ` to ${data.to}` : ''}${data?.note ? `. Note: ${data.note}` : '.'}`,
+          });
           // TODO: Send to backend API
+          setForwardDialog({ open: false, lead: null });
         }}
         leadName={forwardDialog.lead?.name || ''}
       />
@@ -504,21 +550,35 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         </DialogTitle>
         <DialogContent sx={{ pt: 2.5, overflow: 'visible' }}>
           <TaskForm
-            initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null, attachment: [] }}
+            initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null }}
             lockedAssociation={taskDialog.lead ? {
               mode: 'lead',
               option: { id: taskDialog.lead.id, label: taskDialog.lead.name },
             } : null}
             onCancel={() => setTaskDialog({ open: false, lead: null })}
-            onSubmit={(payload, formData) => {
+            onSubmit={(payload) => {
               console.log('Task created:', payload);
-              console.log('Task multipart payload:', Array.from(formData.entries()));
+              appendLeadActivity(taskDialog.lead?.id, {
+                title: 'Task created',
+                description: `A follow-up task was added${payload?.title ? `: ${payload.title}` : ''}.`,
+              });
               // TODO: Send to backend API
               setTaskDialog({ open: false, lead: null });
             }}
           />
         </DialogContent>
       </Dialog>
+
+      {viewDetailsDrawer.open ? (
+        <ViewDetailsDrawer
+          open={viewDetailsDrawer.open}
+          onClose={() => setViewDetailsDrawer({ open: false, lead: null })}
+          lead={viewDetailsDrawer.lead}
+          notes={leadNotes[viewDetailsDrawer.lead?.id] || []}
+          activities={leadActivities[viewDetailsDrawer.lead?.id] || []}
+          onAddNote={handleAddNote}
+        />
+      ) : null}
     </Box>
   );
 }
