@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, InputAdornment, Stack, Typography } from '@mui/material';
 import HubIcon from '@mui/icons-material/Hub';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import TextInputField from '../../../components/shared/TextInputField';
 import BaseTable from '../../../components/shared/BaseTable';
+import OrbitLoader from './OrbitLoader';
 
 const buildLabelMap = (options) =>
   options.reduce((acc, option) => {
@@ -42,6 +43,15 @@ export default function GroupTable({
   onEdit,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const supervisorLabels = useMemo(() => buildLabelMap(supervisorOptions), [supervisorOptions]);
   const teamLabels = useMemo(() => buildLabelMap(teamOptions), [teamOptions]);
@@ -165,13 +175,22 @@ export default function GroupTable({
       <BaseTable
         title="Group Directory"
         columns={columns}
-        rows={rows}
+        rows={isLoading ? [] : rows}
         selectable={false}
         hasAction
         onEditRow={(row) => onEdit?.(groups.find((group) => group.id === row.id) || row)}
         showDeleteAction={false}
         showToolbar={false}
         showDenseToggle={false}
+        emptyMessage="No data found"
+        loading={isLoading}
+        loadingContent={(
+          <OrbitLoader
+            title="Loading group directory"
+            subtitle="The globe is syncing group, supervisor, and team information."
+            minHeight={220}
+          />
+        )}
       />
     </>
   );

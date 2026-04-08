@@ -260,6 +260,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
   const [viewDetailsDrawer, setViewDetailsDrawer] = useState({ open: false, lead: null });
   const [leadNotes, setLeadNotes] = useState({});
   const [leadActivities, setLeadActivities] = useState({});
+  const [leadTasks, setLeadTasks] = useState({});
   const [stageChangeDialog, setStageChangeDialog] = useState({
     open: false, lead: null, fromStage: '', toStage: '', pendingResult: null,
   });
@@ -298,6 +299,22 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
       title: 'Note added',
       description: content,
     });
+  };
+
+  const appendLeadTask = (leadId, task) => {
+    if (!leadId) return;
+
+    setLeadTasks((prev) => ({
+      ...prev,
+      [leadId]: [
+        {
+          id: `${leadId}-task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+          ...task,
+        },
+        ...(prev[leadId] || []),
+      ],
+    }));
   };
 
   // Called from both kanban drag and list dropdown
@@ -558,6 +575,14 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
             onCancel={() => setTaskDialog({ open: false, lead: null })}
             onSubmit={(payload) => {
               console.log('Task created:', payload);
+              appendLeadTask(taskDialog.lead?.id, {
+                leadName: taskDialog.lead?.name || '',
+                taskType: payload?.taskType || '',
+                title: payload?.title || 'Untitled Task',
+                details: payload?.details || '',
+                scheduledAt: payload?.scheduledAt || null,
+                location: payload?.location || null,
+              });
               appendLeadActivity(taskDialog.lead?.id, {
                 title: 'Task created',
                 description: `A follow-up task was added${payload?.title ? `: ${payload.title}` : ''}.`,
@@ -576,6 +601,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
           lead={viewDetailsDrawer.lead}
           notes={leadNotes[viewDetailsDrawer.lead?.id] || []}
           activities={leadActivities[viewDetailsDrawer.lead?.id] || []}
+          tasks={leadTasks[viewDetailsDrawer.lead?.id] || []}
           onAddNote={handleAddNote}
         />
       ) : null}
