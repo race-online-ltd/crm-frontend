@@ -27,6 +27,8 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import GroupIcon from "@mui/icons-material/Group";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import Groups2Icon from "@mui/icons-material/Groups2";
+import HubIcon from "@mui/icons-material/Hub";
 import { Link, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import logo from "../../assets/earth.png";
@@ -155,6 +157,8 @@ export default function Sidebar({ open, handleToggle }) {
               component={Link}
               to="/settings/social"
               selected={location.pathname === "/settings/social"}
+              to="/settings/team"
+              selected={location.pathname === "/settings/team"}
               onClick={isMobile ? handleToggle : undefined}
               sx={{ pl: 7 }}
             >
@@ -162,6 +166,21 @@ export default function Sidebar({ open, handleToggle }) {
                 <HubOutlinedIcon sx={{ fontSize: '1.2rem' }} />
               </ListItemIcon>
               <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+                <Groups2Icon sx={{ fontSize: '1.2rem' }} />
+              </ListItemIcon>
+              <ListItemText primary="Team" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+            </ListItemButton>
+            <ListItemButton
+              component={Link}
+              to="/settings/group"
+              selected={location.pathname === "/settings/group"}
+              onClick={isMobile ? handleToggle : undefined}
+              sx={{ pl: 7 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                <HubIcon sx={{ fontSize: '1.2rem' }} />
+              </ListItemIcon>
+              <ListItemText primary="Group" primaryTypographyProps={{ fontSize: '0.85rem' }} />
             </ListItemButton>
           </List>
         </Collapse>
