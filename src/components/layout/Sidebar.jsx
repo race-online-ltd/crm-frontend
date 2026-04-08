@@ -128,62 +128,75 @@ export default function Sidebar({ open, handleToggle }) {
         </ListItemButton>
 
         <Collapse in={settingsOpen && open} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItemButton
-              component={Link}
-              to="/settings/users"
-              selected={location.pathname === "/settings/users"}
-              onClick={isMobile ? handleToggle : undefined}
-              sx={{ pl: 7 }}
-            >
-              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
-                <GroupIcon sx={{ fontSize: '1.2rem' }} />
-              </ListItemIcon>
-              <ListItemText primary="System Users" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-            </ListItemButton>
-            <ListItemButton
-              component={Link}
-              to="/settings/data-access-control"
-              selected={location.pathname === "/settings/data-access-control"}
-              onClick={isMobile ? handleToggle : undefined}
-              sx={{ pl: 7 }}
-            >
-              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
-                <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
-              </ListItemIcon>
-              <ListItemText primary="Data Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-            </ListItemButton>
-            <ListItemButton
-              component={Link}
-              to="/settings/social"
-              selected={location.pathname === "/settings/social"}
-              to="/settings/team"
-              selected={location.pathname === "/settings/team"}
-              onClick={isMobile ? handleToggle : undefined}
-              sx={{ pl: 7 }}
-            >
-              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
-                <HubOutlinedIcon sx={{ fontSize: '1.2rem' }} />
-              </ListItemIcon>
-              <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-                <Groups2Icon sx={{ fontSize: '1.2rem' }} />
-              </ListItemIcon>
-              <ListItemText primary="Team" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-            </ListItemButton>
-            <ListItemButton
-              component={Link}
-              to="/settings/group"
-              selected={location.pathname === "/settings/group"}
-              onClick={isMobile ? handleToggle : undefined}
-              sx={{ pl: 7 }}
-            >
-              <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
-                <HubIcon sx={{ fontSize: '1.2rem' }} />
-              </ListItemIcon>
-              <ListItemText primary="Group" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-            </ListItemButton>
-          </List>
-        </Collapse>
+  <List component="div" disablePadding>
+    <ListItemButton
+      component={Link}
+      to="/settings/users"
+      selected={location.pathname === "/settings/users"}
+      onClick={isMobile ? handleToggle : undefined}
+      sx={{ pl: 7 }}
+    >
+      <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+        <GroupIcon sx={{ fontSize: '1.2rem' }} />
+      </ListItemIcon>
+      <ListItemText primary="System Users" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+    </ListItemButton>
+
+    <ListItemButton
+      component={Link}
+      to="/settings/data-access-control"
+      selected={location.pathname === "/settings/data-access-control"}
+      onClick={isMobile ? handleToggle : undefined}
+      sx={{ pl: 7 }}
+    >
+      <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+        <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+      </ListItemIcon>
+      <ListItemText primary="Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+    </ListItemButton>
+
+    {/* Fixed Social Settings */}
+    <ListItemButton
+      component={Link}
+      to="/settings/social"
+      selected={location.pathname === "/settings/social"}
+      onClick={isMobile ? handleToggle : undefined}
+      sx={{ pl: 7 }}
+    >
+      <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+        <HubOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+      </ListItemIcon>
+      <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+    </ListItemButton>
+
+    {/* Fixed Team Settings */}
+    <ListItemButton
+      component={Link}
+      to="/settings/team"
+      selected={location.pathname === "/settings/team"}
+      onClick={isMobile ? handleToggle : undefined}
+      sx={{ pl: 7 }}
+    >
+      <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+        <Groups2Icon sx={{ fontSize: '1.2rem' }} />
+      </ListItemIcon>
+      <ListItemText primary="Team" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+    </ListItemButton>
+
+    <ListItemButton
+      component={Link}
+      to="/settings/group"
+      selected={location.pathname === "/settings/group"}
+      onClick={isMobile ? handleToggle : undefined}
+      sx={{ pl: 7 }}
+    >
+      <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+        <HubIcon sx={{ fontSize: '1.2rem' }} />
+      </ListItemIcon>
+      <ListItemText primary="Group" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+    </ListItemButton>
+  </List>
+</Collapse>
       </List>
     </>
   );
