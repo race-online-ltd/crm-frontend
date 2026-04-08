@@ -17,17 +17,22 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import DataAccessPermissionDialog from '../components/DataAccessPermissionDialog';
 import {
+  BUSINESS_ENTITIES,
+  CRITERIA_OPTIONS,
   FEATURE_OPTIONS,
   ROLE_OPTIONS,
-  BUSINESS_ENTITIES,
-  getMockAccessControl,
+  getMockBusinessEntityAccessControl,
+  getMockFieldLevelAccessControl,
   permissionLabel,
 } from '../constants/dataAccessControl';
 
 export default function DataAccessControlPage() {
+  const [selectedCriteria, setSelectedCriteria] = useState(CRITERIA_OPTIONS[0].id);
   const [selectedRole, setSelectedRole] = useState(ROLE_OPTIONS[0].id);
   const [selectedFeature, setSelectedFeature] = useState(FEATURE_OPTIONS[0].id);
-  const [accessControl, setAccessControl] = useState(() => getMockAccessControl(ROLE_OPTIONS[0].id, FEATURE_OPTIONS[0].id));
+  const [accessControl, setAccessControl] = useState(() => (
+    getMockBusinessEntityAccessControl(ROLE_OPTIONS[0].id, FEATURE_OPTIONS[0].id)
+  ));
   const [activeField, setActiveField] = useState(null);
 
   const selectedRoleLabel = useMemo(
@@ -40,6 +45,10 @@ export default function DataAccessControlPage() {
     [selectedFeature],
   );
 
+  async function fetchCriteriaOptions() {
+    return CRITERIA_OPTIONS;
+  }
+
   async function fetchRoleOptions() {
     return ROLE_OPTIONS;
   }
@@ -48,19 +57,30 @@ export default function DataAccessControlPage() {
     return FEATURE_OPTIONS;
   }
 
-  function loadAccessControl(roleId, featureKey) {
-    setAccessControl(structuredClone(getMockAccessControl(roleId, featureKey)));
+  function loadAccessControl(criteriaId, roleId, featureKey) {
+    if (criteriaId === 'field_level') {
+      setAccessControl(structuredClone(getMockFieldLevelAccessControl(roleId, featureKey)));
+      return;
+    }
+
+    setAccessControl(structuredClone(getMockBusinessEntityAccessControl(roleId, featureKey)));
+  }
+
+  function handleCriteriaChange(criteriaId) {
+    setSelectedCriteria(criteriaId);
+    loadAccessControl(criteriaId, selectedRole, selectedFeature);
+    setActiveField(null);
   }
 
   function handleRoleChange(roleId) {
     setSelectedRole(roleId);
-    loadAccessControl(roleId, selectedFeature);
+    loadAccessControl(selectedCriteria, roleId, selectedFeature);
     setActiveField(null);
   }
 
   function handleFeatureChange(featureKey) {
     setSelectedFeature(featureKey);
-    loadAccessControl(selectedRole, featureKey);
+    loadAccessControl(selectedCriteria, selectedRole, featureKey);
     setActiveField(null);
   }
 
@@ -75,7 +95,7 @@ export default function DataAccessControlPage() {
     }));
 
     // Ready for backend integration later:
-    // await axios.post('/settings/data-access-control', { ...updatedPayload });
+    // await axios.post('/settings/data-access-control', { criteria: selectedCriteria, ...updatedPayload });
     setActiveField(null);
   }
 
@@ -101,19 +121,24 @@ export default function DataAccessControlPage() {
             Data Access Control
           </Typography>
         </Stack>
-        {/* <Typography fontSize={13} color="text.secondary">
-          Control which business entity data is readable or writable for each role and feature combination.
-        </Typography> */}
       </Box>
 
       <Box
         sx={{
           mb: 3,
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 2,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: '0px 20px',
         }}
       >
+        <SelectDropdownSingle
+          name="criteria"
+          label="Criteria *"
+          fetchOptions={fetchCriteriaOptions}
+          value={selectedCriteria}
+          onChange={handleCriteriaChange}
+        />
+
         <SelectDropdownSingle
           name="roleId"
           label="Role *"
@@ -141,41 +166,77 @@ export default function DataAccessControlPage() {
         }}
       >
         <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700, minWidth: 160 }}>Fields</TableCell>
-                {BUSINESS_ENTITIES.map((entityName) => (
-                  <TableCell key={entityName} sx={{ fontWeight: 700, minWidth: 140 }}>
-                    {entityName}
-                  </TableCell>
-                ))}
-                <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {accessControl.fields.map((field) => (
-                <TableRow key={field.fieldName} hover>
-                  <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{field.fieldName}</TableCell>
-                  {BUSINESS_ENTITIES.map((entityName) => (
-                    <TableCell key={entityName} sx={{ color: '#475569' }}>
-                      {permissionLabel(field.permissions?.[entityName]) || '—'}
+          {selectedCriteria === 'business_entity' ? (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, minWidth: 160 }}>Fields</TableCell>
+                  {BUSINESS_ENTITIES.map((entity) => (
+                    <TableCell key={entity.id} sx={{ fontWeight: 700, minWidth: 140 }}>
+                      {entity.label}
                     </TableCell>
                   ))}
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={() => setActiveField(field)}>
-                      <EditOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
-                    </IconButton>
-                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>Action</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {accessControl.fields.map((field) => (
+                  <TableRow key={field.fieldName} hover>
+                    <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{field.fieldName}</TableCell>
+                    {BUSINESS_ENTITIES.map((entity) => (
+                      <TableCell key={entity.id} sx={{ color: '#475569' }}>
+                        {permissionLabel(field.permissions?.[entity.label]) || '—'}
+                      </TableCell>
+                    ))}
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={() => setActiveField(field)}>
+                        <EditOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Fields</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Read</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Write</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Modify</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {accessControl.fields.map((field) => (
+                  <TableRow key={field.fieldName} hover>
+                    <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{field.fieldName}</TableCell>
+                    <TableCell align="center" sx={{ color: '#475569' }}>
+                      {field.permissions?.read ? 'Yes' : '—'}
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: '#475569' }}>
+                      {field.permissions?.write ? 'Yes' : '—'}
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: '#475569' }}>
+                      {field.permissions?.modify ? 'Yes' : '—'}
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={() => setActiveField(field)}>
+                        <EditOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </TableContainer>
       </Paper>
 
       <DataAccessPermissionDialog
         open={Boolean(activeField)}
+        criteria={selectedCriteria}
         fieldConfig={activeField}
         roleLabel={selectedRoleLabel}
         featureLabel={selectedFeatureLabel}

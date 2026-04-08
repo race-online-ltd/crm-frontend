@@ -1,11 +1,19 @@
-import React from 'react';
-import { Box, Divider, Stack, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Divider, Stack, Tab, Tabs, Typography } from '@mui/material';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 import FacebookSettingsSection from '../components/social/FacebookSettingsSection';
 import WhatsAppSettingsSection from '../components/social/WhatsAppSettingsSection';
 import EmailSettingsSection from '../components/social/EmailSettingsSection';
 
+const CHANNEL_TABS = [
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'email', label: 'Email' },
+];
+
 export default function SocialSettingsPage() {
+  const [activeTab, setActiveTab] = useState('facebook');
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
       <Box mb={3}>
@@ -36,13 +44,42 @@ export default function SocialSettingsPage() {
         </Stack>
       </Box>
 
-      <Divider sx={{ mb: 3 }} />
+      <Divider sx={{ mb: 2.5 }} />
 
-      <Stack spacing={3}>
-        <FacebookSettingsSection />
-        <WhatsAppSettingsSection />
-        <EmailSettingsSection />
-      </Stack>
+      <Box sx={{ mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, nextValue) => setActiveTab(nextValue)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{
+            minHeight: 44,
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: 999,
+            },
+            '& .MuiTab-root': {
+              minHeight: 44,
+              textTransform: 'none',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              color: '#64748b',
+              px: 2,
+            },
+            '& .Mui-selected': {
+              color: '#0f172a',
+            },
+          }}
+        >
+          {CHANNEL_TABS.map((tab) => (
+            <Tab key={tab.value} value={tab.value} label={tab.label} />
+          ))}
+        </Tabs>
+      </Box>
+
+      {activeTab === 'facebook' && <FacebookSettingsSection />}
+      {activeTab === 'whatsapp' && <WhatsAppSettingsSection />}
+      {activeTab === 'email' && <EmailSettingsSection />}
     </Box>
   );
 }

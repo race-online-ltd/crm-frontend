@@ -19,17 +19,22 @@ import * as Yup from 'yup';
 import { BUSINESS_ENTITIES } from '../constants/dataAccessControl';
 
 const validationSchema = Yup.object({
-  permissions: Yup.array().of(
+  entityPermissions: Yup.array().of(
     Yup.object({
       entityName: Yup.string().required(),
       read: Yup.boolean().required(),
-      write: Yup.boolean().required(),
     }),
   ),
+  fieldPermissions: Yup.object({
+    read: Yup.boolean().required(),
+    write: Yup.boolean().required(),
+    modify: Yup.boolean().required(),
+  }),
 });
 
 export default function DataAccessPermissionDialog({
   open,
+  criteria,
   fieldConfig,
   roleLabel,
   featureLabel,
@@ -38,21 +43,30 @@ export default function DataAccessPermissionDialog({
 }) {
   const formik = useFormik({
     initialValues: {
-      permissions: BUSINESS_ENTITIES.map((entityName) => ({
-        entityName,
+      entityPermissions: BUSINESS_ENTITIES.map((entity) => ({
+        entityName: entity.label,
+        read: false,
+      })),
+      fieldPermissions: {
         read: false,
         write: false,
-      })),
+        modify: false,
+      },
     },
     validationSchema,
     enableReinitialize: true,
     onSubmit: (values) => {
-      const permissions = values.permissions.reduce((acc, item) => {
-        acc[item.entityName] = { read: item.read, write: item.write };
-        return acc;
-      }, {});
+      if (criteria === 'business_entity') {
+        const permissions = values.entityPermissions.reduce((acc, item) => {
+          acc[item.entityName] = { read: item.read };
+          return acc;
+        }, {});
 
-      onSave?.(fieldConfig.fieldName, permissions);
+        onSave?.(fieldConfig.fieldName, permissions);
+        return;
+      }
+
+      onSave?.(fieldConfig.fieldName, values.fieldPermissions);
     },
   });
 
@@ -65,25 +79,32 @@ export default function DataAccessPermissionDialog({
     }
 
     setValues({
-      permissions: BUSINESS_ENTITIES.map((entityName) => ({
-        entityName,
-        read: Boolean(fieldConfig.permissions?.[entityName]?.read),
-        write: Boolean(fieldConfig.permissions?.[entityName]?.write),
+      entityPermissions: BUSINESS_ENTITIES.map((entity) => ({
+        entityName: entity.label,
+        read: Boolean(fieldConfig.permissions?.[entity.label]?.read),
       })),
+      fieldPermissions: {
+        read: Boolean(fieldConfig.permissions?.read),
+        write: Boolean(fieldConfig.permissions?.write),
+        modify: Boolean(fieldConfig.permissions?.modify),
+      },
     });
   }, [open, fieldConfig, resetForm, setValues]);
 
-  function handleReadChange(index, checked) {
-    setFieldValue(`permissions.${index}.read`, checked);
-    if (!checked) {
-      setFieldValue(`permissions.${index}.write`, false);
-    }
+  function handleEntityReadChange(index, checked) {
+    setFieldValue(`entityPermissions.${index}.read`, checked);
   }
 
-  function handleWriteChange(index, checked) {
-    setFieldValue(`permissions.${index}.write`, checked);
-    if (checked) {
-      setFieldValue(`permissions.${index}.read`, true);
+  function handleFieldPermissionChange(permissionKey, checked) {
+    setFieldValue(`fieldPermissions.${permissionKey}`, checked);
+
+    if (permissionKey === 'read' && !checked) {
+      setFieldValue('fieldPermissions.write', false);
+      setFieldValue('fieldPermissions.modify', false);
+    }
+
+    if ((permissionKey === 'write' || permissionKey === 'modify') && checked) {
+      setFieldValue('fieldPermissions.read', true);
     }
   }
 
@@ -102,34 +123,51 @@ export default function DataAccessPermissionDialog({
       </DialogTitle>
 
       <DialogContent>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>Read</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>Write</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {values.permissions.map((item, index) => (
-              <TableRow key={item.entityName}>
-                <TableCell>{item.entityName}</TableCell>
-                <TableCell align="center">
-                  <Checkbox
-                    checked={item.read}
-                    onChange={(e) => handleReadChange(index, e.target.checked)}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Checkbox
-                    checked={item.write}
-                    onChange={(e) => handleWriteChange(index, e.target.checked)}
-                  />
-                </TableCell>
+        {criteria === 'business_entity' ? (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Read</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {values.entityPermissions.map((item, index) => (
+                <TableRow key={item.entityName}>
+                  <TableCell>{item.entityName}</TableCell>
+                  <TableCell align="center">
+                    <Checkbox
+                      checked={item.read}
+                      onChange={(e) => handleEntityReadChange(index, e.target.checked)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Access Type</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Allowed</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {['read', 'write', 'modify'].map((permissionKey) => (
+                <TableRow key={permissionKey}>
+                  <TableCell sx={{ textTransform: 'capitalize' }}>{permissionKey}</TableCell>
+                  <TableCell align="center">
+                    <Checkbox
+                      checked={Boolean(values.fieldPermissions[permissionKey])}
+                      onChange={(e) => handleFieldPermissionChange(permissionKey, e.target.checked)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2.5 }}>

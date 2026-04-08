@@ -14,15 +14,10 @@ export default function WhatsAppSettingsSection() {
       fields={WHATSAPP_FIELDS}
       primaryField="displayPhoneNumber"
       identifierFields={['businessAccountId', 'phoneNumberId', 'graphApiVersion']}
-      docs={[
-        { label: 'WhatsApp Cloud API', href: 'https://developers.facebook.com/docs/whatsapp/cloud-api/' },
-        { label: 'WhatsApp Webhooks', href: 'https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks/' },
-      ]}
-      backendNotes={[
-        'Backend should verify the access token and persist the business account, phone number, and webhook configuration in the database.',
-        'Inbound messages arrive through Meta webhooks, while outbound messages should use the active phone number ID and token.',
-        'Only one connection should be active per entity at a time to keep routing deterministic.',
-      ]}
+      // docs={[
+      //   { label: 'WhatsApp Cloud API', href: 'https://developers.facebook.com/docs/whatsapp/cloud-api/' },
+      //   { label: 'WhatsApp Webhooks', href: 'https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks/' },
+      // ]}
     />
   );
 }

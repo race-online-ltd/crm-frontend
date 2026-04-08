@@ -21,12 +21,15 @@ import {
   Typography,
 } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import { useFormik } from 'formik';
 import SelectDropdownSingle, { fieldSx } from '../../../../components/shared/SelectDropdownSingle';
 import TextInputField from '../../../../components/shared/TextInputField';
 import { SOCIAL_BUSINESS_ENTITIES } from '../../constants/socialSettings';
+
+const EMPTY_ROWS = [];
 
 function buildInitialValues(fields) {
   return fields.reduce((acc, field) => {
@@ -154,18 +157,24 @@ export default function SocialConnectionSection({
   backendNotes = [],
   identifierFields = [],
   primaryField,
-  initialRows = [],
+  initialRows = EMPTY_ROWS,
   fetchBusinessEntities,
   fetchConnections,
   saveConnection,
   deleteConnection,
   toggleConnectionActive,
 }) {
-  const [rows, setRows] = useState(() => initialRows.map((row) => normalizeRow(row, { fields, primaryField, identifierFields, channelKey })));
+  const normalizedInitialRows = useMemo(
+    () => initialRows.map((row) => normalizeRow(row, { fields, primaryField, identifierFields, channelKey })),
+    [channelKey, fields, identifierFields, initialRows, primaryField],
+  );
+
+  const [rows, setRows] = useState(() => normalizedInitialRows);
   const [rowsLoading, setRowsLoading] = useState(false);
   const [rowsError, setRowsError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [actionRowId, setActionRowId] = useState(null);
+  const [view, setView] = useState('list');
 
   const entityOptionsFetcher = useMemo(
     () => fetchBusinessEntities || (async () => SOCIAL_BUSINESS_ENTITIES),
@@ -174,7 +183,7 @@ export default function SocialConnectionSection({
 
   const loadRows = useCallback(async () => {
     if (!fetchConnections) {
-      setRows(initialRows.map((row) => normalizeRow(row, { fields, primaryField, identifierFields, channelKey })));
+      setRows(normalizedInitialRows);
       return;
     }
 
@@ -190,7 +199,7 @@ export default function SocialConnectionSection({
     } finally {
       setRowsLoading(false);
     }
-  }, [channelKey, fetchConnections, fields, identifierFields, initialRows, primaryField]);
+  }, [channelKey, fetchConnections, fields, identifierFields, normalizedInitialRows, primaryField]);
 
   useEffect(() => {
     loadRows();
@@ -251,6 +260,7 @@ export default function SocialConnectionSection({
         }
 
         resetForm({ values: buildInitialValues(fields) });
+        setView('list');
       } catch (error) {
         setSubmitError(error?.message || 'Failed to save the connection configuration.');
       } finally {
@@ -324,47 +334,96 @@ export default function SocialConnectionSection({
         bgcolor: '#fff',
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start" mb={2}>
-        <Box
-          sx={{
-            width: 42,
-            height: 42,
-            borderRadius: '12px',
-            bgcolor: accent.bg,
-            border: `1px solid ${accent.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: accent.color,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </Box>
-        <Box>
-          <Typography variant="h6" fontWeight={800} color="#0f172a">
-            {title}
-          </Typography>
-          <Typography fontSize={13} color="text.secondary" mt={0.35}>
-            {subtitle}
-          </Typography>
-        </Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+        mb={2.5}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+          <Box
+            sx={{
+              width: 42,
+              height: 42,
+              borderRadius: '12px',
+              bgcolor: accent.bg,
+              border: `1px solid ${accent.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: accent.color,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Box>
+            <Typography variant="h6" fontWeight={800} color="#0f172a">
+              {view === 'form' ? `Add ${title} Configuration` : title}
+            </Typography>
+            <Typography fontSize={13} color="text.secondary" mt={0.35}>
+              {subtitle}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {view === 'list' ? (
+          <Button
+            variant="contained"
+            onClick={() => {
+              setSubmitError('');
+              formik.resetForm({ values: buildInitialValues(fields) });
+              setView('form');
+            }}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: '10px',
+              px: 2.5,
+              py: 1,
+              alignSelf: { xs: 'stretch', sm: 'auto' },
+            }}
+          >
+            Add Configuration
+          </Button>
+        ) : (
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => {
+              setSubmitError('');
+              formik.resetForm({ values: buildInitialValues(fields) });
+              setView('list');
+            }}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: '10px',
+              alignSelf: { xs: 'stretch', sm: 'auto' },
+            }}
+          >
+            Back To List
+          </Button>
+        )}
       </Stack>
 
-      <Alert
-        icon={<HubOutlinedIcon fontSize="inherit" />}
-        severity="info"
-        sx={{ mb: 2, borderRadius: '12px', alignItems: 'flex-start' }}
-      >
-        <Typography fontSize={13} fontWeight={700} mb={0.5}>
-          Backend-ready expectation
-        </Typography>
-        {backendNotes.map((note) => (
-          <Typography key={note} fontSize={12.5} color="text.secondary">
-            {note}
+      {backendNotes.length > 0 && view === 'form' && (
+        <Alert
+          icon={<HubOutlinedIcon fontSize="inherit" />}
+          severity="info"
+          sx={{ mb: 2, borderRadius: '12px', alignItems: 'flex-start' }}
+        >
+          <Typography fontSize={13} fontWeight={700} mb={0.5}>
+            Backend-ready expectation
           </Typography>
-        ))}
-      </Alert>
+          {backendNotes.map((note) => (
+            <Typography key={note} fontSize={12.5} color="text.secondary">
+              {note}
+            </Typography>
+          ))}
+        </Alert>
+      )}
 
       {submitError && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
@@ -378,186 +437,192 @@ export default function SocialConnectionSection({
         </Alert>
       )}
 
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-        {docs.map((doc) => (
-          <Link
-            key={doc.href}
-            href={doc.href}
-            target="_blank"
-            rel="noreferrer"
-            underline="hover"
-            sx={{ fontSize: 12.5, fontWeight: 600 }}
-          >
-            {doc.label}
-          </Link>
-        ))}
-      </Stack>
-
-      <Box
-        component="form"
-        noValidate
-        onSubmit={formik.handleSubmit}
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: '0px 20px',
-          width: '100%',
-          mb: 2,
-        }}
-      >
-        <SelectDropdownSingle
-          name="businessEntity"
-          label="Business Entity *"
-          fetchOptions={entityOptionsFetcher}
-          value={formik.values.businessEntity}
-          onChange={(value) => formik.setFieldValue('businessEntity', value)}
-          onBlur={() => formik.setFieldTouched('businessEntity', true)}
-          error={formik.touched.businessEntity && Boolean(formik.errors.businessEntity)}
-          helperText={formik.touched.businessEntity && formik.errors.businessEntity ? formik.errors.businessEntity : ' '}
-        />
-
-        <TextInputField
-          name="connectionName"
-          label="Connection Name *"
-          value={formik.values.connectionName}
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          error={formik.touched.connectionName && Boolean(formik.errors.connectionName)}
-          helperText={formik.touched.connectionName && formik.errors.connectionName ? formik.errors.connectionName : ' '}
-        />
-
-        {fields.map((field) => (
-          <TextField
-            key={field.name}
-            name={field.name}
-            fullWidth
-            size="small"
-            type={field.type || 'text'}
-            label={field.label}
-            value={formik.values[field.name]}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            error={formik.touched[field.name] && Boolean(formik.errors[field.name])}
-            helperText={formik.touched[field.name] && formik.errors[field.name] ? formik.errors[field.name] : ' '}
-            placeholder={field.placeholder}
-            multiline={field.multiline}
-            rows={field.rows}
-            select={field.select}
-            sx={buildFieldComponentSx(field)}
-          >
-            {field.select && field.options.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
+      {view === 'form' ? (
+        <>
+          <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+            {docs.map((doc) => (
+              <Link
+                key={doc.href}
+                href={doc.href}
+                target="_blank"
+                rel="noreferrer"
+                underline="hover"
+                sx={{ fontSize: 12.5, fontWeight: 600 }}
+              >
+                {doc.label}
+              </Link>
             ))}
-          </TextField>
-        ))}
-      </Box>
+          </Stack>
 
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        justifyContent="space-between"
-        spacing={2}
-        mb={2.5}
-      >
-        <FormControlLabel
-          control={(
-            <Switch
-              checked={formik.values.isActive}
-              onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
+          <Box
+            component="form"
+            noValidate
+            onSubmit={formik.handleSubmit}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: '0px 20px',
+              width: '100%',
+              mb: 2,
+            }}
+          >
+            <SelectDropdownSingle
+              name="businessEntity"
+              label="Business Entity *"
+              fetchOptions={entityOptionsFetcher}
+              value={formik.values.businessEntity}
+              onChange={(value) => formik.setFieldValue('businessEntity', value)}
+              onBlur={() => formik.setFieldTouched('businessEntity', true)}
+              error={formik.touched.businessEntity && Boolean(formik.errors.businessEntity)}
+              helperText={formik.touched.businessEntity && formik.errors.businessEntity ? formik.errors.businessEntity : ' '}
             />
-          )}
-          label="Set this connection as active for the selected business entity"
-        />
 
-        <Button
-          type="submit"
-          variant="contained"
-          disabled={formik.isSubmitting}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 700,
-            borderRadius: '10px',
-            px: 3,
-            alignSelf: { xs: 'stretch', md: 'auto' },
-          }}
-        >
-          {formik.isSubmitting ? 'Saving...' : 'Save Configuration'}
-        </Button>
-      </Stack>
+            <TextInputField
+              name="connectionName"
+              label="Connection Name *"
+              value={formik.values.connectionName}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={formik.touched.connectionName && Boolean(formik.errors.connectionName)}
+              helperText={formik.touched.connectionName && formik.errors.connectionName ? formik.errors.connectionName : ' '}
+            />
 
-      <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: '#f8fafc' }}>
-              <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Connection</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Primary ID</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Identifiers</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Active</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Saved</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rowsLoading && (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                    <CircularProgress size={18} />
-                    <span>Loading saved configurations...</span>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!rowsLoading && rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
-                  No saved configuration yet.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!rowsLoading && rows.map((row) => (
-              <TableRow key={row.id} hover>
-                <TableCell>{row.businessEntity}</TableCell>
-                <TableCell>{row.connectionName}</TableCell>
-                <TableCell>{row.primaryValue || '—'}</TableCell>
-                <TableCell sx={{ maxWidth: 280 }}>
-                  <Typography fontSize={12.5} color="#475569">
-                    {row.identifiers.join(' • ') || '—'}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={row.isActive}
-                    onChange={() => handleToggleActive(row)}
-                    size="small"
-                    disabled={actionRowId === row.id}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={row.status}
-                    size="small"
-                    color={row.isActive ? 'success' : 'default'}
-                    variant={row.isActive ? 'filled' : 'outlined'}
-                  />
-                </TableCell>
-                <TableCell>{formatTimestamp(row.savedAt)}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" onClick={() => handleDelete(row)} disabled={actionRowId === row.id}>
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+            {fields.map((field) => (
+              <TextField
+                key={field.name}
+                name={field.name}
+                fullWidth
+                size="small"
+                type={field.type || 'text'}
+                label={field.label}
+                value={formik.values[field.name]}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={formik.touched[field.name] && Boolean(formik.errors[field.name])}
+                helperText={formik.touched[field.name] && formik.errors[field.name] ? formik.errors[field.name] : ' '}
+              placeholder={field.placeholder}
+              multiline={field.multiline}
+              rows={field.rows}
+              select={field.select}
+              sx={{
+                ...(field.multiline ? { gridColumn: '1 / -1' } : {}),
+                ...buildFieldComponentSx(field),
+              }}
+            >
+                {field.select && field.options.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Box>
+
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <FormControlLabel
+              control={(
+                <Switch
+                  checked={formik.values.isActive}
+                  onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
+                />
+              )}
+              label="Set this connection as active for the selected business entity"
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={formik.isSubmitting}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                borderRadius: '10px',
+                px: 3,
+                alignSelf: { xs: 'stretch', md: 'auto' },
+              }}
+            >
+              {formik.isSubmitting ? 'Saving...' : 'Save Configuration'}
+            </Button>
+          </Stack>
+        </>
+      ) : (
+        <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Connection</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Primary ID</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Identifiers</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Active</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Saved</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Action</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rowsLoading && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
+                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                      <CircularProgress size={18} />
+                      <span>Loading saved configurations...</span>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!rowsLoading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
+                    No saved configuration yet.
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!rowsLoading && rows.map((row) => (
+                <TableRow key={row.id} hover>
+                  <TableCell>{row.businessEntity}</TableCell>
+                  <TableCell>{row.connectionName}</TableCell>
+                  <TableCell>{row.primaryValue || '—'}</TableCell>
+                  <TableCell sx={{ maxWidth: 280 }}>
+                    <Typography fontSize={12.5} color="#475569">
+                      {row.identifiers.join(' • ') || '—'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={row.isActive}
+                      onChange={() => handleToggleActive(row)}
+                      size="small"
+                      disabled={actionRowId === row.id}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.status}
+                      size="small"
+                      color={row.isActive ? 'success' : 'default'}
+                      variant={row.isActive ? 'filled' : 'outlined'}
+                    />
+                  </TableCell>
+                  <TableCell>{formatTimestamp(row.savedAt)}</TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => handleDelete(row)} disabled={actionRowId === row.id}>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Paper>
   );
 }

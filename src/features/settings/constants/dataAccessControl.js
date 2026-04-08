@@ -1,10 +1,15 @@
+export const CRITERIA_OPTIONS = [
+  { id: 'business_entity', label: 'Business Entity' },
+  { id: 'field_level', label: 'Field Level Control' },
+];
+
 export const BUSINESS_ENTITIES = [
-  'Earth Telecommunication',
-  'Race Online Ltd.',
-  'Orbit Internet',
-  'Dhaka COLO',
-  'Creative Bangladesh',
-  'Ocloud',
+  { id: 'earth_telecommunication', label: 'Earth Telecommunication' },
+  { id: 'race_online', label: 'Race Online Ltd.' },
+  { id: 'orbit_internet', label: 'Orbit Internet' },
+  { id: 'dhaka_colo', label: 'Dhaka COLO' },
+  { id: 'creative_bangladesh', label: 'Creative Bangladesh' },
+  { id: 'ocloud', label: 'Ocloud' },
 ];
 
 export const ROLE_OPTIONS = [
@@ -21,89 +26,201 @@ export const FEATURE_OPTIONS = [
   { id: 'reports', label: 'Reports' },
 ];
 
-function makePermissions(overrides = {}) {
-  return BUSINESS_ENTITIES.reduce((acc, entityName) => {
-    acc[entityName] = overrides[entityName] || { read: false, write: false };
+export const FEATURE_FIELD_OPTIONS = {
+  invoice: [
+    'Invoice Number',
+    'Invoice Date',
+    'Customer Name',
+    'Billing Address',
+    'Invoice Amount',
+    'Tax Amount',
+    'Discount',
+    'Due Date',
+    'Payment Status',
+  ],
+  collections: [
+    'Collection Date',
+    'Invoice Reference',
+    'Collected Amount',
+    'Outstanding Amount',
+    'Collector Name',
+    'Collection Method',
+    'Collection Status',
+  ],
+  customer: [
+    'Customer Name',
+    'Customer ID',
+    'Email Address',
+    'Phone Number',
+    'Billing Address',
+    'Service Plan',
+    'Account Status',
+  ],
+  reports: [
+    'Report Name',
+    'Generated Date',
+    'Business Entity',
+    'Revenue Summary',
+    'Expense Summary',
+    'Collection Summary',
+    'Prepared By',
+  ],
+};
+
+function buildEntityReadPermissions(overrides = {}) {
+  return BUSINESS_ENTITIES.reduce((acc, entity) => {
+    acc[entity.label] = { read: Boolean(overrides[entity.label]?.read) };
     return acc;
   }, {});
 }
 
-export const MOCK_ACCESS_CONTROL = {
-  admin: {
-    invoice: {
-      roleId: 'admin',
-      featureKey: 'invoice',
-      fields: [
-        {
-          fieldName: 'Total Invoice',
-          permissions: makePermissions({
-            'Earth Telecommunication': { read: true, write: true },
-            'Race Online Ltd.': { read: true, write: true },
-            'Orbit Internet': { read: true, write: true },
-            'Dhaka COLO': { read: true, write: true },
-            'Creative Bangladesh': { read: true, write: true },
-            Ocloud: { read: true, write: true },
-          }),
-        },
-      ],
-    },
-    collections: {
-      roleId: 'admin',
-      featureKey: 'collections',
-      fields: [
-        {
-          fieldName: 'Total Invoice',
-          permissions: makePermissions({
-            'Earth Telecommunication': { read: true, write: true },
-            'Race Online Ltd.': { read: true, write: true },
-            'Orbit Internet': { read: true, write: false },
-            'Dhaka COLO': { read: true, write: false },
-          }),
-        },
-      ],
-    },
-  },
-  manager: {
-    invoice: {
-      roleId: 'manager',
-      featureKey: 'invoice',
-      fields: [
-        {
-          fieldName: 'Total Invoice',
-          permissions: makePermissions({
-            'Earth Telecommunication': { read: true, write: false },
-            'Race Online Ltd.': { read: true, write: true },
-            'Orbit Internet': { read: true, write: false },
-            'Dhaka COLO': { read: false, write: false },
-            'Creative Bangladesh': { read: true, write: false },
-            Ocloud: { read: false, write: false },
-          }),
-        },
-      ],
-    },
-  },
-};
-
-export function buildDefaultAccessControl(roleId, featureKey) {
+function buildFieldLevelPermissions(overrides = {}) {
   return {
-    roleId,
-    featureKey,
-    fields: [
-      {
-        fieldName: 'Total Invoice',
-        permissions: makePermissions(),
-      },
-    ],
+    read: Boolean(overrides.read),
+    write: Boolean(overrides.write),
+    modify: Boolean(overrides.modify),
   };
 }
 
-export function getMockAccessControl(roleId, featureKey) {
-  return MOCK_ACCESS_CONTROL[roleId]?.[featureKey] || buildDefaultAccessControl(roleId, featureKey);
+function buildBusinessEntityRows(featureKey, overrides = {}) {
+  return (FEATURE_FIELD_OPTIONS[featureKey] || []).map((fieldName) => ({
+    fieldName,
+    permissions: buildEntityReadPermissions(overrides[fieldName]),
+  }));
 }
 
-export function permissionLabel(permission = { read: false, write: false }) {
-  if (permission.read && permission.write) return 'Read, Write';
-  if (permission.write) return 'Write';
+function buildFieldLevelRows(featureKey, overrides = {}) {
+  return (FEATURE_FIELD_OPTIONS[featureKey] || []).map((fieldName) => ({
+    fieldName,
+    permissions: buildFieldLevelPermissions(overrides[fieldName]),
+  }));
+}
+
+export const MOCK_BUSINESS_ENTITY_ACCESS_CONTROL = {
+  admin: {
+    invoice: buildBusinessEntityRows('invoice', {
+      'Invoice Number': {
+        'Earth Telecommunication': { read: true },
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+        'Dhaka COLO': { read: true },
+        'Creative Bangladesh': { read: true },
+        Ocloud: { read: true },
+      },
+      'Invoice Amount': {
+        'Earth Telecommunication': { read: true },
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+      },
+      'Discount': {
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+      },
+    }),
+  },
+  manager: {
+    invoice: buildBusinessEntityRows('invoice', {
+      'Invoice Number': {
+        'Earth Telecommunication': { read: true },
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+      },
+      'Invoice Amount': {
+        'Race Online Ltd.': { read: true },
+        'Creative Bangladesh': { read: true },
+      },
+      'Payment Status': {
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+      },
+    }),
+    reports: buildBusinessEntityRows('reports', {
+      'Revenue Summary': {
+        'Race Online Ltd.': { read: true },
+        'Orbit Internet': { read: true },
+      },
+    }),
+  },
+};
+
+export const MOCK_FIELD_LEVEL_ACCESS_CONTROL = {
+  admin: {
+    invoice: buildFieldLevelRows('invoice', {
+      'Invoice Number': { read: true, write: true, modify: true },
+      'Invoice Date': { read: true, write: true, modify: true },
+      'Customer Name': { read: true, write: true, modify: true },
+      'Invoice Amount': { read: true, write: true, modify: true },
+      'Discount': { read: true, write: true, modify: true },
+      'Payment Status': { read: true, write: true, modify: true },
+    }),
+  },
+  manager: {
+    invoice: buildFieldLevelRows('invoice', {
+      'Invoice Number': { read: true, write: false, modify: false },
+      'Invoice Date': { read: true, write: false, modify: false },
+      'Customer Name': { read: true, write: false, modify: false },
+      'Invoice Amount': { read: true, write: false, modify: false },
+      'Payment Status': { read: true, write: true, modify: true },
+    }),
+    reports: buildFieldLevelRows('reports', {
+      'Report Name': { read: true, write: false, modify: false },
+      'Generated Date': { read: true, write: false, modify: false },
+      'Revenue Summary': { read: true, write: false, modify: false },
+    }),
+  },
+};
+
+export function buildDefaultBusinessEntityAccessControl(roleId, featureKey) {
+  return {
+    roleId,
+    featureKey,
+    fields: buildBusinessEntityRows(featureKey),
+  };
+}
+
+export function getMockBusinessEntityAccessControl(roleId, featureKey) {
+  const existing = MOCK_BUSINESS_ENTITY_ACCESS_CONTROL[roleId]?.[featureKey];
+
+  if (existing) {
+    return {
+      roleId,
+      featureKey,
+      fields: existing.map((field) => ({
+        ...field,
+        permissions: { ...field.permissions },
+      })),
+    };
+  }
+
+  return buildDefaultBusinessEntityAccessControl(roleId, featureKey);
+}
+
+export function buildDefaultFieldLevelAccessControl(roleId, featureKey) {
+  return {
+    roleId,
+    featureKey,
+    fields: buildFieldLevelRows(featureKey),
+  };
+}
+
+export function getMockFieldLevelAccessControl(roleId, featureKey) {
+  const existing = MOCK_FIELD_LEVEL_ACCESS_CONTROL[roleId]?.[featureKey];
+
+  if (existing) {
+    return {
+      roleId,
+      featureKey,
+      fields: existing.map((field) => ({
+        ...field,
+        permissions: { ...field.permissions },
+      })),
+    };
+  }
+
+  return buildDefaultFieldLevelAccessControl(roleId, featureKey);
+}
+
+export function permissionLabel(permission = { read: false }) {
   if (permission.read) return 'Read';
   return '';
 }

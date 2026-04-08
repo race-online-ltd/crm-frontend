@@ -14,15 +14,10 @@ export default function EmailSettingsSection() {
       fields={EMAIL_FIELDS}
       primaryField="emailAddress"
       identifierFields={['providerLabel', 'imapHost', 'mailbox']}
-      docs={[
-        { label: 'Gmail IMAP', href: 'https://support.google.com/mail/answer/7126229' },
-        { label: 'Outlook IMAP', href: 'https://support.microsoft.com/en-us/office/pop-imap-and-smtp-settings-for-outlook-com-d088b986-291d-42b8-9564-9c414e2aa040' },
-      ]}
-      backendNotes={[
-        'Email is modeled as receive-only here, so backend can poll IMAP or use provider-specific subscriptions while still storing one active mailbox per entity.',
-        'Credentials should be encrypted at rest and never hardcoded in the frontend.',
-        'Message ingestion should map each mailbox to its business entity so the Social inbox can filter by entity consistently.',
-      ]}
+      // docs={[
+      //   { label: 'Gmail IMAP', href: 'https://support.google.com/mail/answer/7126229' },
+      //   { label: 'Outlook IMAP', href: 'https://support.microsoft.com/en-us/office/pop-imap-and-smtp-settings-for-outlook-com-d088b986-291d-42b8-9564-9c414e2aa040' },
+      // ]}
     />
   );
 }
