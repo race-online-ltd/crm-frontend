@@ -121,6 +121,15 @@ export default function GroupForm({
     }
   };
 
+  const toggleRowSx = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    minHeight: 24,
+    mt: -0.25,
+    mb: 0.25,
+  };
+
   return (
     <Box component="form" onSubmit={formik.handleSubmit} noValidate sx={{ width: '100%' }}>
       <Box
@@ -131,42 +140,6 @@ export default function GroupForm({
           width: '100%',
         }}
       >
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            minHeight: 45,
-          }}
-        />
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'flex-start',
-            minHeight: 45,
-            mt: { xs: 0, md: 0.25 },
-            mb: { xs: 1, md: 0 },
-            gridColumn: { xs: '1', md: '2' },
-            gridRow: { xs: '3', md: '1' },
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 0.5, sm: 1.25 }}
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-          >
-            <Typography fontSize={13} fontWeight={600} color="#475569">
-              Select All Supervisor
-            </Typography>
-            <CustomToggle
-              size="sm"
-              label={values.selectAllSupervisors ? 'Enabled' : 'Manual'}
-              checked={values.selectAllSupervisors}
-              onChange={handleSupervisorToggle}
-            />
-          </Stack>
-        </Box>
-
         <TextInputField
           name="groupName"
           label="Group Name *"
@@ -175,10 +148,27 @@ export default function GroupForm({
           onBlur={formik.handleBlur}
           error={formik.touched.groupName && Boolean(formik.errors.groupName)}
           helperText={formik.touched.groupName && formik.errors.groupName ? formik.errors.groupName : ' '}
-          sx={{ gridRow: { xs: '2', md: '2' } }}
         />
 
-        <Box sx={{ gridRow: { xs: '4', md: '2' } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2.5 }}>
+          <Box sx={toggleRowSx}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 0.5, sm: 1.25 }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+            >
+              <Typography fontSize={13} fontWeight={600} color="#475569">
+                Select All Supervisor
+              </Typography>
+              <CustomToggle
+                size="sm"
+                label={values.selectAllSupervisors ? 'Enabled' : 'Manual'}
+                checked={values.selectAllSupervisors}
+                onChange={handleSupervisorToggle}
+              />
+            </Stack>
+          </Box>
+
           <SelectDropdownMultiple
             name="supervisor"
             label="Supervisor *"
@@ -198,88 +188,43 @@ export default function GroupForm({
           />
         </Box>
 
-        <Box
-          sx={{
-            display: { xs: 'flex', md: 'none' },
-            alignItems: 'flex-start',
-            justifyContent: 'flex-start',
-            minHeight: 24,
-            mt: -0.5,
-            mb: 0.25,
-            gridRow: '5',
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 0.5, sm: 1.25 }}
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-          >
-            <Typography fontSize={13} fontWeight={600} color="#475569">
-              Select All Team
-            </Typography>
-            <CustomToggle
-              size="sm"
-              label={values.selectAllTeams ? 'Enabled' : 'Manual'}
-              checked={values.selectAllTeams}
-              onChange={handleTeamToggle}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3.5, gridColumn: '1 / -1', mt: 1.5 }}>
+          <Box sx={toggleRowSx}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 0.5, sm: 1.25 }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+            >
+              <Typography fontSize={13} fontWeight={600} color="#475569">
+                Select All Team
+              </Typography>
+              <CustomToggle
+                size="sm"
+                label={values.selectAllTeams ? 'Enabled' : 'Manual'}
+                checked={values.selectAllTeams}
+                onChange={handleTeamToggle}
+              />
+            </Stack>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <SelectDropdownMultiple
+              name="teamName"
+              label="Team *"
+              options={teamOptions}
+              value={values.teamName}
+              onChange={handleTeamChange}
+              onBlur={formik.handleBlur}
+              disabled={values.selectAllTeams}
+              error={formik.touched.teamName && Boolean(formik.errors.teamName)}
+              helperText={
+                formik.touched.teamName && formik.errors.teamName
+                  ? formik.errors.teamName
+                  : values.selectAllTeams
+                    ? 'All teams are selected automatically.'
+                    : ' '
+              }
             />
-          </Stack>
-        </Box>
-
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'flex' },
-            alignItems: 'flex-start',
-            justifyContent: 'flex-start',
-            minHeight: 24,
-            mt: 0,
-            mb: -0.25,
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 0.5, sm: 1.25 }}
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-          >
-            <Typography fontSize={13} fontWeight={600} color="#475569">
-              Select All Team
-            </Typography>
-            <CustomToggle
-              size="sm"
-              label={values.selectAllTeams ? 'Enabled' : 'Manual'}
-              checked={values.selectAllTeams}
-              onChange={handleTeamToggle}
-            />
-          </Stack>
-        </Box>
-
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            minHeight: 24,
-            mt: 0,
-            mb: -0.25,
-          }}
-        />
-
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
-          <SelectDropdownMultiple
-            name="teamName"
-            label="Team Name *"
-            options={teamOptions}
-            value={values.teamName}
-            onChange={handleTeamChange}
-            onBlur={formik.handleBlur}
-            disabled={values.selectAllTeams}
-            error={formik.touched.teamName && Boolean(formik.errors.teamName)}
-            helperText={
-              formik.touched.teamName && formik.errors.teamName
-                ? formik.errors.teamName
-                : values.selectAllTeams
-                  ? 'All teams are selected automatically.'
-                  : ' '
-            }
-          />
+          </Box>
         </Box>
       </Box>
 

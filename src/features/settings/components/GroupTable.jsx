@@ -148,7 +148,7 @@ export default function GroupTable({
       <Box sx={{ mb: 2, width: '100%', maxWidth: { xs: '100%', sm: 420 } }}>
         <TextInputField
           name="group-search"
-          label="Search Group"
+          // label="Search Group"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by group, supervisor, or team"
