@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, InputAdornment, Stack, Typography } from '@mui/material';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import TextInputField from '../../../components/shared/TextInputField';
 import BaseTable from '../../../components/shared/BaseTable';
+import OrbitLoader from './OrbitLoader';
 
 const buildLabelMap = (options) =>
   options.reduce((acc, option) => {
@@ -43,6 +44,15 @@ export default function TeamTable({
   onEdit,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const businessEntityLabels = useMemo(() => buildLabelMap(businessEntityOptions), [businessEntityOptions]);
   const kamLabels = useMemo(() => buildLabelMap(kamOptions), [kamOptions]);
@@ -170,13 +180,22 @@ export default function TeamTable({
       <BaseTable
         title="Team Directory"
         columns={columns}
-        rows={rows}
+        rows={isLoading ? [] : rows}
         selectable={false}
         hasAction
         onEditRow={(row) => onEdit?.(teams.find((team) => team.id === row.id) || row)}
         showDeleteAction={false}
         showToolbar={false}
         showDenseToggle={false}
+        emptyMessage="No data found"
+        loading={isLoading}
+        loadingContent={(
+          <OrbitLoader
+            title="Loading team directory"
+            subtitle="syncing team, business entity, KAM, and supervisor data...."
+            minHeight={220}
+          />
+        )}
       />
     </>
   );

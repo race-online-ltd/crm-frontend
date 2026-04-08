@@ -124,6 +124,9 @@ export default function BaseTable({
   toolbarContent = null,
   showEditAction = true,
   showDeleteAction = true,
+  emptyMessage = "No data found",
+  loading = false,
+  loadingContent = null,
 }) {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState(columns[0]?.id || "");
@@ -223,14 +226,28 @@ export default function BaseTable({
               hasAction={hasAction}
             />
             <TableBody>
-              {visibleRows.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (selectable ? 1 : 0) + (hasAction ? 1 : 0)}
+                    align="center"
+                    sx={{ py: 3, px: 2, bgcolor: "#fff" }}
+                  >
+                    {loadingContent || (
+                      <Typography sx={{ color: "#94a3b8", fontSize: "0.875rem" }}>
+                        Loading...
+                      </Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : visibleRows.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length + (selectable ? 1 : 0) + (hasAction ? 1 : 0)}
                     align="center"
                     sx={{ py: 7, color: "#94a3b8", fontSize: "0.875rem" }}
                   >
-                    No data found
+                    {emptyMessage}
                   </TableCell>
                 </TableRow>
               ) : visibleRows.map((row) => {
@@ -327,6 +344,9 @@ BaseTable.propTypes = {
   showExportButton: PropTypes.bool,
   showFilterButton: PropTypes.bool,
   showDenseToggle: PropTypes.bool,
+  emptyMessage: PropTypes.string,
+  loading: PropTypes.bool,
+  loadingContent: PropTypes.node,
   toolbarContent: PropTypes.node,
   showEditAction: PropTypes.bool,
   showDeleteAction: PropTypes.bool,

@@ -60,31 +60,13 @@ function formatAmount(amount) {
   return amount || '৳0';
 }
 
-function buildFallbackActivities(lead) {
-  if (!lead) return [];
+function formatTaskType(taskType) {
+  if (!taskType) return 'General';
 
-  const createdAt = lead.assignedDate || lead.deadline || new Date().toISOString();
-
-  return [
-    {
-      id: `${lead.id}-created`,
-      title: 'Lead added to pipeline',
-      description: `${lead.name} was added to the ${STAGE_LABELS[lead.stageId || lead.stage] || 'pipeline'} stage.`,
-      timestamp: createdAt,
-    },
-    {
-      id: `${lead.id}-assignment`,
-      title: 'Lead assigned',
-      description: `Assigned to ${lead.user || 'Unassigned'}${lead.source ? ` from ${lead.source}` : ''}.`,
-      timestamp: lead.assignedDate || createdAt,
-    },
-    {
-      id: `${lead.id}-revenue`,
-      title: 'Expected value captured',
-      description: `Estimated value recorded as ${formatAmount(lead.amount)}.`,
-      timestamp: lead.assignedDate || createdAt,
-    },
-  ];
+  return taskType
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 function SectionHeader({ title, description, action }) {
@@ -140,21 +122,18 @@ export default function ViewDetailsDrawer({
   onClose,
   lead,
   notes = [],
-  activities = [],
+  tasks = [],
   onAddNote,
 }) {
   const [activeTab, setActiveTab] = useState('details');
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
 
-  const mergedActivities = useMemo(() => {
-    const seeded = buildFallbackActivities(lead);
-    const all = [...activities, ...seeded];
-
-    return all
+  const taskHistory = useMemo(() => {
+    return [...tasks]
       .filter(Boolean)
-      .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
-  }, [activities, lead]);
+      .sort((a, b) => new Date(b.createdAt || b.scheduledAt || 0).getTime() - new Date(a.createdAt || a.scheduledAt || 0).getTime());
+  }, [tasks]);
 
   const handleSubmitNote = () => {
     const value = noteText.trim();
@@ -184,6 +163,8 @@ export default function ViewDetailsDrawer({
     { label: 'Deadline', value: formatDateTime(lead?.deadline) },
   ];
 
+  const detailItems = [...leadOverview, ...commercialInfo, ...ownershipInfo];
+
   return (
     <AppDrawer open={open} onClose={onClose} title="View Details" width={560}>
       {!lead ? (
@@ -196,7 +177,7 @@ export default function ViewDetailsDrawer({
           <Stack direction="row" spacing={1} sx={{ p: 0.5, bgcolor: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
             {[
               { key: 'details', label: 'Details' },
-              { key: 'activities', label: `Activities${mergedActivities.length ? ` (${mergedActivities.length})` : ''}` },
+              { key: 'tasks', label: `Task${taskHistory.length ? ` (${taskHistory.length})` : ''}` },
             ].map((item) => (
               <Button
                 key={item.key}
@@ -225,64 +206,57 @@ export default function ViewDetailsDrawer({
             <Box>
               <SectionHeader
                 title="Lead Details"
-                description="A single selected lead profile with the most relevant business and assignment information."
+                description="A complete snapshot of the selected lead with business, commercial, and ownership information in one place."
               />
               <Stack spacing={1.5}>
                 <Paper
                   variant="outlined"
-                  sx={{ p: 2, borderRadius: '16px', borderColor: '#e2e8f0', bgcolor: '#fff' }}
+                  sx={{ p: 2.25, borderRadius: '18px', borderColor: '#e2e8f0', bgcolor: '#fff' }}
                 >
-                  <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 0.5 }}>
-                    Lead Overview
-                  </Typography>
-                  <Typography variant="body2" color="#64748b" sx={{ mb: 0.5 }}>
-                    Core identity and opportunity summary for this selected lead.
-                  </Typography>
-                  {leadOverview.map((item, index) => (
-                    <Box
-                      key={item.label}
-                      sx={{
-                        borderTop: index === 0 ? 'none' : '1px solid #eef2f7',
-                      }}
-                    >
-                      <DetailLine label={item.label} value={item.value} />
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                    justifyContent="space-between"
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    sx={{
+                      p: 1.5,
+                      mb: 1.5,
+                      borderRadius: '14px',
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #eef2f7',
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h6" fontWeight={800} color="#0f172a">
+                        {lead?.name || 'Lead details'}
+                      </Typography>
+                      <Typography variant="body2" color="#64748b" sx={{ mt: 0.25 }}>
+                        {lead?.client || lead?.subtitle || 'Selected lead profile'}
+                      </Typography>
                     </Box>
-                  ))}
-                </Paper>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      <Chip
+                        label={lead?.status || 'No status'}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          bgcolor: (STATUS_COLORS[lead?.status] || {}).bg || '#f1f5f9',
+                          color: (STATUS_COLORS[lead?.status] || {}).color || '#64748b',
+                        }}
+                      />
+                      <Chip
+                        label={lead?.source || 'No source'}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          bgcolor: (SOURCE_COLORS[lead?.source] || {}).bg || '#f1f5f9',
+                          color: (SOURCE_COLORS[lead?.source] || {}).color || '#64748b',
+                        }}
+                      />
+                    </Stack>
+                  </Stack>
 
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, borderRadius: '16px', borderColor: '#e2e8f0', bgcolor: '#fff' }}
-                >
-                  <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 0.5 }}>
-                    Commercial Info
-                  </Typography>
-                  <Typography variant="body2" color="#64748b" sx={{ mb: 0.5 }}>
-                    Stage, source, revenue, and business information tied to this lead.
-                  </Typography>
-                  {commercialInfo.map((item, index) => (
-                    <Box
-                      key={item.label}
-                      sx={{
-                        borderTop: index === 0 ? 'none' : '1px solid #eef2f7',
-                      }}
-                    >
-                      <DetailLine label={item.label} value={item.value} />
-                    </Box>
-                  ))}
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, borderRadius: '16px', borderColor: '#e2e8f0', bgcolor: '#fff' }}
-                >
-                  <Typography variant="subtitle2" fontWeight={800} color="#0f172a" sx={{ mb: 0.5 }}>
-                    Ownership & Timeline
-                  </Typography>
-                  <Typography variant="body2" color="#64748b" sx={{ mb: 0.5 }}>
-                    Team ownership and important dates for follow-up and delivery.
-                  </Typography>
-                  {ownershipInfo.map((item, index) => (
+                  {detailItems.map((item, index) => (
                     <Box
                       key={item.label}
                       sx={{
@@ -361,9 +335,7 @@ export default function ViewDetailsDrawer({
               <Stack
                 spacing={1.25}
                 sx={{
-                  maxHeight: 280,
-                  overflowY: 'auto',
-                  pr: 0.5,
+                  pr: 0.25,
                   '&::-webkit-scrollbar': { width: 6 },
                   '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 999 },
                 }}
@@ -405,14 +377,14 @@ export default function ViewDetailsDrawer({
           ) : (
             <Box>
               <SectionHeader
-                title="Activities"
-                description="A running timeline of important lead journey updates and operational actions."
+                title="Task History"
+                description="Review follow-up tasks created for this lead, including schedule, details, and meeting location."
               />
 
               <Stack spacing={1.5}>
-                {mergedActivities.length ? (
-                  mergedActivities.map((activity) => (
-                    <Stack key={activity.id} direction="row" spacing={1.5} alignItems="flex-start">
+                {taskHistory.length ? (
+                  taskHistory.map((task) => (
+                    <Stack key={task.id} direction="row" spacing={1.5} alignItems="flex-start">
                       <Avatar
                         sx={{
                           width: 36,
@@ -439,22 +411,47 @@ export default function ViewDetailsDrawer({
                           alignItems={{ xs: 'flex-start', sm: 'center' }}
                           spacing={0.75}
                         >
-                          <Typography variant="body2" fontWeight={700} color="#0f172a">
-                            {activity.title}
-                          </Typography>
+                          <Box>
+                            <Typography variant="body2" fontWeight={700} color="#0f172a">
+                              {task.title || 'Untitled Task'}
+                            </Typography>
+                            <Typography variant="caption" color="#64748b">
+                              {formatTaskType(task.taskType)}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={task.scheduledAt ? `Scheduled: ${formatDateTime(task.scheduledAt)}` : 'Schedule not set'}
+                            size="small"
+                            sx={{
+                              fontWeight: 700,
+                              bgcolor: '#f8fafc',
+                              color: '#475569',
+                            }}
+                          />
+                        </Stack>
+                        <Typography variant="body2" color="#475569" sx={{ mt: 1 }}>
+                          {task.details || 'No task details provided.'}
+                        </Typography>
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1}
+                          justifyContent="space-between"
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                          sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid #eef2f7' }}
+                        >
                           <Typography variant="caption" color="#94a3b8">
-                            {formatDateTime(activity.timestamp)}
+                            Created: {formatDateTime(task.createdAt)}
+                          </Typography>
+                          <Typography variant="caption" color="#64748b" sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                            {task.location?.address || 'No meeting location added'}
                           </Typography>
                         </Stack>
-                        <Typography variant="body2" color="#475569" sx={{ mt: 0.5 }}>
-                          {activity.description}
-                        </Typography>
                       </Paper>
                     </Stack>
                   ))
                 ) : (
                   <Alert severity="info" sx={{ borderRadius: '12px' }}>
-                    No activity history is available for this lead yet.
+                    No task history is available for this lead yet.
                   </Alert>
                 )}
               </Stack>
