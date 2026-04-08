@@ -7,7 +7,7 @@ export default function WhatsAppSettingsSection() {
   return (
     <SocialConnectionSection
       title="WhatsApp Cloud API"
-      subtitle="Save Cloud API credentials per business entity so inbound webhook events and outbound messages can switch dynamically."
+      subtitle="COnfigure WhatsApp connections with the Meta Graph API."
       icon={<WhatsAppIcon sx={{ fontSize: 22 }} />}
       accent={{ color: '#25D366', bg: '#ecfdf3', border: '#bbf7d0' }}
       channelKey="whatsapp"

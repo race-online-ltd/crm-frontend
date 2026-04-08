@@ -7,7 +7,7 @@ export default function EmailSettingsSection() {
   return (
     <SocialConnectionSection
       title="Email Receive Configuration"
-      subtitle="Configure receive-only mailbox connections per business entity. This UI is designed for backend IMAP ingestion or provider-specific inbound sync."
+      subtitle="Configure receive-only mailbox connections per business entity."
       icon={<EmailOutlinedIcon sx={{ fontSize: 22 }} />}
       accent={{ color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' }}
       channelKey="email"

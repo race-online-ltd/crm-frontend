@@ -7,7 +7,7 @@ export default function FacebookSettingsSection() {
   return (
     <SocialConnectionSection
       title="Facebook Messenger"
-      subtitle="Configure one or more Facebook Page connections per business entity and keep only one active at a time."
+      subtitle="Configure Facebook Messenger connections with Meta Graph API."
       icon={<FacebookIcon sx={{ fontSize: 22 }} />}
       accent={{ color: '#1877f2', bg: '#eff6ff', border: '#bfdbfe' }}
       channelKey="facebook"

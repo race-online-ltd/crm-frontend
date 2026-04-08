@@ -118,7 +118,7 @@ export default function DataAccessControlPage() {
             <AdminPanelSettingsIcon sx={{ fontSize: 22, color: '#2563eb' }} />
           </Box>
           <Typography variant="h5" fontWeight={800} color="#111827" letterSpacing="-0.3px">
-            Data Access Control
+            Access Control
           </Typography>
         </Stack>
       </Box>

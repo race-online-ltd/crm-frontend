@@ -8,7 +8,6 @@ import {
   Typography,
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
@@ -61,10 +60,8 @@ function mergeFiles(currentFiles, selectedFiles) {
 }
 
 export default function AttachmentField({
-  label = 'Attachment',
   value = [],
   onChange,
-  helperText = 'Accepted: PDF, Word, Excel, CSV, and image files. Max 25 MB total.',
   accept = ATTACHMENT_ACCEPT,
 }) {
   const files = Array.isArray(value) ? value : [];
@@ -83,20 +80,14 @@ export default function AttachmentField({
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={0.75} mb={1}>
-        <AttachFileIcon sx={{ fontSize: 16, color: '#64748b' }} />
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
-          {label}
-        </Typography>
-      </Stack>
-
       <Box
         {...getRootProps()}
         sx={{
           border: '1px dashed #cbd5e1',
           borderRadius: '12px',
           bgcolor: isDragActive ? '#eff6ff' : '#f8fafc',
-          p: 2,
+          px: 2,
+          py: 1.5,
           transition: 'all 0.18s ease',
           '&:hover': {
             borderColor: '#93c5fd',
@@ -107,19 +98,13 @@ export default function AttachmentField({
         <input {...getInputProps()} />
 
         <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
-          justifyContent="space-between"
-          spacing={1.5}
+          alignItems="center"
+          justifyContent="center"
+          spacing={1}
         >
-          <Box>
-            <Typography fontSize="0.85rem" fontWeight={600} color="#0f172a">
-              {isDragActive ? 'Drop files here' : 'Upload supporting files'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {helperText}
-            </Typography>
-          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+            Drag and drop files here, or use the button to browse.
+          </Typography>
 
           <Button
             type="button"
@@ -129,13 +114,14 @@ export default function AttachmentField({
             sx={{
               textTransform: 'none',
               fontWeight: 600,
-              borderRadius: '10px',
+              fontSize: '0.78rem',
+              borderRadius: '9px',
               borderColor: '#cbd5e1',
               color: '#334155',
               whiteSpace: 'nowrap',
             }}
           >
-            Choose Files
+            Attach Files
           </Button>
         </Stack>
 
@@ -207,11 +193,7 @@ export default function AttachmentField({
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25 }}>
             {files.length} file{files.length > 1 ? 's' : ''} selected. Total: {formatFileSize(totalSize)} / 25.00 MB
           </Typography>
-        ) : (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25 }}>
-            Drag and drop files here, or use the button to browse.
-          </Typography>
-        )}
+        ) : null}
       </Box>
     </Box>
   );

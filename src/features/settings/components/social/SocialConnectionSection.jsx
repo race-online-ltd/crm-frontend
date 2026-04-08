@@ -164,6 +164,7 @@ export default function SocialConnectionSection({
   deleteConnection,
   toggleConnectionActive,
 }) {
+  const showInlineToggle = channelKey === 'whatsapp' || channelKey === 'email';
   const normalizedInitialRows = useMemo(
     () => initialRows.map((row) => normalizeRow(row, { fields, primaryField, identifierFields, channelKey })),
     [channelKey, fields, identifierFields, initialRows, primaryField],
@@ -379,9 +380,12 @@ export default function SocialConnectionSection({
             sx={{
               textTransform: 'none',
               fontWeight: 700,
-              borderRadius: '10px',
-              px: 2.5,
-              py: 1,
+              fontSize: '0.74rem',
+              lineHeight: 1.1,
+              borderRadius: '7px',
+              px: 1.5,
+              py: 0.45,
+              minHeight: 30,
               alignSelf: { xs: 'stretch', sm: 'auto' },
             }}
           >
@@ -399,11 +403,15 @@ export default function SocialConnectionSection({
             sx={{
               textTransform: 'none',
               fontWeight: 600,
-              borderRadius: '10px',
+              fontSize: '0.8rem',
+              borderRadius: '8px',
+              px: 1.75,
+              py: 0.65,
+              minHeight: 36,
               alignSelf: { xs: 'stretch', sm: 'auto' },
             }}
           >
-            Back To List
+            Back
           </Button>
         )}
       </Stack>
@@ -516,23 +524,48 @@ export default function SocialConnectionSection({
                 ))}
               </TextField>
             ))}
+
+            {showInlineToggle && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  minHeight: 45,
+                  justifyContent: { xs: 'flex-start', md: 'flex-start' },
+                  transform: 'translateY(-12px) translateX(15px)',
+                }}
+              >
+                <FormControlLabel
+                  sx={{ m: 0 }}
+                  control={(
+                    <Switch
+                      checked={formik.values.isActive}
+                      onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
+                    />
+                  )}
+                  label="Set Active"
+                />
+              </Box>
+            )}
           </Box>
 
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
+            justifyContent={showInlineToggle ? 'flex-end' : 'space-between'}
             spacing={2}
           >
-            <FormControlLabel
-              control={(
-                <Switch
-                  checked={formik.values.isActive}
-                  onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
-                />
-              )}
-              label="Set this connection as active for the selected business entity"
-            />
+            {!showInlineToggle && (
+              <FormControlLabel
+                control={(
+                  <Switch
+                    checked={formik.values.isActive}
+                    onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
+                  />
+                )}
+                label="Set this connection as active for the selected business entity"
+              />
+            )}
 
             <Button
               type="submit"
@@ -543,7 +576,7 @@ export default function SocialConnectionSection({
                 fontWeight: 700,
                 borderRadius: '10px',
                 px: 3,
-                alignSelf: { xs: 'stretch', md: 'auto' },
+                alignSelf: { xs: 'stretch', md: showInlineToggle ? 'flex-end' : 'auto' },
               }}
             >
               {formik.isSubmitting ? 'Saving...' : 'Save Configuration'}
