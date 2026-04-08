@@ -153,7 +153,7 @@ export default function TeamTable({
       <Box sx={{ mb: 2, width: '100%', maxWidth: { xs: '100%', sm: 420 } }}>
         <TextInputField
           name="team-search"
-          label="Search Team"
+          // label="Search Team"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by team, entity, KAM, or supervisor"
