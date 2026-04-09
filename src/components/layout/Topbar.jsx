@@ -8,6 +8,7 @@ import {
   IconButton,
   Typography,
   Box,
+  Stack,
   useTheme,
   useMediaQuery,
   Badge,
@@ -20,24 +21,28 @@ import {
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useLocation } from "react-router-dom";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { useNavigate } from "react-router-dom";
+import { useUserProfile } from "../../features/settings/context/UserProfileContext";
 
 const drawerWidth  = 240;
 const collapsedWidth = 60;
 
 export default function Topbar({ open, handleToggle }) {
   const theme    = useTheme();
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { profile } = useUserProfile();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [anchorNotif,  setAnchorNotif]  = useState(null);
   const [anchorAvatar, setAnchorAvatar] = useState(null);
 
-  const pageTitle =
-    location.pathname.replace("/", "").toUpperCase() || "DASHBOARD";
+  const handleLogout = () => {
+    setAnchorAvatar(null);
+    setAnchorNotif(null);
+    navigate('/login', { replace: true });
+  };
 
   // On mobile the sidebar is hidden (width 0), on desktop account for it
   const sidebarWidth = isMobile ? 0 : open ? drawerWidth : collapsedWidth;
@@ -115,28 +120,57 @@ export default function Topbar({ open, handleToggle }) {
           onClose={() => setAnchorAvatar(null)}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
-          PaperProps={{ sx: { width: 260, p: 1 } }}
+          PaperProps={{ sx: { width: 300, p: 1 } }}
         >
-          <Box sx={{ px: 2, py: 1 }}>
-            <Typography fontWeight={600}>John Doe</Typography>
-            <Typography variant="body2" color="text.secondary">
-              📧 john@gmail.com
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              📞 +880 1234-567890
-            </Typography>
+          <Box sx={{ position: "relative", px: 2, py: 2, pr: 6 }}>
+            <IconButton
+              onClick={() => {
+                setAnchorAvatar(null);
+                navigate("/settings/user-profile");
+              }}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 32,
+                height: 32,
+                bgcolor: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                "&:hover": { bgcolor: "#dbeafe" },
+              }}
+            >
+              <EditOutlinedIcon sx={{ fontSize: 17, color: "#2563eb" }} />
+            </IconButton>
+
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar
+                src={profile.avatar || ''}
+                sx={{ bgcolor: "#2563eb", width: 48, height: 48, fontWeight: 700 }}
+              >
+                {!profile.avatar ? profile.fullName?.charAt(0) || 'U' : null}
+              </Avatar>
+              <Box>
+                <Typography fontWeight={700}>{profile.fullName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {profile.role}
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Email: {profile.email}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Mobile: {profile.mobile}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Phone: {profile.phone}
+              </Typography>
+            </Box>
           </Box>
           <Divider />
-          <MenuItem>
-            <ListItemIcon><AccountCircleIcon fontSize="small" /></ListItemIcon>
-            Profile
-          </MenuItem>
-          <MenuItem>
-            <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-            Settings
-          </MenuItem>
-          <Divider />
-          <MenuItem sx={{ color: "red" }}>
+          <MenuItem onClick={handleLogout} sx={{ color: "red" }}>
             <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: "red" }} /></ListItemIcon>
             Logout
           </MenuItem>

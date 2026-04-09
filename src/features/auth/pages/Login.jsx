@@ -17,10 +17,6 @@ export default function Login() {
     password: '',
   };
 
-  const handleSubmit = (values) => {
-    console.log('Login payload:', values);
-  };
-
   return (
     <Box
       sx={{
@@ -62,59 +58,59 @@ export default function Login() {
           </Typography>
 
           <Formik
-  initialValues={initialValues}
-  validationSchema={LoginSchema}
-  onSubmit={async (values, { setSubmitting }) => {
-    // Simulate API Call
-    await new Promise(r => setTimeout(r, 2000));
-    console.log('Login payload:', values);
-    setSubmitting(false);
-  }}
->
-  {({ values, errors, touched, handleChange, handleBlur, isValid, dirty, isSubmitting }) => (
-    <Form style={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        
-        <TextInputField
-          name="username"
-          label="Username"
-          value={values.username}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.username && Boolean(errors.username)}
-          helperText={touched.username && errors.username ? errors.username : ' '}
-        />
+            initialValues={initialValues}
+            validationSchema={LoginSchema}
+            onSubmit={async (values, { setSubmitting }) => {
+              // Simulate API Call
+              await new Promise(r => setTimeout(r, 2000));
+              console.log('Login payload:', values);
+              setSubmitting(false);
+            }}
+          >
+            {({ values, errors, touched, handleChange, handleBlur, isValid, dirty, isSubmitting }) => (
+              <Form style={{ width: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  
+                  <TextInputField
+                    name="username"
+                    label="Username"
+                    value={values.username}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.username && Boolean(errors.username)}
+                    helperText={touched.username && errors.username ? errors.username : ' '}
+                  />
 
-        <PasswordInputField
-          name="password"
-          label="Password"
-          value={values.password}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.password && Boolean(errors.password)}
-          helperText={touched.password && errors.password ? errors.password : ' '}
-        />
+                  <PasswordInputField
+                    name="password"
+                    label="Password"
+                    value={values.password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.password && Boolean(errors.password)}
+                    helperText={touched.password && errors.password ? errors.password : ' '}
+                  />
 
-        <Button
-          type="submit"
-          fullWidth
-          disabled={!(isValid && dirty) || isSubmitting}
-          sx={{
-            mt: 1,
-            height: 45,
-            borderRadius: 2,
-            bgcolor: '#698ab6',
-             color: 'white',
-            '&:hover': { bgcolor: '#1b58a9' },
-            '&.Mui-disabled': { bgcolor: '#e0e0e0', color: '#9e9e9e' },
-          }}
-        >
-          {isSubmitting ? 'Verifying...' : 'Log In'}
-        </Button>
-      </Box>
-    </Form>
-  )}
-</Formik>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    disabled={!(isValid && dirty) || isSubmitting}
+                    sx={{
+                      mt: 1,
+                      height: 45,
+                      borderRadius: 2,
+                      bgcolor: '#698ab6',
+                      color: 'white',
+                      '&:hover': { bgcolor: '#1b58a9' },
+                      '&.Mui-disabled': { bgcolor: '#e0e0e0', color: '#9e9e9e' },
+                    }}
+                  >
+                    {isSubmitting ? 'Verifying...' : 'Log In'}
+                  </Button>
+                </Box>
+              </Form>
+            )}
+          </Formik>
         </Paper>
       </Box>
 
@@ -128,21 +124,21 @@ export default function Login() {
         }}
       >
         <Typography variant="body2" sx={{ color: '#999', fontWeight: 500 }}>
-                &copy; {new Date().getFullYear()}{' '} 
-                <a 
-                    href='https://www.race.net.bd/' 
-                    target='_blank' 
-                    rel="noopener noreferrer"
-                    style={{ 
-                    color: '#88B644', // A professional "Success" green
-                    textDecoration: 'none',
-                    fontWeight: 600 
-                    }}
-                >
-                    Race Online Ltd.
-                </a>
-                {' '}Software Division
-                </Typography>
+          &copy; {new Date().getFullYear()}{' '} 
+            <a 
+                href='https://www.race.net.bd/' 
+                target='_blank' 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: '#88B644', // A professional "Success" green
+                  textDecoration: 'none',
+                  fontWeight: 600 
+                }}
+            >
+              Race Online Ltd.
+            </a>
+            {' '}Software Division
+        </Typography>
       </Box>
     </Box>
   );
