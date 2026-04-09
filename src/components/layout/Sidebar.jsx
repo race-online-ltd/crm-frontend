@@ -30,6 +30,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import HubIcon from "@mui/icons-material/Hub";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import { Link, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import logo from "../../assets/earth.png";
@@ -46,6 +48,7 @@ const menuItems = [
   { text: "Target",     icon: <TrackChangesIcon />,           path: "/target" },
   { text: "Leads",      icon: <LeaderboardIcon />,            path: "/leads" },
   { text: "Tasks",      icon: <TaskAltIcon />,                path: "/tasks" },
+  { text: "Approval Requests", icon: <AssignmentTurnedInOutlinedIcon />, path: "/approval/requests" },
   { text: "Components", icon: <GridViewRoundedIcon />,               path: "/components" },
 ];
 
@@ -197,6 +200,19 @@ export default function Sidebar({ open, handleToggle }) {
                   <GroupIcon sx={{ fontSize: '1.2rem' }} />
                 </ListItemIcon>
                 <ListItemText primary="System Users" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+              </ListItemButton>
+
+              <ListItemButton
+                component={Link}
+                to="/settings/user-profile"
+                selected={location.pathname === "/settings/user-profile"}
+                onClick={isMobile ? handleToggle : undefined}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <AccountCircleIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: '0.85rem' }} />
               </ListItemButton>
 
               <ListItemButton

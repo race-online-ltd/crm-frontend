@@ -5,3 +5,4 @@ export { default as DataAccessControlPage } from "./pages/DataAccessControlPage"
 export { default as SocialSettingsPage } from "./pages/SocialSettingsPage";
 export { default as TeamPage } from "./pages/TeamPage";
 export { default as GroupPage } from "./pages/GroupPage";
+export { default as UserProfile } from "./pages/UserProfile/UserProfile";
