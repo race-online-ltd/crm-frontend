@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { Chip } from '@mui/material';
 import BaseTable from '../../../components/shared/BaseTable';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 export default function SystemUserList({ users = [], onEdit }) {
+  const isLoading = useInitialTableLoading();
   const columns = [
     { id: 'fullName', label: 'Full Name' },
     { id: 'userName', label: 'User Name' },
@@ -48,13 +50,14 @@ export default function SystemUserList({ users = [], onEdit }) {
     <BaseTable
       title="System Users Directory"
       columns={columns}
-      rows={rows}
+      rows={isLoading ? [] : rows}
       selectable={false}
       hasAction
       onEditRow={(row) => onEdit?.(users.find((user) => user.id === row.id) || row)}
       showDeleteAction={false}
       showToolbar={false}
       showDenseToggle={false}
+      loading={isLoading}
     />
   );
 }

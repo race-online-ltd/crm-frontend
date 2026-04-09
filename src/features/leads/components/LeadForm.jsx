@@ -460,7 +460,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           </Box>{/* end grid */}
 
           {/* ── Actions ── */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={4}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={6}>
             <Button
               fullWidth variant="outlined" onClick={onCancel}
               sx={{

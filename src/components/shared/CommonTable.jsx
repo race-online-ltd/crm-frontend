@@ -4,6 +4,8 @@ import {
   TableHead, TableRow, TablePagination, Typography, Box
 } from '@mui/material';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import OrbitLoader from './OrbitLoader';
+import useInitialTableLoading from './useInitialTableLoading';
 
 const CommonTable = ({ 
   title = "Table Title", 
@@ -17,6 +19,7 @@ const CommonTable = ({
   stickyRightColumns = [], // কোন আইডিগুলো ডানে স্টিকি হবে (Array of strings)
   columnWidths = {} // কাস্টম উইডথ (e.g., { kamName: 200 })
 }) => {
+  const isLoading = useInitialTableLoading();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -63,7 +66,10 @@ const CommonTable = ({
       </Box>
 
       <TableContainer sx={{ maxHeight }}>
-        <Table stickyHeader size="small" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+        {isLoading ? (
+          <OrbitLoader title={`Loading ${title}`} minHeight={240} />
+        ) : (
+          <Table stickyHeader size="small" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <TableHead>
             {/* ROW 1: Grouped Headers */}
             <TableRow>
@@ -188,7 +194,8 @@ const CommonTable = ({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        )}
       </TableContainer>
 
       <TablePagination

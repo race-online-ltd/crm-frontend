@@ -50,6 +50,7 @@ import FilterButton from "../components/shared/FilterButton";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
 import BaseTable from "../components/shared/BaseTable";
 import CommonTable from "../components/shared/CommonTable";
+import useInitialTableLoading from "../components/shared/useInitialTableLoading";
 import KanbanCard from "../components/shared/KanbanCard";
 import StatCard from "../components/shared/StatCard";
 import SimpleCard from "../components/shared/SimpleCard"; 
@@ -70,6 +71,7 @@ import TaskCalendar from "../features/task/components/TaskCalendar";
 export default function Components() {
 
   const [modalOpen, setModalOpen] = useState(false);
+  const tableLoading = useInitialTableLoading();
 // State to hold editor content
   const [editorContent, setEditorContent] = useState(null);
 
@@ -430,10 +432,11 @@ const myData = [
       <BaseTable
         title="Sales Overview"
         columns={columns}
-        rows={rows}
+        rows={tableLoading ? [] : rows}
         selectable
         onDelete={() => alert("Delete selected")}
         onFilter={() => openDrawer("filter")}
+        loading={tableLoading}
       />
 
       {/* ================= COMMON TABLE ================= */}

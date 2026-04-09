@@ -15,6 +15,8 @@ import {
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 import DataAccessPermissionDialog from '../components/DataAccessPermissionDialog';
 import {
   BUSINESS_ENTITIES,
@@ -27,6 +29,7 @@ import {
 } from '../constants/dataAccessControl';
 
 export default function DataAccessControlPage() {
+  const isLoading = useInitialTableLoading();
   const [selectedCriteria, setSelectedCriteria] = useState(CRITERIA_OPTIONS[0].id);
   const [selectedRole, setSelectedRole] = useState(ROLE_OPTIONS[0].id);
   const [selectedFeature, setSelectedFeature] = useState(FEATURE_OPTIONS[0].id);
@@ -166,7 +169,9 @@ export default function DataAccessControlPage() {
         }}
       >
         <TableContainer>
-          {selectedCriteria === 'business_entity' ? (
+          {isLoading ? (
+            <OrbitLoader title="Loading access control" minHeight={260} />
+          ) : selectedCriteria === 'business_entity' ? (
             <Table>
               <TableHead>
                 <TableRow>

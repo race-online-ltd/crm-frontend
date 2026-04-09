@@ -8,6 +8,8 @@ import {
 import MoreVertIcon        from '@mui/icons-material/MoreVert';
 import EmojiEventsIcon     from '@mui/icons-material/EmojiEvents';
 import SearchIcon          from '@mui/icons-material/Search';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 // ─── Mock KAM target data ─────────────────────────────────────────────────────
 const KAM_TARGETS = [
@@ -124,6 +126,7 @@ function KAMCell({ kam }) {
 
 // ─── Main Table ───────────────────────────────────────────────────────────────
 export default function KAMTargetTable({ sx = {} }) {
+  const isLoading = useInitialTableLoading();
   const [order, setOrder]   = useState('asc');
   const [orderBy, setOrderBy] = useState('kam');
   const [page, setPage] = useState(1);
@@ -204,7 +207,10 @@ export default function KAMTargetTable({ sx = {} }) {
       </Stack>
 
       <TableContainer>
-        <Table size="small" sx={{ minWidth: 700 }}>
+        {isLoading ? (
+          <OrbitLoader title="Loading KAM performance" minHeight={280} />
+        ) : (
+          <Table size="small" sx={{ minWidth: 700 }}>
           <TableHead>
             <TableRow sx={{ '& th': { bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0', py: 1.25 } }}>
               <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#475569', pl: 2.5 }}>
@@ -319,7 +325,8 @@ export default function KAMTargetTable({ sx = {} }) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        )}
       </TableContainer>
 
       <Box
