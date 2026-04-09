@@ -74,6 +74,10 @@ export default function DataAccessPermissionDialog({
   });
 
   const { values, setValues, setFieldValue, handleSubmit, resetForm } = formik;
+  const allEntityPermissionsSelected = values.entityPermissions.length > 0
+    && values.entityPermissions.every((item) => item.read);
+  const allFieldPermissionsSelected = ['read', 'write', 'modify']
+    .every((permissionKey) => Boolean(values.fieldPermissions[permissionKey]));
 
   useEffect(() => {
     if (!open || !fieldConfig) {
@@ -116,6 +120,27 @@ export default function DataAccessPermissionDialog({
     onClose?.();
   }
 
+  function handleSelectAllEntityPermissions(checked) {
+    setValues((prev) => ({
+      ...prev,
+      entityPermissions: prev.entityPermissions.map((item) => ({
+        ...item,
+        read: checked,
+      })),
+    }));
+  }
+
+  function handleSelectAllFieldPermissions(checked) {
+    setValues((prev) => ({
+      ...prev,
+      fieldPermissions: {
+        read: checked,
+        write: checked,
+        modify: checked,
+      },
+    }));
+  }
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogTitle sx={{ pb: 1 }}>
@@ -129,49 +154,73 @@ export default function DataAccessPermissionDialog({
         {isLoading ? (
           <OrbitLoader title="Loading permissions" minHeight={220} />
         ) : criteria === 'business_entity' ? (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700 }}>Read</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {values.entityPermissions.map((item, index) => (
-                <TableRow key={item.entityName}>
-                  <TableCell>{item.entityName}</TableCell>
-                  <TableCell align="center">
-                    <Checkbox
-                      checked={item.read}
-                      onChange={(e) => handleEntityReadChange(index, e.target.checked)}
-                    />
-                  </TableCell>
+          <>
+            <Stack direction="row" justifyContent="flex-end" mb={1}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => handleSelectAllEntityPermissions(!allEntityPermissionsSelected)}
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#2563eb' }}
+              >
+                {allEntityPermissionsSelected ? 'Unselect All' : 'Select All'}
+              </Button>
+            </Stack>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Business Entity</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Read</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {values.entityPermissions.map((item, index) => (
+                  <TableRow key={item.entityName}>
+                    <TableCell>{item.entityName}</TableCell>
+                    <TableCell align="center">
+                      <Checkbox
+                        checked={item.read}
+                        onChange={(e) => handleEntityReadChange(index, e.target.checked)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </>
         ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Access Type</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700 }}>Allowed</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {['read', 'write', 'modify'].map((permissionKey) => (
-                <TableRow key={permissionKey}>
-                  <TableCell sx={{ textTransform: 'capitalize' }}>{permissionKey}</TableCell>
-                  <TableCell align="center">
-                    <Checkbox
-                      checked={Boolean(values.fieldPermissions[permissionKey])}
-                      onChange={(e) => handleFieldPermissionChange(permissionKey, e.target.checked)}
-                    />
-                  </TableCell>
+          <>
+            <Stack direction="row" justifyContent="flex-end" mb={1}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => handleSelectAllFieldPermissions(!allFieldPermissionsSelected)}
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#2563eb' }}
+              >
+                {allFieldPermissionsSelected ? 'Unselect All' : 'Select All'}
+              </Button>
+            </Stack>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Access Type</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Allowed</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {['read', 'write', 'modify'].map((permissionKey) => (
+                  <TableRow key={permissionKey}>
+                    <TableCell sx={{ textTransform: 'capitalize' }}>{permissionKey}</TableCell>
+                    <TableCell align="center">
+                      <Checkbox
+                        checked={Boolean(values.fieldPermissions[permissionKey])}
+                        onChange={(e) => handleFieldPermissionChange(permissionKey, e.target.checked)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </>
         )}
       </DialogContent>
 

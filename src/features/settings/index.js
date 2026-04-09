@@ -1,7 +1,9 @@
 export { default as SystemUsersPage } from "./pages/SystemUsersPage";
 export { default as Settings } from "./pages/Settings";
 export { default as CreateUserPage } from "./pages/CreateUserPage";
+export { default as UserMappingPage } from "./pages/UserMappingPage";
 export { default as DataAccessControlPage } from "./pages/DataAccessControlPage";
+export { default as RoleMappingPage } from "./pages/RoleMappingPage";
 export { default as SocialSettingsPage } from "./pages/SocialSettingsPage";
 export { default as TeamPage } from "./pages/TeamPage";
 export { default as GroupPage } from "./pages/GroupPage";

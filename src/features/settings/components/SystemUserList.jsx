@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
 import { Chip } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
 import BaseTable from '../../../components/shared/BaseTable';
 import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
-export default function SystemUserList({ users = [], onEdit }) {
+export default function SystemUserList({ users = [], onEdit, onAssign }) {
   const isLoading = useInitialTableLoading();
   const columns = [
     { id: 'fullName', label: 'Full Name' },
@@ -54,6 +57,19 @@ export default function SystemUserList({ users = [], onEdit }) {
       selectable={false}
       hasAction
       onEditRow={(row) => onEdit?.(users.find((user) => user.id === row.id) || row)}
+      renderRowActions={(row) => (
+        <Tooltip title="Assign Mapping">
+          <IconButton
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAssign?.(users.find((user) => user.id === row.id) || row);
+            }}
+          >
+            <AssignmentIndOutlinedIcon sx={{ color: '#2563eb', fontSize: '1.15rem' }} />
+          </IconButton>
+        </Tooltip>
+      )}
       showDeleteAction={false}
       showToolbar={false}
       showDenseToggle={false}

@@ -109,13 +109,20 @@ import React, { useState } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import Chip from '@mui/material/Chip';
 
-const EmailList = ({ contacts, selectedContact, onSelectContact }) => {
-  const [filter, setFilter] = useState('ALL');
+const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+  const [filter, setFilter] = useState('UNREAD');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredContacts =
-    filter === 'UNREAD'
-      ? contacts.filter((c) => c.unreadCount > 0)
-      : contacts;
+  const filteredContacts = contacts
+    .filter((contact) => {
+      if (filter === 'UNREAD') return contact.queueStatus === 'unread';
+      return contact.queueStatus === 'active';
+    })
+    .filter((contact) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return `${contact.name} ${contact.lastMessage}`.toLowerCase().includes(query);
+    });
 
   return (
     <div className="email-list">
@@ -131,37 +138,41 @@ const EmailList = ({ contacts, selectedContact, onSelectContact }) => {
             type="text"
             placeholder="Search mail"
             className="email-list__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         </div>
       </div>
 
-      {/* Filters */}
       <div className="email-list__filters">
         <Chip
-          label="All"
-          size="small"
-          color="primary"
-          variant={filter === 'ALL' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('ALL')}
-        />
-        <Chip
-          label="Unread"
+          label="Pending"
           size="small"
           color="primary"
           variant={filter === 'UNREAD' ? 'filled' : 'outlined'}
           onClick={() => setFilter('UNREAD')}
         />
+        <Chip
+          label="Activated"
+          size="small"
+          color="primary"
+          variant={filter === 'ACTIVE' ? 'filled' : 'outlined'}
+          onClick={() => setFilter('ACTIVE')}
+        />
       </div>
 
-      {/* Contacts */}
       <div className="email-list__contacts">
-        {filteredContacts.map((contact) => (
+        {filteredContacts.map((contact) => {
+          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+
+          return (
           <button
             key={contact.id}
-            onClick={() => onSelectContact(contact)}
+            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+            disabled={isAssignedToOtherAgent}
             className={`email-list__item ${
               selectedContact?.id === contact.id ? 'email-list__item--active' : ''
-            }`}
+            } ${isAssignedToOtherAgent ? 'email-list__item--disabled' : ''}`}
           >
             <div className="email-list__item-content">
               <div
@@ -189,10 +200,16 @@ const EmailList = ({ contacts, selectedContact, onSelectContact }) => {
                 >
                   {contact.lastMessage}
                 </p>
+                {contact.assignedAgentId && (
+                  <p className="social-chat-assignee">
+                    Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                  </p>
+                )}
               </div>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

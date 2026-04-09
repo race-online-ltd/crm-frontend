@@ -65,29 +65,60 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
 import { useSocial } from '../context/SocialContext';
-import { getContacts, getMessages } from '../data/mockData';
 import MessengerChatList from './messenger/MessengerChatList';
 import MessengerConversation from './messenger/MessengerConversation';
 import WhatsAppChatList from './whatsapp/WhatsAppChatList';
 import WhatsAppConversation from './whatsapp/WhatsAppConversation';
 import EmailList from './email/EmailList';
 import EmailConversation from './email/EmailConversation';
+import ChatPickDialog from './ChatPickDialog';
 
 const SocialInbox = () => {
-  const { activeEntity, activeMedium, selectedContact, setSelectedContact } = useSocial();
-  const contacts = getContacts(activeEntity, activeMedium);
-  const messages = selectedContact ? getMessages(selectedContact.id, activeMedium) : [];
+  const {
+    activeMedium,
+    contacts,
+    messages,
+    selectedContact,
+    setSelectedContact,
+    requestChatSelection,
+    pendingChat,
+    closePickDialog,
+    confirmPickChat,
+    isPickingChat,
+    currentAgent,
+  } = useSocial();
 
   const handleBack = () => setSelectedContact(null);
 
   const renderChatList = () => {
     switch (activeMedium) {
       case 'messenger':
-        return <MessengerChatList contacts={contacts} selectedContact={selectedContact} onSelectContact={setSelectedContact} />;
+        return (
+          <MessengerChatList
+            contacts={contacts}
+            selectedContact={selectedContact}
+            currentAgentId={currentAgent.id}
+            onSelectContact={requestChatSelection}
+          />
+        );
       case 'whatsapp':
-        return <WhatsAppChatList contacts={contacts} selectedContact={selectedContact} onSelectContact={setSelectedContact} />;
+        return (
+          <WhatsAppChatList
+            contacts={contacts}
+            selectedContact={selectedContact}
+            currentAgentId={currentAgent.id}
+            onSelectContact={requestChatSelection}
+          />
+        );
       case 'email':
-        return <EmailList contacts={contacts} selectedContact={selectedContact} onSelectContact={setSelectedContact} />;
+        return (
+          <EmailList
+            contacts={contacts}
+            selectedContact={selectedContact}
+            currentAgentId={currentAgent.id}
+            onSelectContact={requestChatSelection}
+          />
+        );
       default:
         return null;
     }
@@ -134,6 +165,13 @@ const SocialInbox = () => {
       <div className={`social-inbox__conversation ${selectedContact ? 'social-inbox__conversation--visible' : ''}`}>
         {renderConversation()}
       </div>
+      <ChatPickDialog
+        open={Boolean(pendingChat)}
+        chat={pendingChat}
+        loading={isPickingChat}
+        onClose={closePickDialog}
+        onConfirm={confirmPickChat}
+      />
     </div>
   );
 };

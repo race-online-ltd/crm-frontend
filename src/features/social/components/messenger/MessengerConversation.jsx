@@ -72,13 +72,14 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
-const MessengerConversation = ({ contact, messages }) => {
+const MessengerConversation = ({ contact, messages, backBtn }) => {
   const [input, setInput] = useState('');
 
   return (
     <div className="messenger-conv">
       <div className="messenger-conv__header">
         <div className="messenger-conv__header-left">
+          {backBtn}
           <div className="messenger-conv__avatar">
             <div className="messenger-conv__avatar-circle">
               {contact.name.charAt(0)}
