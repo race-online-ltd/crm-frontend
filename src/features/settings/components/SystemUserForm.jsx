@@ -213,7 +213,7 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
         </Box>
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={2.5}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
         {onCancel && (
           <Button
             fullWidth

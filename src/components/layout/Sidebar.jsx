@@ -19,6 +19,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import InsightsIcon from "@mui/icons-material/Insights";
 import SettingsIcon from "@mui/icons-material/Settings";
+import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
@@ -37,15 +38,15 @@ const drawerWidth = 240;
 const collapsedWidth = 60;
 
 const menuItems = [
-  { text: "Dashboard",  icon: <DashboardIcon />,             path: "/" },
-  { text: "Users",      icon: <PeopleIcon />,                path: "/users" },
-  { text: "Reports",    icon: <BarChartIcon />,              path: "/reports" },
+  // { text: "Dashboard",  icon: <DashboardIcon />,             path: "/" },
+  // { text: "Users",      icon: <PeopleIcon />,                path: "/users" },
+  // { text: "Reports",    icon: <BarChartIcon />,              path: "/reports" },
   { text: "Social",     icon: <ForumIcon />,                 path: "/social" },
-  { text: "Components", icon: <SettingsIcon />,               path: "/components" },
   { text: "Performance", icon: <InsightsIcon />,             path: "/performance" },
   { text: "Target",     icon: <TrackChangesIcon />,           path: "/target" },
   { text: "Leads",      icon: <LeaderboardIcon />,            path: "/leads" },
   { text: "Tasks",      icon: <TaskAltIcon />,                path: "/tasks" },
+  { text: "Components", icon: <GridViewRoundedIcon />,               path: "/components" },
 ];
 
 const sharedPaperSx = {

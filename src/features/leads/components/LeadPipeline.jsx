@@ -23,6 +23,8 @@ import StageChangeDialog from './StageChangeDialog';
 import LeadForwardDialog from './LeadForwardDialog';
 import ViewDetailsDrawer from './ViewDetailsDrawer';
 import TaskForm from '../../task/components/TaskForm';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 // ── Stage config ──
 const STAGES = [
@@ -254,6 +256,7 @@ function KanbanLeadCard({ item, index, onAction }) {
 
 // ── Main Pipeline Component ──
 export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead }) {
+  const isLoading = useInitialTableLoading();
   const [view, setView] = useState('kanban');
   const [forwardDialog, setForwardDialog] = useState({ open: false, lead: null });
   const [taskDialog, setTaskDialog] = useState({ open: false, lead: null });
@@ -461,7 +464,9 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
       </Stack>
 
       {/* Content */}
-      {view === 'kanban' ? (
+      {isLoading ? (
+        <OrbitLoader title="Loading leads" minHeight={320} />
+      ) : view === 'kanban' ? (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Box sx={{
             display: 'flex', gap: 1.5, overflowX: 'auto', px: 2, pb: 2,

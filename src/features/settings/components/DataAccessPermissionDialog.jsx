@@ -17,6 +17,8 @@ import {
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { BUSINESS_ENTITIES } from '../constants/dataAccessControl';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 const validationSchema = Yup.object({
   entityPermissions: Yup.array().of(
@@ -41,6 +43,7 @@ export default function DataAccessPermissionDialog({
   onClose,
   onSave,
 }) {
+  const isLoading = useInitialTableLoading();
   const formik = useFormik({
     initialValues: {
       entityPermissions: BUSINESS_ENTITIES.map((entity) => ({
@@ -123,7 +126,9 @@ export default function DataAccessPermissionDialog({
       </DialogTitle>
 
       <DialogContent>
-        {criteria === 'business_entity' ? (
+        {isLoading ? (
+          <OrbitLoader title="Loading permissions" minHeight={220} />
+        ) : criteria === 'business_entity' ? (
           <Table size="small">
             <TableHead>
               <TableRow>

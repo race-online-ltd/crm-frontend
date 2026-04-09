@@ -251,7 +251,7 @@ export default function GroupForm({
         </Stack>
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
         <Button
           fullWidth
           variant="outlined"

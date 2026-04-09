@@ -17,6 +17,8 @@ import AddIcon                from '@mui/icons-material/Add';
 import PersonOutlineIcon      from '@mui/icons-material/PersonOutline';
 import BlockIcon              from '@mui/icons-material/Block';
 import { format }             from 'date-fns';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 // Shared config and chips live in TaskDetails so they stay in sync
 import TaskDetails, { TYPE_CONFIG, TypeChip, StatusChip } from './TaskDetails';
@@ -300,6 +302,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
  * Task shape — see TaskDetails.jsx for full JSDoc.
  */
 export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChange, searchQuery = '' }) {
+  const isLoading = useInitialTableLoading();
   const theme    = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -381,7 +384,9 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
         )}
 
         {/* ── Rows ── */}
-        {paginated.length === 0 ? (
+        {isLoading ? (
+          <OrbitLoader title="Loading tasks" minHeight={260} />
+        ) : paginated.length === 0 ? (
           <Box sx={{ py: 9, textAlign: 'center' }}>
             <AssignmentOutlinedIcon sx={{ fontSize: 42, color: '#d1d5db', mb: 1.5 }} />
             <Typography fontWeight={600} color="text.secondary" gutterBottom fontSize={14}>No tasks found</Typography>

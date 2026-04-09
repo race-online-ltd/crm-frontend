@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate } from 'react-router-dom';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import BusinessIcon           from '@mui/icons-material/Business';
 import PinDropIcon            from '@mui/icons-material/PinDrop';
@@ -78,7 +77,6 @@ function LocationPicker({ value, onChange }) {
   const inputRef     = useRef(null);
   const searchBoxRef = useRef(null);
   const [searchText, setSearchText] = useState(value?.address || '');
-  const [mapReady,   setMapReady]   = useState(false);
 
   const reverseGeocode = useCallback((lat, lng) => {
     if (!window.google) return;
@@ -125,11 +123,10 @@ function LocationPicker({ value, onChange }) {
       reverseGeocode(e.latLng.lat(), e.latLng.lng());
     });
     if (value?.latitude) placeMarker(value.latitude, value.longitude);
-    setMapReady(true);
   }, [value, placeMarker, reverseGeocode]);
 
   useEffect(() => {
-    if (!mapReady || !inputRef.current || !window.google || searchBoxRef.current) return;
+    if (!inputRef.current || !window.google || searchBoxRef.current) return;
     searchBoxRef.current = new window.google.maps.places.SearchBox(inputRef.current);
     searchBoxRef.current.addListener('places_changed', () => {
       const places = searchBoxRef.current.getPlaces();
@@ -144,7 +141,7 @@ function LocationPicker({ value, onChange }) {
       mapInstance.current?.setZoom(15);
       onChange({ address: addr, latitude: lat, longitude: lng });
     });
-  }, [mapReady, onChange, placeMarker]);
+  }, [onChange, placeMarker]);
 
   const handleMyLocation = () => {
     if (!navigator.geolocation) return;
@@ -256,7 +253,6 @@ function SectionHeader({ icon, title, mt = 0.5 }) {
 
 // ─── Main ClientForm ──────────────────────────────────────────────────────────
 export default function ClientForm({ onCancel, onSubmit }) {
-  const navigate = useNavigate();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
 
@@ -435,7 +431,7 @@ export default function ClientForm({ onCancel, onSubmit }) {
         </Box>
 
         {/* ── Actions ── */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
           <Button fullWidth variant="outlined" onClick={onCancel} sx={{ fontWeight: 600, borderRadius: '10px', borderColor: '#e2e8f0', color: '#64748b' }}>
             Cancel
           </Button>

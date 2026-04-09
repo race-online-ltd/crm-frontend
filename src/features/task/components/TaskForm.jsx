@@ -459,7 +459,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       </Dialog>
 
       {/* FORM ACTIONS */}
-      <Stack direction="row" spacing={2} mt={2.5}>
+      <Stack direction="row" spacing={2} mt={5}>
         <Button onClick={onCancel} variant="outlined" fullWidth disabled={isSubmitting}>Cancel</Button>
         <Button
           type="submit"

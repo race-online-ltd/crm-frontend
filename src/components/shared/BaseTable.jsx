@@ -25,6 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import ExportCSVButton from "./ExportCSVButton";
 import FilterButton from "./FilterButton";
+import OrbitLoader from "./OrbitLoader";
 
 // ------------------------ Sorting Helpers ------------------------
 function descendingComparator(a, b, orderBy) {
@@ -234,9 +235,7 @@ export default function BaseTable({
                     sx={{ py: 3, px: 2, bgcolor: "#fff" }}
                   >
                     {loadingContent || (
-                      <Typography sx={{ color: "#94a3b8", fontSize: "0.875rem" }}>
-                        Loading...
-                      </Typography>
+                      <OrbitLoader title={`Loading ${title}`} minHeight={220} />
                     )}
                   </TableCell>
                 </TableRow>

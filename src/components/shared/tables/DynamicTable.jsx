@@ -20,8 +20,11 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import OrbitLoader from "../OrbitLoader";
+import useInitialTableLoading from "../useInitialTableLoading";
 
 export default function DynamicTable({ fields, rows }) {
+  const isLoading = useInitialTableLoading();
   const [selected, setSelected] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -79,12 +82,13 @@ export default function DynamicTable({ fields, rows }) {
   };
 
   // Visible rows with sorting & paging
+  const comparator = getComparator(order, orderBy);
   const visibleRows = useMemo(
     () =>
       [...rows]
-        .sort(getComparator(order, orderBy))
+        .sort(comparator)
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [rows, order, orderBy, page, rowsPerPage]
+    [rows, comparator, page, rowsPerPage]
   );
 
   return (
@@ -98,7 +102,10 @@ export default function DynamicTable({ fields, rows }) {
         <Divider />
 
         <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader size={dense ? "small" : "medium"}>
+          {isLoading ? (
+            <OrbitLoader title="Loading dynamic table" minHeight={220} />
+          ) : (
+            <Table stickyHeader size={dense ? "small" : "medium"}>
             <TableHead sx={{ backgroundColor: "#f8fafc" }}>
               <TableRow>
                 <TableCell padding="checkbox">
@@ -168,7 +175,8 @@ export default function DynamicTable({ fields, rows }) {
                 );
               })}
             </TableBody>
-          </Table>
+            </Table>
+          )}
         </TableContainer>
 
         <Divider />

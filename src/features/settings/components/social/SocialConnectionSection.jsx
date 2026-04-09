@@ -20,13 +20,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import CircularProgress from '@mui/material/CircularProgress';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import { useFormik } from 'formik';
 import SelectDropdownSingle, { fieldSx } from '../../../../components/shared/SelectDropdownSingle';
 import TextInputField from '../../../../components/shared/TextInputField';
+import OrbitLoader from '../../../../components/shared/OrbitLoader';
 import { SOCIAL_BUSINESS_ENTITIES } from '../../constants/socialSettings';
 
 const EMPTY_ROWS = [];
@@ -602,10 +602,11 @@ export default function SocialConnectionSection({
               {rowsLoading && (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
-                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                      <CircularProgress size={18} />
-                      <span>Loading saved configurations...</span>
-                    </Stack>
+                    <OrbitLoader
+                      title="Loading saved configurations"
+                      subtitle="Syncing business entity connections and saved settings."
+                      minHeight={180}
+                    />
                   </TableCell>
                 </TableRow>
               )}

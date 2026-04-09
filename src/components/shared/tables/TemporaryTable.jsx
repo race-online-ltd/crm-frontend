@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Table,
   TableBody,
@@ -11,17 +11,15 @@ import {
   Typography,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import OrbitLoader from "../OrbitLoader";
+import useInitialTableLoading from "../useInitialTableLoading";
 
 export default function TemporaryTable({ columns, data, setData }) {
-  const [rows, setRows] = useState([]);
-
-  useEffect(() => {
-    setRows(data || []);
-  }, [data]);
+  const isLoading = useInitialTableLoading();
+  const rows = data || [];
 
   const handleDelete = (index) => {
     const updatedRows = rows.filter((_, i) => i !== index);
-    setRows(updatedRows);
     setData(updatedRows); // sync with parent
   };
 
@@ -35,6 +33,9 @@ export default function TemporaryTable({ columns, data, setData }) {
 
   return (
     <TableContainer component={Paper}>
+      {isLoading ? (
+        <OrbitLoader title="Loading table rows" minHeight={200} />
+      ) : (
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -81,6 +82,7 @@ export default function TemporaryTable({ columns, data, setData }) {
 
         </TableBody>
       </Table>
+      )}
     </TableContainer>
   );
 }

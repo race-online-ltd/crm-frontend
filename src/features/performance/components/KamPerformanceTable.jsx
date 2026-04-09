@@ -10,8 +10,11 @@ import {
   Typography,
 } from '@mui/material';
 import { KAM_PERFORMANCE_TABLE_COLUMNS } from '../constants/kamPerformanceData';
+import OrbitLoader from '../../../components/shared/OrbitLoader';
+import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
 export default function KamPerformanceTable({ rows = [] }) {
+  const isLoading = useInitialTableLoading();
   return (
     <Paper elevation={0} className="kam-performance-card kam-performance-card--overview">
       <div className="kam-performance-card__header">
@@ -24,7 +27,10 @@ export default function KamPerformanceTable({ rows = [] }) {
       </div>
 
       <TableContainer className="kam-performance-table">
-        <Table>
+        {isLoading ? (
+          <OrbitLoader title="Loading performance overview" minHeight={220} />
+        ) : (
+          <Table>
           <TableHead>
             <TableRow>
               {KAM_PERFORMANCE_TABLE_COLUMNS.map((column) => (
@@ -45,7 +51,8 @@ export default function KamPerformanceTable({ rows = [] }) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        )}
       </TableContainer>
     </Paper>
   );
