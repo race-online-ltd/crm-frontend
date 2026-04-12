@@ -9,12 +9,15 @@ import {
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowForwardIosRoundedIcon from '@mui/icons-material/ArrowForwardIosRounded';
+import { useLocation } from 'react-router-dom';
 import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 import ApprovalFilterDrawer from '../components/ApprovalFilterDrawer';
 import ApprovalStatusTabs from '../components/ApprovalStatusTabs';
 import ApprovalRequestsTable from '../components/ApprovalRequestsTable';
+import { readPriceProposals } from '../../priceproposal/utils/proposalStorage';
+import { useUserProfile } from '../../settings/context/UserProfileContext';
 
-const approvalRows = [
+const seededApprovalRows = [
   {
     id: 1,
     kam: 'Sultana Akter',
@@ -123,8 +126,15 @@ const approvalRows = [
 ];
 
 export default function ApprovalRequestsPage() {
+  const location = useLocation();
+  const { profile } = useUserProfile();
   const isLoading = useInitialTableLoading();
-  const [selectedTab, setSelectedTab] = useState('pending');
+  const initialTab = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    return ['pending', 'approved', 'rejected', 'posted'].includes(tab) ? tab : 'pending';
+  }, [location.search]);
+  const [selectedTab, setSelectedTab] = useState(initialTab);
   const [selectedRows, setSelectedRows] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -135,16 +145,37 @@ export default function ApprovalRequestsPage() {
     kam: [],
   });
 
+  const approvalRows = useMemo(() => {
+    const storedRows = readPriceProposals();
+    const normalizedStoredRows = storedRows.map((row, index) => ({
+      ...row,
+      id: row.id || `proposal-${index}`,
+      status: row.status || 'pending',
+      itemStatus: row.itemStatus || 'Pending',
+      postedInERP: Boolean(row.postedInERP),
+    }));
+
+    const combinedRows = [...seededApprovalRows, ...normalizedStoredRows];
+    const isAdmin = /admin/i.test(profile.role || '');
+
+    if (isAdmin) return combinedRows;
+
+    return combinedRows.filter((row) => (
+      row.createdByUserName === profile.userName
+      || row.requestedBy === profile.fullName
+    ));
+  }, [profile.fullName, profile.role, profile.userName]);
+
   const kamOptions = useMemo(
     () => [...new Map(approvalRows.map((row) => [row.kam, { id: row.kam, label: row.kam }])).values()],
-    []
+    [approvalRows]
   );
 
   const kamFilteredRows = useMemo(() => {
     const selectedKams = appliedFilters.kam || [];
     if (!selectedKams.length) return approvalRows;
     return approvalRows.filter((row) => selectedKams.includes(row.kam));
-  }, [appliedFilters.kam]);
+  }, [approvalRows, appliedFilters.kam]);
 
   const tabCounts = useMemo(() => ({
     pending: kamFilteredRows.filter((row) => row.status === 'pending').length,
