@@ -60,9 +60,11 @@ function mergeFiles(currentFiles, selectedFiles) {
 }
 
 export default function AttachmentField({
+  label = 'Attachments',
   value = [],
   onChange,
   accept = ATTACHMENT_ACCEPT,
+  helperText = '',
 }) {
   const files = Array.isArray(value) ? value : [];
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
@@ -80,14 +82,19 @@ export default function AttachmentField({
 
   return (
     <Box>
+      {label ? (
+        <Typography variant="body2" fontWeight={700} color="#0f172a" sx={{ mb: 1 }}>
+          {label}
+        </Typography>
+      ) : null}
       <Box
         {...getRootProps()}
         sx={{
           border: '1px dashed #cbd5e1',
-          borderRadius: '12px',
+          borderRadius: '14px',
           bgcolor: isDragActive ? '#eff6ff' : '#f8fafc',
           px: 2,
-          py: 1.5,
+          py: 1.75,
           transition: 'all 0.18s ease',
           '&:hover': {
             borderColor: '#93c5fd',
@@ -100,9 +107,9 @@ export default function AttachmentField({
         <Stack
           alignItems="center"
           justifyContent="center"
-          spacing={1}
+          spacing={1.1}
         >
-          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 320 }}>
             Drag and drop files here, or use the button to browse.
           </Typography>
 
@@ -192,6 +199,12 @@ export default function AttachmentField({
         {files.length > 0 ? (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25 }}>
             {files.length} file{files.length > 1 ? 's' : ''} selected. Total: {formatFileSize(totalSize)} / 25.00 MB
+          </Typography>
+        ) : null}
+
+        {helperText ? (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            {helperText}
           </Typography>
         ) : null}
       </Box>

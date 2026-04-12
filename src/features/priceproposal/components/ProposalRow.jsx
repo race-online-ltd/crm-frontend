@@ -39,15 +39,37 @@ function NumberField({ value, onChange, placeholder, sx }) {
   );
 }
 
+const editableFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    height: 38,
+    borderRadius: '8px',
+    bgcolor: '#fff',
+    '& fieldset': {
+      borderColor: '#dbe4ef',
+      borderWidth: 1,
+    },
+    '&:hover fieldset': {
+      borderColor: '#93c5fd',
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#2563eb',
+      borderWidth: 1,
+    },
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '0.8125rem',
+    py: 0,
+  },
+};
+
 function ReadOnlyValue({ value, tone = '#0f172a' }) {
   return (
     <Box
       sx={{
-        minHeight: 40,
-        px: 1.25,
-        py: 0.9,
-        borderRadius: '10px',
-        border: '1px solid #e2e8f0',
+        minHeight: 36,
+        px: 1,
+        py: 0.75,
+        borderRadius: '8px',
         bgcolor: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
@@ -87,27 +109,27 @@ export default function ProposalRow({ row, onChange, onDelete }) {
         '&:hover': { bgcolor: '#f8fbff' },
       }}
     >
-      <TableCell sx={{ minWidth: 190 }}>
+      <TableCell sx={{ minWidth: 170, px: 1.25 }}>
         <Typography fontWeight={700} color="#0f172a" sx={{ lineHeight: 1.25 }}>
           {row.productLabel}
         </Typography>
       </TableCell>
 
-      <TableCell sx={{ minWidth: 170 }}>
+      <TableCell sx={{ minWidth: 150, px: 1.25 }}>
         <Typography fontWeight={700} color="#0f172a">
           {row.serviceId}
         </Typography>
       </TableCell>
 
-      <TableCell sx={{ minWidth: 150 }}>
+      <TableCell sx={{ minWidth: 135, px: 1.25 }}>
         <ReadOnlyValue value={formatCurrency(row.currentPrice)} tone="#475569" />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 130 }}>
+      <TableCell sx={{ minWidth: 110, px: 1.25 }}>
         <ReadOnlyValue value={row.currentVolume} tone="#475569" />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 220 }}>
+      <TableCell sx={{ minWidth: 180, px: 1.25 }}>
         <Stack direction="row" spacing={0} sx={{ width: '100%' }}>
           <Box sx={{ flex: 1 }}>
             <NumberField
@@ -115,7 +137,9 @@ export default function ProposalRow({ row, onChange, onDelete }) {
               onChange={handleNumberChange('proposePrice')}
               placeholder="Price"
               sx={{
+                ...editableFieldSx,
                 '& .MuiOutlinedInput-root': {
+                  ...editableFieldSx['& .MuiOutlinedInput-root'],
                   borderTopRightRadius: 0,
                   borderBottomRightRadius: 0,
                 },
@@ -128,8 +152,10 @@ export default function ProposalRow({ row, onChange, onDelete }) {
             value={row.priceUnit}
             onChange={handleUnitChange}
             sx={{
-              width: 98,
+              width: 82,
+              ...editableFieldSx,
               '& .MuiOutlinedInput-root': {
+                ...editableFieldSx['& .MuiOutlinedInput-root'],
                 borderTopLeftRadius: 0,
                 borderBottomLeftRadius: 0,
                 ml: '-1px',
@@ -145,54 +171,64 @@ export default function ProposalRow({ row, onChange, onDelete }) {
         </Stack>
       </TableCell>
 
-      <TableCell sx={{ minWidth: 150 }}>
+      <TableCell sx={{ minWidth: 120, px: 1.25 }}>
         <NumberField
           value={row.proposeVolume}
           onChange={handleNumberChange('proposeVolume')}
           placeholder="Volume"
+          sx={editableFieldSx}
         />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 165 }}>
+      <TableCell sx={{ minWidth: 145, px: 1.25 }}>
         <ReadOnlyValue value={formatCurrency(proposedAmount)} />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 165 }}>
+      <TableCell sx={{ minWidth: 145, px: 1.25 }}>
         <ReadOnlyValue value={formatCurrency(currentUnitInvoice)} tone="#64748b" />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 190 }}>
+      <TableCell sx={{ minWidth: 160, px: 1.25 }}>
         <ReadOnlyValue
           value={formatCurrency(currentUnitBasedDiff)}
           tone={currentUnitBasedDiff >= 0 ? '#16a34a' : '#dc2626'}
         />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 170 }}>
+      <TableCell sx={{ minWidth: 145, px: 1.25 }}>
         <ReadOnlyValue value={formatCurrency(currentTotalInvoice)} tone="#64748b" />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 170 }}>
+      <TableCell sx={{ minWidth: 145, px: 1.25 }}>
         <ReadOnlyValue value={formatCurrency(newTotalInvoice)} tone="#0f172a" />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 165 }}>
+      <TableCell sx={{ minWidth: 155, px: 1.25 }}>
         <ReadOnlyValue
           value={formatCurrency(invoiceDifference)}
           tone={invoiceDifference >= 0 ? '#16a34a' : '#dc2626'}
         />
       </TableCell>
 
-      <TableCell sx={{ minWidth: 170 }}>
+      <TableCell sx={{ minWidth: 150, px: 1.25 }}>
         <DatePickerField
           label="Effective Date"
           value={row.effectiveDate}
           onChange={(value) => onChange(row.id, 'effectiveDate', value)}
           fullWidth
           sx={{
+            ...editableFieldSx,
             '& .MuiOutlinedInput-root': {
-              borderRadius: '10px',
+              ...editableFieldSx['& .MuiOutlinedInput-root'],
+              borderRadius: '8px',
               bgcolor: '#fff',
+            },
+            '& .MuiInputAdornment-root': {
+              mr: 0.5,
+            },
+            '& .MuiInputBase-input': {
+              fontSize: '0.8125rem',
+              py: 0,
             },
           }}
         />
@@ -200,11 +236,12 @@ export default function ProposalRow({ row, onChange, onDelete }) {
 
       <TableCell
         sx={{
-          minWidth: 100,
+          minWidth: 84,
           position: isMobile ? 'static' : 'sticky',
           right: isMobile ? 'auto' : 0,
           bgcolor: '#fff',
           zIndex: 1,
+          px: 1.25,
         }}
       >
         <IconButton

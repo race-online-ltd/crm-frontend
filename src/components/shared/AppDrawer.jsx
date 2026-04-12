@@ -19,8 +19,11 @@ const AppDrawer = ({
   title, 
   children, 
   width = 400, 
-  footerActions 
+  footerActions,
+  paperProps = {},
 }) => {
+  const { sx: paperSx, ...restPaperProps } = paperProps;
+
   return (
     <Drawer
       anchor="right"
@@ -28,10 +31,15 @@ const AppDrawer = ({
       onClose={onClose}
       // This ensures the drawer sits on top of other elements correctly
       PaperProps={{
+        ...restPaperProps,
         sx: { 
           width: { xs: '100%', sm: width }, 
-          display: 'flex', 
-          flexDirection: 'column' 
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          maxHeight: '100vh',
+          overflow: 'hidden',
+          ...paperSx,
         }
       }}
     >
@@ -56,6 +64,9 @@ const AppDrawer = ({
       {/* 2. Content (Scrollable) */}
       <Box sx={{ 
         flex: 1, 
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
         overflowY: 'auto', 
         p: 3 
       }}>
@@ -66,7 +77,7 @@ const AppDrawer = ({
       {footerActions && (
         <>
           <Divider />
-          <Box sx={{ p: 2, bgcolor: 'white' }}>
+          <Box sx={{ p: 2, bgcolor: 'white', flexShrink: 0 }}>
             <Stack direction="row" spacing={2} justifyContent="flex-end">
               {footerActions}
             </Stack>
@@ -83,7 +94,8 @@ AppDrawer.propTypes = {
   title: PropTypes.string,
   children: PropTypes.node,
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  footerActions: PropTypes.node
+  footerActions: PropTypes.node,
+  paperProps: PropTypes.object,
 };
 
 export default AppDrawer;
