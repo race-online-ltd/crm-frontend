@@ -54,13 +54,15 @@ export default function ProposalTable({ rows, onChangeRow, onDeleteRow }) {
       </Box>
 
       <TableContainer sx={{ overflowX: 'auto' }}>
-        <Table stickyHeader sx={{ minWidth: 2100 }}>
+        <Table stickyHeader sx={{ minWidth: 1850 }}>
           <TableHead>
             <TableRow>
               {columns.map((column) => (
                 <TableCell
                   key={column}
                   sx={{
+                    px: 1.25,
+                    py: 1.25,
                     bgcolor: '#f8fafc',
                     color: '#64748b',
                     fontSize: 11,
@@ -68,10 +70,24 @@ export default function ProposalTable({ rows, onChangeRow, onDeleteRow }) {
                     letterSpacing: 0.8,
                     textTransform: 'uppercase',
                     borderBottom: '1px solid #e2e8f0',
-                    whiteSpace: 'nowrap',
+                    verticalAlign: 'middle',
+                    maxWidth: 140,
                   }}
                 >
-                  {column}
+                  <Box
+                    component="span"
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 2,
+                      overflow: 'hidden',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {column}
+                  </Box>
                 </TableCell>
               ))}
             </TableRow>

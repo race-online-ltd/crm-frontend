@@ -70,6 +70,7 @@ export default function ViewDetailsDrawer({
   const [activeTab, setActiveTab] = useState('details');
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [noteAttachments, setNoteAttachments] = useState([]);
 
   const taskHistory = useMemo(() => {
     return [...tasks]
@@ -81,8 +82,12 @@ export default function ViewDetailsDrawer({
     const value = noteText.trim();
     if (!value || !lead?.id) return;
 
-    onAddNote?.(lead.id, value);
+    onAddNote?.(lead.id, {
+      content: value,
+      attachments: noteAttachments,
+    });
     setNoteText('');
+    setNoteAttachments([]);
     setIsAddingNote(false);
   };
 
@@ -93,6 +98,7 @@ export default function ViewDetailsDrawer({
   const handleCancelAddNote = () => {
     setIsAddingNote(false);
     setNoteText('');
+    setNoteAttachments([]);
   };
 
   const leadOverview = [
@@ -123,8 +129,7 @@ export default function ViewDetailsDrawer({
           Select a lead to see the details.
         </Alert>
       ) : (
-        <Stack spacing={3}>
-
+        <Stack spacing={3} sx={{ flex: 1, minHeight: 0 }}>
           <Stack direction="row" spacing={1} sx={{ p: 0.5, bgcolor: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
             {[
               { key: 'details', label: 'Details' },
@@ -154,31 +159,35 @@ export default function ViewDetailsDrawer({
             ))}
           </Stack>
 
-          {activeTab === 'details' ? (
-            <LeadDetailsTab
-              lead={lead}
-              detailItems={detailItems}
-              statusColors={STATUS_COLORS}
-              sourceColors={SOURCE_COLORS}
-            />
-          ) : activeTab === 'notes' ? (
-            <LeadNotesTab
-              notes={notes}
-              isAddingNote={isAddingNote}
-              noteText={noteText}
-              onToggleAddNote={handleToggleAddNote}
-              onChangeNoteText={setNoteText}
-              onCancelAddNote={handleCancelAddNote}
-              onSubmitNote={handleSubmitNote}
-              formatDateTime={formatDateTime}
-            />
-          ) : (
-            <LeadTasksTab
-              taskHistory={taskHistory}
-              formatDateTime={formatDateTime}
-              formatTaskType={formatTaskType}
-            />
-          )}
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            {activeTab === 'details' ? (
+              <LeadDetailsTab
+                lead={lead}
+                detailItems={detailItems}
+                statusColors={STATUS_COLORS}
+                sourceColors={SOURCE_COLORS}
+              />
+            ) : activeTab === 'notes' ? (
+              <LeadNotesTab
+                notes={notes}
+                isAddingNote={isAddingNote}
+                noteText={noteText}
+                attachments={noteAttachments}
+                onToggleAddNote={handleToggleAddNote}
+                onChangeNoteText={setNoteText}
+                onChangeAttachments={setNoteAttachments}
+                onCancelAddNote={handleCancelAddNote}
+                onSubmitNote={handleSubmitNote}
+                formatDateTime={formatDateTime}
+              />
+            ) : (
+              <LeadTasksTab
+                taskHistory={taskHistory}
+                formatDateTime={formatDateTime}
+                formatTaskType={formatTaskType}
+              />
+            )}
+          </Box>
         </Stack>
       )}
     </AppDrawer>

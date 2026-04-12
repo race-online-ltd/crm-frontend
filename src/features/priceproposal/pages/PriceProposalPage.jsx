@@ -229,21 +229,6 @@ export default function PriceProposalPage() {
             </Box>
           </Stack>
 
-          {/* <Button
-            variant="outlined"
-            onClick={() => navigate(-1)}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: '10px',
-              color: '#2563eb',
-              borderColor: '#bfdbfe',
-              bgcolor: '#fff',
-              '&:hover': { bgcolor: '#f8fbff', borderColor: '#93c5fd' },
-            }}
-          >
-            Back
-          </Button> */}
         </Stack>
 
         <PriceProposalHeader

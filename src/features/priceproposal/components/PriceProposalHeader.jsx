@@ -25,14 +25,20 @@ export default function PriceProposalHeader({
     {
       key: 'active',
       label: 'Active',
+      color: '#16a34a',
+      bg: '#dcfce7',
     },
     {
       key: 'inactive',
       label: 'Inactive',
+      color: '#dc2626',
+      bg: '#fee2e2',
     },
     {
       key: 'organization',
       label: 'Organization',
+      color: '#7c3aed',
+      bg: '#ede9fe',
     },
   ];
 
@@ -72,14 +78,14 @@ export default function PriceProposalHeader({
                   textTransform: 'none',
                   fontWeight: 800,
                   fontSize: 13,
-                  color: selected ? '#fff' : '#2563eb',
-                  bgcolor: selected ? '#2563eb' : '#fff',
-                  borderColor: selected ? '#2563eb' : '#dbe4ef',
-                  boxShadow: selected ? '0 8px 18px rgba(37,99,235,0.18)' : 'none',
+                  color: selected ? '#fff' : tab.color,
+                  bgcolor: selected ? tab.color : '#fff',
+                  borderColor: selected ? tab.color : '#dbe4ef',
+                  boxShadow: selected ? `0 8px 18px ${tab.color}2e` : 'none',
                   '&:hover': {
-                    bgcolor: selected ? '#1d4ed8' : '#edf2f7',
-                    borderColor: '#2563eb',
-                    boxShadow: selected ? '0 10px 22px rgba(37,99,235,0.22)' : 'none',
+                    bgcolor: selected ? tab.color : tab.bg,
+                    borderColor: tab.color,
+                    boxShadow: selected ? `0 10px 22px ${tab.color}38` : 'none',
                   },
                 }}
               >

@@ -285,12 +285,18 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
     }));
   };
 
-  const handleAddNote = (leadId, content) => {
+  const handleAddNote = (leadId, payload) => {
+    const content = typeof payload === 'string' ? payload : payload?.content || '';
+    const attachments = Array.isArray(payload?.attachments) ? payload.attachments : [];
+
+    if (!content.trim()) return;
+
     const note = {
       id: `${leadId}-note-${Date.now()}`,
       content,
       author: 'You',
       createdAt: new Date().toISOString(),
+      attachments,
     };
 
     setLeadNotes((prev) => ({
@@ -300,7 +306,9 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
 
     appendLeadActivity(leadId, {
       title: 'Note added',
-      description: content,
+      description: attachments.length
+        ? `${content} (${attachments.length} attachment${attachments.length > 1 ? 's' : ''})`
+        : content,
     });
   };
 
