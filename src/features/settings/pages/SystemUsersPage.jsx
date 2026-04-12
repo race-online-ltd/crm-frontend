@@ -47,6 +47,10 @@ export default function SystemUsersPage() {
     navigate('/settings/users/create', { state: { editData: user } });
   };
 
+  const handleAssign = (user) => {
+    navigate('/settings/users/mapping', { state: { user } });
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
       <Stack
@@ -132,7 +136,7 @@ export default function SystemUsersPage() {
         </Box>
       </Stack>
 
-      <SystemUserList users={filteredUsers} onEdit={handleEdit} />
+      <SystemUserList users={filteredUsers} onEdit={handleEdit} onAssign={handleAssign} />
     </Box>
   );
 }

@@ -1,11 +1,12 @@
 import Button from '@mui/material/Button';
 
-const EmailConversation = ({ contact, messages }) => {
+const EmailConversation = ({ contact, messages, backBtn }) => {
   const subject = messages[0]?.subject || 'No Subject';
 
   return (
     <div className="email-conv">
       <div className="email-conv__toolbar">
+        {backBtn}
         <Button
           size="small"
           variant="contained"

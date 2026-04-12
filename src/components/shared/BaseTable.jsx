@@ -128,6 +128,7 @@ export default function BaseTable({
   emptyMessage = "No data found",
   loading = false,
   loadingContent = null,
+  renderRowActions,
 }) {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState(columns[0]?.id || "");
@@ -279,6 +280,7 @@ export default function BaseTable({
                     {hasAction && (
                       <TableCell align="center">
                         <Stack direction="row" spacing={0.5} justifyContent="center">
+                          {renderRowActions?.(row)}
                           {showEditAction && (
                             <Tooltip title="Edit">
                               <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEditRow?.(row); }}>
@@ -349,4 +351,5 @@ BaseTable.propTypes = {
   toolbarContent: PropTypes.node,
   showEditAction: PropTypes.bool,
   showDeleteAction: PropTypes.bool,
+  renderRowActions: PropTypes.func,
 };

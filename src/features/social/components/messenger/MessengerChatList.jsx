@@ -56,16 +56,23 @@
 
 
 import SearchIcon from '@mui/icons-material/Search';
-import Badge from '@mui/material/Badge';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
 
-const MessengerChatList = ({ contacts, selectedContact, onSelectContact }) => {
-  const [filter, setFilter] = useState('ALL');
+const MessengerChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+  const [filter, setFilter] = useState('UNREAD');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filtered = filter === 'UNREAD'
-    ? contacts.filter((c) => c.unreadCount > 0)
-    : contacts;
+  const filtered = contacts
+    .filter((contact) => {
+      if (filter === 'UNREAD') return contact.queueStatus === 'unread';
+      return contact.queueStatus === 'active';
+    })
+    .filter((contact) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return `${contact.name} ${contact.lastMessage}`.toLowerCase().includes(query);
+    });
 
   return (
     <div className="messenger-list">
@@ -77,39 +84,44 @@ const MessengerChatList = ({ contacts, selectedContact, onSelectContact }) => {
             type="text"
             placeholder="Search Messenger"
             className="messenger-list__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         </div>
       </div>
 
-      {/* Filter chips — same pattern as EmailList */}
       <div className="messenger-list__filters">
         <Chip
-          label="All"
+          label="Pending"
           size="small"
           color="primary"
-          variant={filter === 'ALL' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('ALL')}
-          sx={{ borderColor: '#0084FF', color: filter === 'ALL' ? '#fff' : '#0084FF',
-                bgcolor: filter === 'ALL' ? '#0084FF' : 'transparent', fontSize: 11 }}
-        />
-        <Chip
-          label="Unread"
-          size="small"
           variant={filter === 'UNREAD' ? 'filled' : 'outlined'}
           onClick={() => setFilter('UNREAD')}
           sx={{ borderColor: '#0084FF', color: filter === 'UNREAD' ? '#fff' : '#0084FF',
                 bgcolor: filter === 'UNREAD' ? '#0084FF' : 'transparent', fontSize: 11 }}
         />
+        <Chip
+          label="Activated"
+          size="small"
+          variant={filter === 'ACTIVE' ? 'filled' : 'outlined'}
+          onClick={() => setFilter('ACTIVE')}
+          sx={{ borderColor: '#0084FF', color: filter === 'ACTIVE' ? '#fff' : '#0084FF',
+                bgcolor: filter === 'ACTIVE' ? '#0084FF' : 'transparent', fontSize: 11 }}
+        />
       </div>
 
       <div className="messenger-list__contacts">
-        {filtered.map((contact) => (
+        {filtered.map((contact) => {
+          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+
+          return (
           <button
             key={contact.id}
-            onClick={() => onSelectContact(contact)}
+            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+            disabled={isAssignedToOtherAgent}
             className={`messenger-list__item ${
               selectedContact?.id === contact.id ? 'messenger-list__item--active' : ''
-            }`}
+            } ${isAssignedToOtherAgent ? 'messenger-list__item--disabled' : ''}`}
           >
             <div className="messenger-list__avatar">
               <div className="messenger-list__avatar-circle">
@@ -132,13 +144,19 @@ const MessengerChatList = ({ contacts, selectedContact, onSelectContact }) => {
               }`}>
                 {contact.lastMessage}
               </p>
+              {contact.assignedAgentId && (
+                <p className="social-chat-assignee">
+                  Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                </p>
+              )}
             </div>
 
             {contact.unreadCount > 0 && (
               <div className="messenger-list__unread-badge">{contact.unreadCount}</div>
             )}
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -63,12 +63,20 @@ import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
 
-const WhatsAppChatList = ({ contacts, selectedContact, onSelectContact }) => {
-  const [filter, setFilter] = useState('ALL');
+const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+  const [filter, setFilter] = useState('UNREAD');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filtered = filter === 'UNREAD'
-    ? contacts.filter((c) => c.unreadCount > 0)
-    : contacts;
+  const filtered = contacts
+    .filter((contact) => {
+      if (filter === 'UNREAD') return contact.queueStatus === 'unread';
+      return contact.queueStatus === 'active';
+    })
+    .filter((contact) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return `${contact.name} ${contact.lastMessage}`.toLowerCase().includes(query);
+    });
 
   return (
     <div className="whatsapp-list">
@@ -86,38 +94,43 @@ const WhatsAppChatList = ({ contacts, selectedContact, onSelectContact }) => {
             type="text"
             placeholder="Search or start new chat"
             className="whatsapp-list__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         </div>
       </div>
 
-      {/* Filter chips */}
       <div className="whatsapp-list__filters">
         <Chip
-          label="All"
-          size="small"
-          variant={filter === 'ALL' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('ALL')}
-          sx={{ borderColor: '#25D366', color: filter === 'ALL' ? '#fff' : '#25D366',
-                bgcolor: filter === 'ALL' ? '#25D366' : 'transparent', fontSize: 11 }}
-        />
-        <Chip
-          label="Unread"
+          label="Pending"
           size="small"
           variant={filter === 'UNREAD' ? 'filled' : 'outlined'}
           onClick={() => setFilter('UNREAD')}
           sx={{ borderColor: '#25D366', color: filter === 'UNREAD' ? '#fff' : '#25D366',
                 bgcolor: filter === 'UNREAD' ? '#25D366' : 'transparent', fontSize: 11 }}
         />
+        <Chip
+          label="Activated"
+          size="small"
+          variant={filter === 'ACTIVE' ? 'filled' : 'outlined'}
+          onClick={() => setFilter('ACTIVE')}
+          sx={{ borderColor: '#25D366', color: filter === 'ACTIVE' ? '#fff' : '#25D366',
+                bgcolor: filter === 'ACTIVE' ? '#25D366' : 'transparent', fontSize: 11 }}
+        />
       </div>
 
       <div className="whatsapp-list__contacts">
-        {filtered.map((contact) => (
+        {filtered.map((contact) => {
+          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+
+          return (
           <button
             key={contact.id}
-            onClick={() => onSelectContact(contact)}
+            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+            disabled={isAssignedToOtherAgent}
             className={`whatsapp-list__item ${
               selectedContact?.id === contact.id ? 'whatsapp-list__item--active' : ''
-            }`}
+            } ${isAssignedToOtherAgent ? 'whatsapp-list__item--disabled' : ''}`}
           >
             <div className="whatsapp-list__avatar">
               {contact.name.charAt(0)}
@@ -134,14 +147,22 @@ const WhatsAppChatList = ({ contacts, selectedContact, onSelectContact }) => {
                 </span>
               </div>
               <div className="whatsapp-list__preview-row">
-                <p className="whatsapp-list__preview">{contact.lastMessage}</p>
+                <div className="whatsapp-list__preview-wrap">
+                  <p className="whatsapp-list__preview">{contact.lastMessage}</p>
+                  {contact.assignedAgentId && (
+                    <p className="social-chat-assignee social-chat-assignee--dark">
+                      Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                    </p>
+                  )}
+                </div>
                 {contact.unreadCount > 0 && (
                   <div className="whatsapp-list__unread-badge">{contact.unreadCount}</div>
                 )}
               </div>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

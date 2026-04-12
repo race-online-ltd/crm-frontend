@@ -75,13 +75,14 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
-const WhatsAppConversation = ({ contact, messages }) => {
+const WhatsAppConversation = ({ contact, messages, backBtn }) => {
   const [input, setInput] = useState('');
 
   return (
     <div className="whatsapp-conv">
       <div className="whatsapp-conv__header">
         <div className="whatsapp-conv__header-left">
+          {backBtn}
           <div className="whatsapp-conv__avatar">
             {contact.name.charAt(0)}
           </div>

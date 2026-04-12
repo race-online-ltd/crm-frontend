@@ -84,7 +84,7 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
       }}
     >
       {/* ── HEADER ── */}
-      <DialogTitle sx={{ px: 2.5, pt: 2, pb: 1.75, borderBottom: '0.5px solid', borderColor: 'divider' }}>
+      <DialogTitle sx={{ px: 2.5, pt: 2, pb: 1.75, borderBottom: '0.5px solid', borderColor: 'white' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Stack direction="row" alignItems="center" gap={1.25}>
             <Box sx={{
@@ -140,7 +140,7 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
           {/* State-driven content */}
           {state === 'idle' && (
             <Typography fontSize={13} color="text.secondary" lineHeight={1.7}>
-              We'll verify your GPS matches the venue location. You must be within 200 m to check in.
+              We'll verify your GPS matches the venue location. You must be within 70 m to check in.
             </Typography>
           )}
 
@@ -192,7 +192,7 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
       </DialogContent>
 
       {/* ── FOOTER ── */}
-      <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'divider', gap: 0.75 }}>
+      <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'white', gap: 0.75 }}>
         <Button
           onClick={handleClose}
           variant="outlined"

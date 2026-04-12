@@ -22,6 +22,7 @@ export default function SelectDropdownMultiple({
   fullWidth   = true,
   width       = 240,
   loading     = false,
+  fixedHeight = false,
   sx          = {},
 }) {
   if (loading) {
@@ -46,14 +47,30 @@ export default function SelectDropdownMultiple({
     ...fieldSx(height),
     '& .MuiOutlinedInput-root': {
       ...fieldSx(height)['& .MuiOutlinedInput-root'],
-      height:    undefined,      // remove fixed height
-      minHeight: `${height}px`, // allow growth when chips wrap
+      height: fixedHeight ? `${height}px` : undefined,
+      minHeight: `${height}px`,
       padding:   '4px 10px !important',
+      ...(fixedHeight ? {
+        flexWrap: 'nowrap',
+        overflow: 'hidden',
+      } : {}),
     },
     '& .MuiInputBase-input': {
       fontSize: '0.8125rem',
       padding:  '4px 0 !important',
     },
+    ...(fixedHeight ? {
+      '& .MuiAutocomplete-inputRoot': {
+        flexWrap: 'nowrap !important',
+      },
+      '& .MuiAutocomplete-tag': {
+        maxWidth: 'calc(100% - 56px)',
+        margin: '2px 4px 2px 0',
+      },
+      '& .MuiAutocomplete-endAdornment': {
+        right: 10,
+      },
+    } : {}),
   };
 
   return (

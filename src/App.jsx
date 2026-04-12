@@ -19,7 +19,9 @@ const TargetList = React.lazy(() => import("./features/target/pages/TargetList")
 const SetTargetPage = React.lazy(() => import("./features/target/pages/SetTargetPage"));
 const SystemUsersPage = React.lazy(() => import("./features/settings/pages/SystemUsersPage"));
 const CreateUserPage = React.lazy(() => import("./features/settings/pages/CreateUserPage"));
+const UserMappingPage = React.lazy(() => import("./features/settings/pages/UserMappingPage"));
 const DataAccessControlPage = React.lazy(() => import("./features/settings/pages/DataAccessControlPage"));
+const RoleMappingPage = React.lazy(() => import("./features/settings/pages/RoleMappingPage"));
 const SocialSettingsPage = React.lazy(() => import("./features/settings/pages/SocialSettingsPage"));
 const TeamPage = React.lazy(() => import("./features/settings/pages/TeamPage"));
 const GroupPage = React.lazy(() => import("./features/settings/pages/GroupPage"));
@@ -59,7 +61,9 @@ export default function App() {
             <Route path="/performance" element={<KamPerformancePage />} />
             <Route path="/settings/users" element={<SystemUsersPage />} />
             <Route path="/settings/users/create" element={<CreateUserPage />} />
+            <Route path="/settings/users/mapping" element={<UserMappingPage />} />
             <Route path="/settings/data-access-control" element={<DataAccessControlPage />} />
+            <Route path="/settings/role-mapping" element={<RoleMappingPage />} />
             <Route path="/settings/social" element={<SocialSettingsPage />} />
             <Route path="/settings/team" element={<TeamPage />} />
             <Route path="/settings/group" element={<GroupPage />} />

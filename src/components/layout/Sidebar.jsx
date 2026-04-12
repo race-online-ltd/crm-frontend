@@ -27,6 +27,7 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import GroupIcon from "@mui/icons-material/Group";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import HubIcon from "@mui/icons-material/Hub";
@@ -225,7 +226,20 @@ export default function Sidebar({ open, handleToggle }) {
                 <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
                   <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
                 </ListItemIcon>
-                <ListItemText primary="Data Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+                <ListItemText primary="Access Control" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+              </ListItemButton>
+
+              <ListItemButton
+                component={Link}
+                to="/settings/role-mapping"
+                selected={location.pathname === "/settings/role-mapping"}
+                onClick={isMobile ? handleToggle : undefined}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <SecurityOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="Role Mapping" primaryTypographyProps={{ fontSize: '0.85rem' }} />
               </ListItemButton>
 
               {/* Fixed Social Settings */}
