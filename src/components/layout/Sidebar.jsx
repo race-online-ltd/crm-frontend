@@ -23,6 +23,7 @@ import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import GroupIcon from "@mui/icons-material/Group";
@@ -49,6 +50,7 @@ const menuItems = [
   { text: "Target",     icon: <TrackChangesIcon />,           path: "/target" },
   { text: "Leads",      icon: <LeaderboardIcon />,            path: "/leads" },
   { text: "Tasks",      icon: <TaskAltIcon />,                path: "/tasks" },
+  { text: "Price Proposal", icon: <RequestQuoteOutlinedIcon />, path: "/price-proposal" },
   { text: "Approval Requests", icon: <AssignmentTurnedInOutlinedIcon />, path: "/approval/requests" },
   { text: "Components", icon: <GridViewRoundedIcon />,               path: "/components" },
 ];
