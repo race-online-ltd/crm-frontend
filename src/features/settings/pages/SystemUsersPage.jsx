@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Typography, Button, Stack, InputAdornment } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Typography, Button, Stack, InputAdornment } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupIcon from '@mui/icons-material/Group';
 import SearchIcon from '@mui/icons-material/Search';
@@ -7,25 +7,60 @@ import { useNavigate } from 'react-router-dom';
 import TextInputField from '../../../components/shared/TextInputField';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import SystemUserList from '../components/SystemUserList';
+import { fetchSystemUsers } from '../api/settingsApi';
 
 export default function SystemUsersPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loadError, setLoadError] = useState('');
 
-  /* ── MOCK DATA — remove when wiring backend ── */
-  const [users] = useState([
-    { id: 1, fullName: 'John Doe', userName: 'johndoe', email: 'john@example.com', phone: '+1234567890', role: 'admin', kam: '', supervisors: [], status: true },
-    { id: 2, fullName: 'Jane Smith', userName: 'janesmith', email: 'jane@example.com', phone: '+0987654321', role: 'manager', kam: 'kam1', supervisors: ['sup1'], status: true },
-    { id: 3, fullName: 'Bob Wilson', userName: 'bobw', email: 'bob@example.com', phone: '+1122334455', role: 'executive', kam: 'kam2', supervisors: ['sup2', 'sup3'], status: false },
-  ]);
-  /* ── END MOCK ── */
+  useEffect(() => {
+    let active = true;
+
+    const loadUsers = async () => {
+      try {
+        setLoadError('');
+        const data = await fetchSystemUsers();
+        if (!active) {
+          return;
+        }
+
+        setUsers(
+          data.map((user) => ({
+            id: user.id,
+            fullName: user.full_name,
+            full_name: user.full_name,
+            userName: user.user_name,
+            user_name: user.user_name,
+            email: user.email,
+            phone: user.phone,
+            role: String(user.role_id),
+            role_id: user.role_id,
+            roleName: user.role_name,
+            status: user.status,
+          })),
+        );
+      } catch (error) {
+        if (active) {
+          setLoadError(error?.message || 'Unable to load system users.');
+        }
+      }
+    };
+
+    loadUsers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const roleOptions = useMemo(() => {
-    const uniqueRoles = [...new Set(users.map((user) => user.role).filter(Boolean))];
+    const uniqueRoles = [...new Set(users.map((user) => user.roleName).filter(Boolean))];
     return uniqueRoles.map((role) => ({
       id: role,
-      label: role.charAt(0).toUpperCase() + role.slice(1),
+      label: role,
     }));
   }, [users]);
 
@@ -37,7 +72,7 @@ export default function SystemUsersPage() {
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(query));
 
-      const matchesRole = !roleFilter || user.role === roleFilter;
+      const matchesRole = !roleFilter || user.roleName === roleFilter;
 
       return matchesSearch && matchesRole;
     });
@@ -101,6 +136,12 @@ export default function SystemUsersPage() {
           Add User
         </Button>
       </Stack>
+
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+          {loadError}
+        </Alert>
+      )}
 
       <Stack
         direction={{ xs: 'column', md: 'row' }}

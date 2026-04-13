@@ -18,7 +18,7 @@ export const handleApiError = (error) => {
   switch (status) {
     case 401:
       // Unauthorized → token expired / invalid
-      tokenService.removeToken();
+      tokenService.removeAccessToken();
 
       return {
         status,

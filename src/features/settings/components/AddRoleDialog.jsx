@@ -24,15 +24,18 @@ export default function AddRoleDialog({ open, onClose, onSave }) {
     validationSchema,
     enableReinitialize: true,
     onSubmit: async (values, { resetForm, setSubmitting }) => {
-      const normalizedName = values.roleName.trim();
-      const payload = {
-        name: normalizedName,
-        slug: normalizedName.toLowerCase().replace(/\s+/g, '_'),
-      };
+      try {
+        const normalizedName = values.roleName.trim();
+        const payload = {
+          name: normalizedName,
+          slug: normalizedName.toLowerCase().replace(/\s+/g, '_'),
+        };
 
-      await onSave?.(payload);
-      setSubmitting(false);
-      resetForm();
+        await onSave?.(payload);
+        resetForm();
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 

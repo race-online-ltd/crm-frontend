@@ -25,30 +25,28 @@ const passwordValidation = Yup.string()
 const passwordHelperText = 'Minimum 6 characters with uppercase, lowercase, number, and special character.';
 
 const validationSchema = Yup.object({
-  fullName: Yup.string().required('Full Name is required'),
-  userName: Yup.string().required('User Name is required'),
+  full_name: Yup.string().required('Full Name is required'),
+  user_name: Yup.string().required('User Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
   phone: phoneValidation,
   password: passwordValidation,
-  confirmPassword: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match'),
-  role: Yup.string().required('Role is required'),
-  supervisors: Yup.array().of(Yup.string()),
+  confirm_password: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match'),
+  role: Yup.mixed().required('Role is required'),
   status: Yup.boolean(),
 });
 
-export default function SystemUserForm({ editData = null, onSubmit, onCancel }) {
+export default function SystemUserForm({ editData = null, onSubmit, onCancel, fetchRoles: fetchRolesProp }) {
   const isEdit = Boolean(editData);
 
   const formik = useFormik({
     initialValues: {
-      fullName: editData?.fullName || '',
-      userName: editData?.userName || '',
+      full_name: editData?.full_name || '',
+      user_name: editData?.user_name || '',
       email: editData?.email || '',
       phone: editData?.phone || '',
       password: '',
-      confirmPassword: '',
-      role: editData?.role || '',
-      supervisors: editData?.supervisors || [],
+      confirm_password: '',
+      role: editData?.role || editData?.role_id || '',
       status: editData?.status ?? true,
     },
     validationSchema: isEdit
@@ -58,10 +56,10 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
             'Password must be at least 6 characters and include lowercase, uppercase, number, and special character',
             (value) => !value || passwordValidation.isValidSync(value),
           ),
-          confirmPassword: Yup.string().test(
+          confirm_password: Yup.string().test(
             'confirm-password-on-edit',
             'Passwords must match',
-            function validateConfirmPassword(value) {
+            function validateConfirm_password(value) {
               const { password } = this.parent;
               if (!password) return true;
               if (!value) return this.createError({ message: 'Confirm Password is required' });
@@ -71,29 +69,22 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
         })
       : validationSchema.shape({
           password: passwordValidation.required('Password is required'),
-          confirmPassword: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match').required('Confirm Password is required'),
+          confirm_password: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match').required('Confirm Password is required'),
         }),
     enableReinitialize: true,
-    onSubmit: (values) => {
-      onSubmit?.(values);
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        await onSubmit?.(values);
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
-  /* ── MOCK OPTIONS — remove when wiring backend ── */
-  const fetchRoles = useCallback(async () => [
-    { id: 'admin', label: 'Admin' },
-    { id: 'manager', label: 'Manager' },
-    { id: 'executive', label: 'Executive' },
-    { id: 'viewer', label: 'Viewer' },
-  ], []);
-
-  const supervisorOptions = [
-    { id: 'sup1', label: 'Supervisor One' },
-    { id: 'sup2', label: 'Supervisor Two' },
-    { id: 'sup3', label: 'Supervisor Three' },
-    { id: 'sup4', label: 'Supervisor Four' },
-  ];
-  /* ── END MOCK ── */
+  const fetchRoles = useCallback(
+    async () => (await fetchRolesProp?.()) || [],
+    [fetchRolesProp],
+  );
 
   return (
     <Box component="form" onSubmit={formik.handleSubmit} noValidate sx={{ width: '100%' }}>
@@ -106,23 +97,23 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
         }}
       >
         <TextInputField
-          name="fullName"
+          name="full_name"
           label="Full Name *"
-          value={formik.values.fullName}
+          value={formik.values.full_name}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
-          error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-          helperText={formik.touched.fullName && formik.errors.fullName ? formik.errors.fullName : ' '}
+          error={formik.touched.full_name && Boolean(formik.errors.full_name)}
+          helperText={formik.touched.full_name && formik.errors.full_name ? formik.errors.full_name : ' '}
         />
 
         <TextInputField
-          name="userName"
+          name="user_name"
           label="User Name *"
-          value={formik.values.userName}
+          value={formik.values.user_name }
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
-          error={formik.touched.userName && Boolean(formik.errors.userName)}
-          helperText={formik.touched.userName && formik.errors.userName ? formik.errors.userName : ' '}
+          error={formik.touched.user_name && Boolean(formik.errors.user_name)}
+          helperText={formik.touched.user_name && formik.errors.user_name ? formik.errors.user_name : ' '}
         />
 
         <TextInputField
@@ -157,13 +148,13 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
         />
 
         <PasswordField
-          name="confirmPassword"
+          name="confirm_password"
           label={isEdit ? 'Confirm New Password' : 'Confirm Password *'}
-          value={formik.values.confirmPassword}
+          value={formik.values.confirm_password}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
-          error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
-          helperText={formik.touched.confirmPassword && formik.errors.confirmPassword ? formik.errors.confirmPassword : ' '}
+          error={formik.touched.confirm_password && Boolean(formik.errors.confirm_password)}
+          helperText={formik.touched.confirm_password && formik.errors.confirm_password ? formik.errors.confirm_password : ' '}
         />
 
         <SelectDropdownSingle
@@ -177,26 +168,13 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
           helperText={formik.touched.role && formik.errors.role ? formik.errors.role : ' '}
         />
 
-        <SelectDropdownMultiple
-          name="supervisors"
-          label="Supervisors"
-          options={supervisorOptions}
-          value={formik.values.supervisors}
-          onChange={(ids) => formik.setFieldValue('supervisors', ids)}
-          onBlur={formik.handleBlur}
-          error={formik.touched.supervisors && Boolean(formik.errors.supervisors)}
-          helperText={formik.touched.supervisors && formik.errors.supervisors ? formik.errors.supervisors : ' '}
-        />
-
         <Box
           sx={{
-            gridColumn: '1 / -1',
             display: 'flex',
             alignItems: 'center',
-            minHeight: 32,
-            px: 1.5,
-            mt: -0.5,
-            mb: -0.5,
+            minHeight: 45,
+            justifyContent: { xs: 'flex-start', sm: 'flex-start' },
+            transform: { xs: 'none', sm: 'translateY(-12px) translateX(15px)' },
           }}
         >
           <Stack direction="row" spacing={1.25} alignItems="center">
@@ -241,8 +219,9 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel }) 
             bgcolor: '#2563eb',
             '&:hover': { bgcolor: '#1d4ed8' },
           }}
+          disabled={formik.isSubmitting}
         >
-          {isEdit ? 'Update User' : 'Create User'}
+          {formik.isSubmitting ? 'Saving...' : isEdit ? 'Update User' : 'Create User'}
         </Button>
       </Stack>
     </Box>

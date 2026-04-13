@@ -1,21 +1,50 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Stack, Typography, Divider } from '@mui/material';
+import { Alert, Box, Stack, Typography, Divider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SystemUserForm from '../components/SystemUserForm';
+import { createSystemUser, fetchRoles, updateSystemUser } from '../api/settingsApi';
 
 export default function CreateUserPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const editData = location.state?.editData || null;
   const isEdit = Boolean(editData);
+  const [submitError, setSubmitError] = React.useState('');
 
-  const handleSubmit = (values) => {
-    // TODO: wire to backend
-    console.log(editData ? 'Update user:' : 'Create user:', values);
+  const handleSubmit = async (values) => {
+    setSubmitError('');
+
+    const payload = {
+      full_name: values.full_name.trim(),
+      user_name: values.user_name.trim(),
+      email: values.email.trim(),
+      phone: String(values.phone).trim(),
+      role_id: Number(values.role),
+      status: values.status,
+    };
+
+    if (values.password) {
+      payload.password = values.password;
+    }
+
+    if (isEdit) {
+      await updateSystemUser(editData.id, payload);
+    } else {
+      await createSystemUser(payload);
+    }
+
     navigate('/settings/users');
+  };
+
+  const handleSubmitWithErrorState = async (values) => {
+    try {
+      await handleSubmit(values);
+    } catch (error) {
+      setSubmitError(error?.message || 'Unable to save system user.');
+    }
   };
 
   return (
@@ -75,10 +104,17 @@ export default function CreateUserPage() {
 
       <Divider sx={{ mb: 3 }} />
 
+      {submitError && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>
+          {submitError}
+        </Alert>
+      )}
+
       <SystemUserForm
         editData={editData}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitWithErrorState}
         onCancel={() => navigate('/settings/users')}
+        fetchRoles={fetchRoles}
       />
     </Box>
   );

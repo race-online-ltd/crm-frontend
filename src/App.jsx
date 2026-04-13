@@ -7,7 +7,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const Login = React.lazy(() => import("./features/auth/pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
-const TestPage = React.lazy(() => import("./pages/TestPage"));
 const Social = React.lazy(() => import("./pages/Social"));
 const Components = React.lazy(() => import("./pages/Components"));
 const LeadCreation = React.lazy(() => import("./features/leads/pages/LeadCreation"));
@@ -49,7 +48,7 @@ export default function App() {
 
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/test" element={<TestPage />} />
+  
             <Route path="/leads" element={<LeadListPage />} />
             <Route path="/leads/new" element={<LeadCreation />} />
             <Route path="/tasks" element={<TasksShell />} />
