@@ -22,7 +22,7 @@ export default function SystemUserList({ users = [], onEdit, onAssign }) {
       ...user,
       roleDisplay: (
         <Chip
-          label={user.role}
+          label={user.roleName || user.role || 'N/A'}
           size="small"
           sx={{
             fontSize: 11,

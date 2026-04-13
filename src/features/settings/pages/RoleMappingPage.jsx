@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -24,28 +25,64 @@ import AddRoleDialog from '../components/AddRoleDialog';
 import EditButtonPermissionsDialog from '../components/EditButtonPermissionsDialog';
 import {
   buildDefaultRolePermissions,
-  INITIAL_ROLE_OPTIONS,
-  INITIAL_ROLE_PERMISSIONS,
   ROLE_MAPPING_PAGES,
 } from '../constants/roleMapping';
+import { createRole, fetchRoles } from '../api/settingsApi';
 
 export default function RoleMappingPage() {
-  const [roles, setRoles] = useState(INITIAL_ROLE_OPTIONS);
-  const [selectedRoleId, setSelectedRoleId] = useState(INITIAL_ROLE_OPTIONS[0]?.id || '');
-  const [permissionsByRole, setPermissionsByRole] = useState(INITIAL_ROLE_PERMISSIONS);
+  const [roles, setRoles] = useState([]);
+  const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [permissionsByRole, setPermissionsByRole] = useState({});
   const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
 
   // Edit button permissions dialog state
   const [editDialogPage, setEditDialogPage] = useState(null); // the page row being edited
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRoles = async () => {
+      try {
+        setLoadError('');
+        const roleData = await fetchRoles();
+
+        if (!active) {
+          return;
+        }
+
+        setRoles(roleData);
+        setSelectedRoleId((current) => current || roleData[0]?.id || '');
+        setPermissionsByRole((prev) => {
+          const next = { ...prev };
+          roleData.forEach((role) => {
+            if (!next[role.id]) {
+              next[role.id] = buildDefaultRolePermissions();
+            }
+          });
+          return next;
+        });
+      } catch (error) {
+        if (active) {
+          setLoadError(error?.message || 'Unable to load roles.');
+        }
+      }
+    };
+
+    loadRoles();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selectedRoleLabel = useMemo(
     () => roles.find((role) => role.id === selectedRoleId)?.label || '',
     [roles, selectedRoleId],
   );
 
-  async function fetchRoleOptions() {
-    return roles;
-  }
+  const fetchRoleOptions = useCallback(async () => roles, [roles]);
 
   function handleVisibilityToggle(pageId, checked) {
     setPermissionsByRole((prev) => ({
@@ -72,17 +109,19 @@ export default function RoleMappingPage() {
   }
 
   async function handleAddRole(payload) {
-    const nextRole = { id: payload.slug, label: payload.name };
-    setRoles((prev) => [...prev, nextRole]);
-    setPermissionsByRole((prev) => ({
-      ...prev,
-      [nextRole.id]: buildDefaultRolePermissions(),
-    }));
-    setSelectedRoleId(nextRole.id);
-    setAddRoleOpen(false);
-
-    // Backend-ready placeholder:
-    // await createRole(payload);
+    try {
+      setSaveError('');
+      const createdRole = await createRole({ name: payload.name });
+      setRoles((prev) => [...prev, createdRole]);
+      setPermissionsByRole((prev) => ({
+        ...prev,
+        [createdRole.id]: buildDefaultRolePermissions(),
+      }));
+      setSelectedRoleId(createdRole.id);
+      setAddRoleOpen(false);
+    } catch (error) {
+      setSaveError(error?.message || 'Unable to create role.');
+    }
   }
 
   function handleSaveAccess() {
@@ -130,6 +169,18 @@ export default function RoleMappingPage() {
       </Box>
 
       {/* Role selector row */}
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+          {loadError}
+        </Alert>
+      )}
+
+      {saveError && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+          {saveError}
+        </Alert>
+      )}
+
       <Box
         sx={{
           mb: 2.5,
