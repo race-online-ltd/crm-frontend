@@ -207,18 +207,7 @@ export default function Sidebar({ open, handleToggle }) {
                 <ListItemText primary="System Users" primaryTypographyProps={{ fontSize: '0.85rem' }} />
               </ListItemButton>
 
-              <ListItemButton
-                component={Link}
-                to="/settings/user-profile"
-                selected={location.pathname === "/settings/user-profile"}
-                onClick={isMobile ? handleToggle : undefined}
-                sx={{ pl: 7 }}
-              >
-                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
-                  <AccountCircleIcon sx={{ fontSize: '1.2rem' }} />
-                </ListItemIcon>
-                <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: '0.85rem' }} />
-              </ListItemButton>
+           
 
               <ListItemButton
                 component={Link}

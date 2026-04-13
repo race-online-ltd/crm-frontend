@@ -269,6 +269,21 @@ export default function TaskDetails({
             <StatusChip status={task.status} />
           </Box>
 
+          {(task.assignedToUserName || task.createdByUserName) && (
+            <>
+              <LabelText
+                label="Assigned to"
+                value={task.assignedToUserName}
+                icon={<PersonOutlineIcon />}
+              />
+              <LabelText
+                label="Created by"
+                value={task.createdByUserName}
+                icon={<AssignmentOutlinedIcon />}
+              />
+            </>
+          )}
+
           {/* Row 4: Title — full width, floating label via TextInputField */}
           <Box sx={{ gridColumn: '1 / -1' }}>
             <TextInputField

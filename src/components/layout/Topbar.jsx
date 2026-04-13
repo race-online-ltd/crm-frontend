@@ -123,24 +123,31 @@ export default function Topbar({ open, handleToggle }) {
           PaperProps={{ sx: { width: 300, p: 1 } }}
         >
           <Box sx={{ position: "relative", px: 2, py: 2, pr: 6 }}>
-            <IconButton
-              onClick={() => {
-                setAnchorAvatar(null);
-                navigate("/settings/user-profile");
-              }}
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                width: 32,
-                height: 32,
-                bgcolor: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                "&:hover": { bgcolor: "#dbeafe" },
-              }}
-            >
-              <EditOutlinedIcon sx={{ fontSize: 17, color: "#2563eb" }} />
-            </IconButton>
+           <IconButton
+  onClick={() => {
+    setAnchorAvatar(null);
+    navigate("/settings/user-profile");
+  }}
+  sx={{
+    position: "absolute",
+    top: 28,
+    right: 8,
+    // width: 32, <-- Remove these to allow expansion
+    // height: 32, 
+    borderRadius: "8px", // Make it slightly rounded instead of a circle
+    px: 1, 
+    py: 0.5,
+    bgcolor: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    gap: 0.5, // Adds space between icon and text
+    "&:hover": { bgcolor: "#dbeafe" },
+  }}
+>
+  <EditOutlinedIcon sx={{ fontSize: 17, color: "#2563eb" }} />
+  <Typography sx={{ fontSize: 12, color: "#2563eb", fontWeight: 500 }}>
+    Profile
+  </Typography>
+</IconButton>
 
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Avatar
