@@ -12,12 +12,20 @@ import DateTimePickerField      from '../../../components/shared/DateTimePickerF
 import SelectDropdownSingle     from '../../../components/shared/SelectDropdownSingle';
 import TextInputField           from '../../../components/shared/TextInputField';
 import AttachmentField          from '../../../components/shared/AttachmentField';
+import CustomToggle             from '../../../components/shared/CustomToggle';
 import CheckCircleOutlineIcon   from '@mui/icons-material/CheckCircleOutline';
 import PinDropIcon              from '@mui/icons-material/PinDrop';
 import SearchIcon               from '@mui/icons-material/Search';
 import CloseIcon                from '@mui/icons-material/Close';
 import MyLocationIcon           from '@mui/icons-material/MyLocation';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import { buildMultipartFormData } from '../../../utils/formData';
+import { useUserProfile } from '../../settings/context/UserProfileContext';
+import {
+  buildTaskAssignment,
+  getAssignableKamOptions,
+  isSupervisorRole,
+} from '../utils/taskAssignment';
 
 const LIGHT_BORDER_COLOR = '#e3eaf2';
 const LIGHT_BORDER_HOVER = '#d3deea';
@@ -42,6 +50,14 @@ const TASK_TYPE_OPTIONS = [
   { id: 'follow_up',        label: 'Follow Up' },
 ];
 
+const REMINDER_TIME_OPTIONS = [
+  { id: '15', label: '15 minutes before' },
+  { id: '30', label: '30 minutes before' },
+  { id: '60', label: '1 hour before' },
+  { id: '180', label: '3 hours before' },
+  { id: '1440', label: '1 day before' },
+];
+
 // ─── VALIDATION ─────────────────────────────
 const taskSchema = (mode) =>
   Yup.object({
@@ -60,10 +76,16 @@ const taskSchema = (mode) =>
     details:     Yup.string().trim().required('Details is required'),
     scheduledAt: Yup.date().nullable().required('Scheduled time is required'),
     location:    Yup.object().nullable(),
+    reminderOffsetMinutes: Yup.string().when('reminderEnabled', {
+      is: true,
+      then: (s) => s.required('Reminder time is required'),
+      otherwise: (s) => s.notRequired(),
+    }),
   });
 
 // ─── DEFAULT INITIAL VALUES ─────────────────
 const DEFAULT_VALUES = {
+  assignToKamId: '',
   lead:        '',
   client:      '',
   taskType:    '',
@@ -72,6 +94,9 @@ const DEFAULT_VALUES = {
   scheduledAt: null,
   location:    null,
   attachment:  [],
+  reminderEnabled: false,
+  reminderOffsetMinutes: '30',
+  reminderChannels: ['google_calendar', 'sms'],
 };
 
 // ─── REVERSE GEOCODE ────────────────────────
@@ -217,15 +242,28 @@ function LocationPicker({ value, onChange }) {
 
 // ─── MAIN COMPONENT ─────────────────────────
 export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAssociation = null }) {
+  const { profile } = useUserProfile();
   const startMode = lockedAssociation?.mode ?? (initialValues?.client ? 'client' : 'lead');
   const [mode, setMode]               = useState(startMode);
   const [locationOpen, setLocationOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
   const isAssociationLocked = Boolean(lockedAssociation?.mode && lockedAssociation?.option);
   const effectiveMode = isAssociationLocked ? lockedAssociation.mode : mode;
+  const canAssignKam = isSupervisorRole(profile?.role);
+  const existingAssignment = {
+    assignedToUserId: initialValues?.assignedToUserId || null,
+    assignedToUserName: initialValues?.assignedToUserName || null,
+    assignedToUserRole: initialValues?.assignedToUserRole || null,
+    assignedToKamId: initialValues?.assignedToKamId || null,
+    assignedToKamName: initialValues?.assignedToKamName || null,
+    assignmentMode: initialValues?.assignmentMode || null,
+    createdByUserId: initialValues?.createdByUserId || null,
+    createdByUserName: initialValues?.createdByUserName || null,
+    createdByUserRole: initialValues?.createdByUserRole || null,
+  };
 
   const formik = useFormik({
-    initialValues: initialValues ?? DEFAULT_VALUES,
+    initialValues: { ...DEFAULT_VALUES, ...(initialValues || {}) },
     validationSchema: taskSchema(effectiveMode),
     enableReinitialize: true,
 
@@ -233,26 +271,54 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       const associationId = isAssociationLocked
         ? lockedAssociation.option.id
         : (effectiveMode === 'lead' ? values.lead : values.client);
+      const associationLabel = isAssociationLocked
+        ? lockedAssociation.option.label
+        : (effectiveMode === 'lead'
+          ? fetchLeads().then((options) => options.find((option) => option.id === values.lead)?.label || '')
+          : fetchClients().then((options) => options.find((option) => option.id === values.client)?.label || ''));
       const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
       if (totalAttachmentSize > 25 * 1024 * 1024) {
         setSubmitting(false);
         return;
       }
 
-      const payload = {
-        ...(effectiveMode === 'lead' ? { leadId: associationId } : { clientId: associationId }),
-        taskType:    values.taskType,
-        title:       values.title.trim(),
-        details:     values.details.trim(),
-        scheduledAt: values.scheduledAt?.toISOString(),
-        location: values.location
-          ? { address: values.location.address, latitude: values.location.latitude, longitude: values.location.longitude }
-          : null,
-        attachment: values.attachment,
-      };
-      const formData = buildMultipartFormData(payload);
-      onSubmit?.(payload, formData);
-      setSubmitting(false);
+      Promise.resolve(associationLabel)
+        .then((resolvedAssociationLabel) => {
+          const assignmentPayload = canAssignKam
+            ? buildTaskAssignment({ profile, selectedKamId: values.assignToKamId })
+            : {
+                ...buildTaskAssignment({ profile }),
+                ...Object.fromEntries(Object.entries(existingAssignment).filter(([, value]) => value !== null)),
+              };
+          const reminderChannels = values.reminderEnabled ? ['google_calendar', 'sms'] : [];
+          const payload = {
+            ...(effectiveMode === 'lead'
+              ? { leadId: associationId, leadName: resolvedAssociationLabel }
+              : { clientId: associationId, clientName: resolvedAssociationLabel }),
+            ...assignmentPayload,
+            taskType:    values.taskType,
+            title:       values.title.trim(),
+            details:     values.details.trim(),
+            scheduledAt: values.scheduledAt?.toISOString(),
+            location: values.location
+              ? { address: values.location.address, latitude: values.location.latitude, longitude: values.location.longitude }
+              : null,
+            attachment: values.attachment,
+            reminderEnabled: values.reminderEnabled,
+            reminderOffsetMinutes: values.reminderEnabled ? Number(values.reminderOffsetMinutes) : null,
+            reminderChannels,
+            reminder: {
+              enabled: values.reminderEnabled,
+              offsetMinutes: values.reminderEnabled ? Number(values.reminderOffsetMinutes) : null,
+              channels: reminderChannels,
+            },
+          };
+          const formData = buildMultipartFormData(payload);
+          onSubmit?.(payload, formData);
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
     },
   });
 
@@ -274,6 +340,20 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+
+      {canAssignKam && (
+        <Box sx={{ mb: 2 }}>
+          <SelectDropdownSingle
+            name="assignToKamId"
+            label="Assign to KAM"
+            placeholder="Leave empty to create for yourself"
+            fetchOptions={getAssignableKamOptions}
+            value={values.assignToKamId}
+            onChange={(id) => setFieldValue('assignToKamId', id)}
+            helperText="Optional. If left blank, this task stays assigned to you."
+          />
+        </Box>
+      )}
 
       {/* ── Tab Switcher ── */}
       {!isAssociationLocked && (
@@ -426,6 +506,61 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
             />
           </Box>
         )}
+      </Box>
+
+      <Box sx={{ mt: 2.5 }}>
+        <Stack
+          direction="column"
+          spacing={1.25}
+        >
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 34,
+                height: 34,
+                borderRadius: '10px',
+                bgcolor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <NotificationsActiveOutlinedIcon sx={{ fontSize: 17, color: '#2563eb' }} />
+            </Box>
+            <Typography fontSize={14} fontWeight={700} color="#0f172a" sx={{ whiteSpace: 'nowrap' }}>
+              Reminder Notification
+            </Typography>
+            <CustomToggle
+              size="md"
+              checked={values.reminderEnabled}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setFieldValue('reminderEnabled', checked);
+
+                if (!checked) {
+                  setFieldValue('reminderOffsetMinutes', DEFAULT_VALUES.reminderOffsetMinutes);
+                }
+              }}
+              label={values.reminderEnabled ? 'On' : 'Off'}
+            />
+          </Stack>
+
+          {values.reminderEnabled && (
+            <Box sx={{ width: { xs: '100%', md: 240 }, ml: { xs: 0, md: '164px' } }}>
+              <SelectDropdownSingle
+                name="reminderOffsetMinutes"
+                label="Remind Before"
+                fetchOptions={async () => REMINDER_TIME_OPTIONS}
+                value={values.reminderOffsetMinutes}
+                onChange={(id) => setFieldValue('reminderOffsetMinutes', id)}
+                error={touched.reminderOffsetMinutes && Boolean(errors.reminderOffsetMinutes)}
+                helperText={touched.reminderOffsetMinutes ? errors.reminderOffsetMinutes : ' '}
+              />
+            </Box>
+          )}
+        </Stack>
       </Box>
 
       {/* LOCATION DIALOG */}

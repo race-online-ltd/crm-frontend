@@ -34,6 +34,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
   // Map a task record back to formik shape
   const formikInitial = initialValues
     ? {
+        assignToKamId: initialValues.assignedToKamId || '',
         lead:        initialValues.leadId    || initialValues.lead || '',
         client:      initialValues.clientId  || initialValues.client || '',
         taskType:    initialValues.taskType  || '',
@@ -42,6 +43,15 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
         scheduledAt: initialValues.scheduledAt ? new Date(initialValues.scheduledAt) : null,
         location:    initialValues.location  || null,
         attachment:  Array.isArray(initialValues.attachment) ? initialValues.attachment : [],
+        reminderEnabled: Boolean(initialValues.reminder?.enabled ?? initialValues.reminderEnabled),
+        reminderOffsetMinutes: String(
+          initialValues.reminder?.offsetMinutes
+          ?? initialValues.reminderOffsetMinutes
+          ?? '30'
+        ),
+        reminderChannels: Array.isArray(initialValues.reminder?.channels)
+          ? initialValues.reminder.channels
+          : (Array.isArray(initialValues.reminderChannels) ? initialValues.reminderChannels : ['google_calendar', 'sms']),
       }
     : undefined; // TaskForm will use its own INITIAL_VALUES
 

@@ -1,5 +1,5 @@
 // src/features/tasks/pages/TasksListPage.jsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box, Typography, Stack, Button, TextField, InputAdornment, Paper,
 } from '@mui/material';
@@ -9,163 +9,7 @@ import AccessTimeIcon         from '@mui/icons-material/AccessTime';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import FilterButton           from '../../../components/shared/FilterButton';
 import TasksTable             from '../components/TasksTable';
-
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-// Shape change from original:
-//   - `lead`      now contains the lead name only (no parenthetical)
-//   - `client`    new field — the client name. If the task is lead-based, this
-//                 comes from the lead's associated client (resolved on the backend).
-//                 If client-based, it's the client directly.
-//   - `assocType` new field — 'lead' | 'client', reflects how the task was created.
-//
-// In production, `client` and `assocType` are returned by the backend alongside
-// each task. No frontend resolution needed.
-const MOCK_TASKS = [
-  {
-    id: 't1',
-    title: 'Weekly Team Sync',
-    details: 'Review team progress and KPIs',
-    taskType: 'virtual_meeting',
-    lead: 'Tech Corp Deal',
-    client: 'Tech Corporation',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-17T15:00:00'),
-    status: 'overdue',
-    location: null,
-  },
-  {
-    id: 't2',
-    title: 'On-site Product Demo',
-    details: 'Present enterprise features to IT team',
-    taskType: 'physical_meeting',
-    lead: 'Tech Corp Deal',
-    client: 'Tech Corporation',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-17T16:00:00'),
-    status: 'overdue',
-    location: { address: 'Dhaka Trade Center, Gulshan, Dhaka 1212', latitude: 23.7936, longitude: 90.4066 },
-  },
-  {
-    id: 't3',
-    title: 'Contract Review Call',
-    details: 'Review contract terms with legal team',
-    taskType: 'virtual_meeting',
-    lead: 'Global Systems',
-    client: 'Global Systems Inc',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-17T20:00:00'),
-    status: 'overdue',
-    location: null,
-  },
-  {
-    id: 't4',
-    title: 'Prepare Proposal',
-    details: 'Draft contract proposal with pricing',
-    taskType: 'follow_up',
-    lead: 'Global Systems',
-    client: 'Global Systems Inc',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-18T15:00:00'),
-    status: 'overdue',
-    location: null,
-  },
-  {
-    id: 't5',
-    title: 'Client Site Visit',
-    details: 'Meet with procurement team for contract finalization',
-    taskType: 'physical_meeting',
-    lead: 'Global Systems',
-    client: 'Global Systems Inc',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-18T20:00:00'),
-    status: 'overdue',
-    location: { address: 'Global Systems HQ, Motijheel, Dhaka 1000', latitude: 23.7275, longitude: 90.4179 },
-  },
-  {
-    id: 't6',
-    title: 'Partner Strategy Call',
-    details: 'Discuss partnership expansion opportunities',
-    taskType: 'call',
-    lead: null,               // client-based task — no lead
-    client: 'StartupXYZ',
-    assocType: 'client',
-    scheduledAt: new Date('2025-12-19T16:30:00'),
-    status: 'overdue',
-    location: null,
-  },
-  {
-    id: 't7',
-    title: 'Q4 Performance Review',
-    details: 'Complete quarterly performance assessments',
-    taskType: 'follow_up',
-    lead: 'Tech Corp Deal',
-    client: 'Tech Corporation',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-20T17:00:00'),
-    status: 'overdue',
-    location: null,
-  },
-  {
-    id: 't8',
-    title: 'Post-Demo Follow-up',
-    details: 'Check on decision progress',
-    taskType: 'follow_up',
-    lead: 'Tech Corp Deal',
-    client: 'Tech Corporation',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-20T21:00:00'),
-    status: 'pending',
-    location: null,
-  },
-  {
-    id: 't9',
-    title: 'Product Brochure Sent',
-    details: 'Sent detailed product specifications',
-    taskType: 'follow_up',
-    lead: null,               // client-based task
-    client: 'Retail Plus',
-    assocType: 'client',
-    scheduledAt: new Date('2025-12-15T15:00:00'),
-    status: 'completed',
-    location: null,
-  },
-  {
-    id: 't10',
-    title: 'Initial Discovery Call',
-    details: 'Understand client needs and budget',
-    taskType: 'call',
-    lead: null,               // client-based task
-    client: 'Alpha Corp',
-    assocType: 'client',
-    scheduledAt: new Date('2025-12-21T10:00:00'),
-    status: 'pending',
-    location: null,
-  },
-  {
-    id: 't11',
-    title: 'Demo Scheduling',
-    details: 'Coordinate a product demo session',
-    taskType: 'virtual_meeting',
-    lead: 'Nexus Solutions',
-    client: 'Nexus Solutions',
-    assocType: 'lead',
-    scheduledAt: new Date('2025-12-22T14:00:00'),
-    status: 'pending',
-    location: null,
-  },
-  {
-    id: 't12',
-    title: 'Renewal Discussion',
-    details: 'Talk about contract renewal options',
-    taskType: 'call',
-    lead: null,               // client-based task
-    client: 'Alpha Corp',
-    assocType: 'client',
-    scheduledAt: new Date('2025-12-23T11:00:00'),
-    status: 'pending',
-    location: null,
-  },
-];
+import { MOCK_TASKS } from '../data/mockTasks';
 
 // ─── STAT CARD ────────────────────────────────────────────────────────────────
 function StatCard({ icon, count, label, accent }) {
@@ -191,9 +35,17 @@ function StatCard({ icon, count, label, accent }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function TasksListPage({ onNewTask, onEditTask }) {
-  const [tasks, setTasks]   = useState(MOCK_TASKS);
+export default function TasksListPage({
+  tasks: tasksProp,
+  onTasksChange,
+  onNewTask,
+  onEditTask,
+}) {
   const [search, setSearch] = useState('');
+  const tasks = useMemo(
+    () => (Array.isArray(tasksProp) && tasksProp.length > 0 ? tasksProp : (Array.isArray(tasksProp) ? [] : MOCK_TASKS)),
+    [tasksProp],
+  );
 
   const pending = tasks.filter((t) => t.status === 'pending').length;
   const overdue = tasks.filter((t) => t.status === 'overdue').length;
@@ -270,7 +122,7 @@ export default function TasksListPage({ onNewTask, onEditTask }) {
         tasks={tasks}
         onEdit={onEditTask}
         onNewTask={onNewTask}
-        onTasksChange={setTasks}
+        onTasksChange={onTasksChange}
         searchQuery={search}
       />
 
