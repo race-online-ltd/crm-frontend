@@ -1,13 +1,27 @@
 import api from "./config/axiosInstance";
 
 export async function login(payload) {
-  const response = await api.post("/auth/login", payload, { skipAuthRedirect: true });
+  const response = await api.post("/auth/login", payload, {
+    skipAuthRedirect: true,
+    skipAuthRefresh: true,
+  });
   return response.data?.data;
 }
 
 export async function logout() {
-  const response = await api.post("/auth/logout");
+  const response = await api.post("/auth/logout", undefined, {
+    skipAuthRedirect: true,
+    skipAuthRefresh: true,
+  });
   return response.data?.message;
+}
+
+export async function refresh() {
+  const response = await api.post("/auth/refresh", undefined, {
+    skipAuthRedirect: true,
+    skipAuthRefresh: true,
+  });
+  return response.data?.data;
 }
 
 export async function me() {
@@ -33,6 +47,7 @@ export async function changePassword(payload) {
 export const AuthAPI = {
   login,
   logout,
+  refresh,
   me,
   getProfile,
   updateProfile,
