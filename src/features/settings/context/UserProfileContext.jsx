@@ -12,25 +12,9 @@ import { tokenService } from '../../../api/config/tokenService';
 
 const UserProfileContext = createContext(null);
 
-const AUTH_TOKEN_KEY = 'auth_token';
-const AUTH_USER_KEY = 'auth_user';
-
 function readStoredUser() {
-  if (typeof window === 'undefined') {
-    return defaultProfile;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(AUTH_USER_KEY);
-    if (!raw) {
-      return defaultProfile;
-    }
-
-    const stored = JSON.parse(raw);
-    return normalizeProfile(stored);
-  } catch {
-    return defaultProfile;
-  }
+  const stored = tokenService.getUser();
+  return stored ? normalizeProfile(stored) : defaultProfile;
 }
 
 function normalizeProfile(input = {}) {
@@ -71,16 +55,12 @@ function normalizeProfile(input = {}) {
 }
 
 function persistUser(profile) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(profile));
+  tokenService.setUser(profile);
 }
 
 export function UserProfileProvider({ children }) {
   const [token, setToken] = useState(() => (
-    typeof window === 'undefined' ? '' : window.localStorage.getItem(AUTH_TOKEN_KEY) || ''
+    tokenService.getAccessToken() || ''
   ));
   const [profile, setProfile] = useState(readStoredUser);
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(token));
@@ -90,14 +70,11 @@ export function UserProfileProvider({ children }) {
     setProfile(nextProfile || defaultProfile);
     setIsAuthenticated(Boolean(nextToken));
 
-    if (typeof window !== 'undefined') {
-      if (nextToken) {
-        window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
-        persistUser(nextProfile || defaultProfile);
-      } else {
-        window.localStorage.removeItem(AUTH_TOKEN_KEY);
-        window.localStorage.removeItem(AUTH_USER_KEY);
-      }
+    if (nextToken) {
+      tokenService.setAccessToken(nextToken);
+      persistUser(nextProfile || defaultProfile);
+    } else {
+      tokenService.clearAuth();
     }
   }, []);
 
@@ -137,13 +114,13 @@ export function UserProfileProvider({ children }) {
 
   const initAuth = useCallback(() => {
     const storedToken = tokenService.getAccessToken() || '';
-    const storedUser = readStoredUser();
+    const storedUser = tokenService.getUser() ? readStoredUser() : defaultProfile;
     setToken(storedToken);
     setProfile(storedUser);
     setIsAuthenticated(Boolean(storedToken));
 
-    if (!storedToken && typeof window !== 'undefined') {
-      window.localStorage.removeItem(AUTH_USER_KEY);
+    if (!storedToken) {
+      tokenService.removeUser();
     }
   }, []);
 

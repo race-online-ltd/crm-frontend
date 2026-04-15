@@ -1,21 +1,33 @@
 const ACCESS_TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 
+function getStorage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.sessionStorage;
+}
+
 export const tokenService = {
   getAccessToken() {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    const storage = getStorage();
+    return storage ? storage.getItem(ACCESS_TOKEN_KEY) : null;
   },
 
   setAccessToken(token) {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    const storage = getStorage();
+    storage?.setItem(ACCESS_TOKEN_KEY, token);
   },
 
   removeAccessToken() {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    const storage = getStorage();
+    storage?.removeItem(ACCESS_TOKEN_KEY);
   },
 
   getUser() {
-    const raw = localStorage.getItem(USER_KEY);
+    const storage = getStorage();
+    const raw = storage ? storage.getItem(USER_KEY) : null;
     if (!raw) {
       return null;
     }
@@ -28,15 +40,18 @@ export const tokenService = {
   },
 
   setUser(user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    const storage = getStorage();
+    storage?.setItem(USER_KEY, JSON.stringify(user));
   },
 
   removeUser() {
-    localStorage.removeItem(USER_KEY);
+    const storage = getStorage();
+    storage?.removeItem(USER_KEY);
   },
 
   clearAuth() {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    const storage = getStorage();
+    storage?.removeItem(ACCESS_TOKEN_KEY);
+    storage?.removeItem(USER_KEY);
   },
 };
