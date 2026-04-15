@@ -12,7 +12,18 @@ export async function createRole(payload) {
 
 export async function fetchSystemUsers() {
   const response = await api.get('/system/users');
-  return response.data?.data ?? [];
+  return {
+    data: response.data?.data ?? [],
+    meta: response.data?.meta ?? null,
+  };
+}
+
+export async function fetchSystemUsersPaginated(params = {}) {
+  const response = await api.get('/system/users', { params });
+  return {
+    data: response.data?.data ?? [],
+    meta: response.data?.meta ?? null,
+  };
 }
 
 export async function createSystemUser(payload) {

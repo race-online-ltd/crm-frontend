@@ -54,7 +54,6 @@ const menuItems = [
   { text: "Price Proposal", icon: <RequestQuoteOutlinedIcon />, path: "/price-proposal" },
   { text: "Price History", icon: <HistoryOutlinedIcon />, path: "/price-history" },
   { text: "Approval Requests", icon: <AssignmentTurnedInOutlinedIcon />, path: "/approval/requests" },
-  { text: "Components", icon: <GridViewRoundedIcon />,               path: "/components" },
 ];
 
 const sharedPaperSx = {

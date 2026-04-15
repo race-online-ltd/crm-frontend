@@ -13,7 +13,6 @@ const phoneValidation = Yup.string()
   .matches(/^\d+$/, 'Phone must contain only numbers')
   .min(10, 'Phone must be at least 10 digits')
   .max(13, 'Phone must be at most 13 digits')
-  .required('Phone is required');
 
 const passwordValidation = Yup.string()
   .min(6, 'Password must be at least 6 characters')
@@ -27,7 +26,7 @@ const passwordHelperText = 'Minimum 6 characters with uppercase, lowercase, numb
 const validationSchema = Yup.object({
   full_name: Yup.string().required('Full Name is required'),
   user_name: Yup.string().required('User Name is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
+  email: Yup.string().email('Invalid email'),
   phone: phoneValidation,
   password: passwordValidation,
   confirm_password: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match'),
@@ -118,7 +117,7 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel, fe
 
         <TextInputField
           name="email"
-          label="Email *"
+          label="Email"
           type="email"
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -129,7 +128,7 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel, fe
 
         <NumberInputField
           name="phone"
-          label="Phone *"
+          label="Phone"
           value={formik.values.phone}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -144,7 +143,8 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel, fe
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
           error={formik.touched.password && Boolean(formik.errors.password)}
-          helperText={formik.touched.password && formik.errors.password ? formik.errors.password : passwordHelperText}
+          helperText={formik.touched.password && formik.errors.password ? formik.errors.password : ' '}
+          tooltipText={passwordHelperText}
         />
 
         <PasswordField

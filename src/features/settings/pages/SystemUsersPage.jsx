@@ -7,28 +7,68 @@ import { useNavigate } from 'react-router-dom';
 import TextInputField from '../../../components/shared/TextInputField';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import SystemUserList from '../components/SystemUserList';
-import { fetchSystemUsers } from '../api/settingsApi';
+import { fetchRoles, fetchSystemUsersPaginated } from '../api/settingsApi';
 
 export default function SystemUsersPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRoles = async () => {
+      try {
+        const data = await fetchRoles();
+        if (!active) {
+          return;
+        }
+
+        setRoles(data.map((role) => ({
+          id: String(role.id),
+          label: role.name,
+        })));
+      } catch {
+        if (active) {
+          setRoles([]);
+        }
+      }
+    };
+
+    loadRoles();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
 
     const loadUsers = async () => {
       try {
+        setIsLoading(true);
         setLoadError('');
-        const data = await fetchSystemUsers();
+        const response = await fetchSystemUsersPaginated({
+          page: page + 1,
+          per_page: rowsPerPage,
+          search: searchQuery.trim() || undefined,
+          role_id: roleFilter || undefined,
+        });
+
         if (!active) {
           return;
         }
 
         setUsers(
-          data.map((user) => ({
+          response.data.map((user) => ({
             id: user.id,
             fullName: user.full_name,
             full_name: user.full_name,
@@ -42,9 +82,16 @@ export default function SystemUsersPage() {
             status: user.status,
           })),
         );
+        setTotalCount(response.meta?.total ?? 0);
       } catch (error) {
         if (active) {
+          setUsers([]);
+          setTotalCount(0);
           setLoadError(error?.message || 'Unable to load system users.');
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
         }
       }
     };
@@ -54,29 +101,7 @@ export default function SystemUsersPage() {
     return () => {
       active = false;
     };
-  }, []);
-
-  const roleOptions = useMemo(() => {
-    const uniqueRoles = [...new Set(users.map((user) => user.roleName).filter(Boolean))];
-    return uniqueRoles.map((role) => ({
-      id: role,
-      label: role,
-    }));
-  }, [users]);
-
-  const filteredUsers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    return users.filter((user) => {
-      const matchesSearch = !query || [user.fullName, user.userName, user.email]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(query));
-
-      const matchesRole = !roleFilter || user.roleName === roleFilter;
-
-      return matchesSearch && matchesRole;
-    });
-  }, [users, searchQuery, roleFilter]);
+  }, [page, rowsPerPage, searchQuery, roleFilter]);
 
   const handleEdit = (user) => {
     navigate('/settings/users/create', { state: { editData: user } });
@@ -85,6 +110,8 @@ export default function SystemUsersPage() {
   const handleAssign = (user) => {
     navigate('/settings/users/mapping', { state: { user } });
   };
+
+  const roleOptions = useMemo(() => roles, [roles]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
@@ -154,7 +181,10 @@ export default function SystemUsersPage() {
             name="system-user-search"
             label="Search Users"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(0);
+            }}
             placeholder="Search by full name, username, or email"
             InputProps={{
               startAdornment: (
@@ -172,12 +202,28 @@ export default function SystemUsersPage() {
             label="Filter by Role"
             fetchOptions={async () => roleOptions}
             value={roleFilter}
-            onChange={(id) => setRoleFilter(id)}
+            onChange={(id) => {
+              setRoleFilter(id);
+              setPage(0);
+            }}
           />
         </Box>
       </Stack>
 
-      <SystemUserList users={filteredUsers} onEdit={handleEdit} onAssign={handleAssign} />
+      <SystemUserList
+        users={users}
+        onEdit={handleEdit}
+        onAssign={handleAssign}
+        loading={isLoading}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        totalCount={totalCount}
+        onPageChange={(_, nextPage) => setPage(nextPage)}
+        onRowsPerPageChange={(event) => {
+          setRowsPerPage(parseInt(event.target.value, 10));
+          setPage(0);
+        }}
+      />
     </Box>
   );
 }
