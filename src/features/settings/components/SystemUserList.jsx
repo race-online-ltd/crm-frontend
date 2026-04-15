@@ -4,10 +4,18 @@ import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
 import BaseTable from '../../../components/shared/BaseTable';
-import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 
-export default function SystemUserList({ users = [], onEdit, onAssign }) {
-  const isLoading = useInitialTableLoading();
+export default function SystemUserList({
+  users = [],
+  onEdit,
+  onAssign,
+  loading = false,
+  page = 0,
+  rowsPerPage = 10,
+  totalCount = 0,
+  onPageChange,
+  onRowsPerPageChange,
+}) {
   const columns = [
     { id: 'fullName', label: 'Full Name' },
     { id: 'userName', label: 'User Name' },
@@ -53,7 +61,7 @@ export default function SystemUserList({ users = [], onEdit, onAssign }) {
     <BaseTable
       title="System Users Directory"
       columns={columns}
-      rows={isLoading ? [] : rows}
+      rows={rows}
       selectable={false}
       hasAction
       onEditRow={(row) => onEdit?.(users.find((user) => user.id === row.id) || row)}
@@ -73,7 +81,13 @@ export default function SystemUserList({ users = [], onEdit, onAssign }) {
       showDeleteAction={false}
       showToolbar={false}
       showDenseToggle={false}
-      loading={isLoading}
+      loading={loading}
+      manualPagination
+      totalCount={totalCount}
+      page={page}
+      rowsPerPage={rowsPerPage}
+      onPageChange={onPageChange}
+      onRowsPerPageChange={onRowsPerPageChange}
     />
   );
 }

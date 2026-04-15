@@ -129,13 +129,22 @@ export default function BaseTable({
   loading = false,
   loadingContent = null,
   renderRowActions,
+  manualPagination = false,
+  totalCount,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
 }) {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState(columns[0]?.id || "");
   const [selected, setSelected] = React.useState([]);
-  const [page, setPage] = React.useState(0);
+  const [internalPage, setInternalPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [internalRowsPerPage, setInternalRowsPerPage] = React.useState(5);
+
+  const resolvedPage = manualPagination ? page ?? 0 : internalPage;
+  const resolvedRowsPerPage = manualPagination ? rowsPerPage ?? 5 : internalRowsPerPage;
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -163,18 +172,35 @@ export default function BaseTable({
     setSelected(newSelected);
   };
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangePage = (event, newPage) => {
+    if (manualPagination) {
+      onPageChange?.(event, newPage);
+      return;
+    }
+
+    setInternalPage(newPage);
+  };
+
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    const nextRowsPerPage = parseInt(event.target.value, 10);
+
+    if (manualPagination) {
+      onRowsPerPageChange?.(event);
+      return;
+    }
+
+    setInternalRowsPerPage(nextRowsPerPage);
+    setInternalPage(0);
   };
 
   const visibleRows = React.useMemo(
     () =>
-      [...rows]
-        .sort(getComparator(order, orderBy))
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [order, orderBy, page, rowsPerPage, rows]
+      manualPagination
+        ? [...rows].sort(getComparator(order, orderBy))
+        : [...rows]
+            .sort(getComparator(order, orderBy))
+            .slice(resolvedPage * resolvedRowsPerPage, resolvedPage * resolvedRowsPerPage + resolvedRowsPerPage),
+    [manualPagination, order, orderBy, resolvedPage, resolvedRowsPerPage, rows]
   );
 
   return (
@@ -311,9 +337,9 @@ export default function BaseTable({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={rows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
+          count={manualPagination ? totalCount ?? rows.length : rows.length}
+          rowsPerPage={resolvedRowsPerPage}
+          page={resolvedPage}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           sx={{ backgroundColor: "#fff" }}
@@ -352,4 +378,10 @@ BaseTable.propTypes = {
   showEditAction: PropTypes.bool,
   showDeleteAction: PropTypes.bool,
   renderRowActions: PropTypes.func,
+  manualPagination: PropTypes.bool,
+  totalCount: PropTypes.number,
+  page: PropTypes.number,
+  rowsPerPage: PropTypes.number,
+  onPageChange: PropTypes.func,
+  onRowsPerPageChange: PropTypes.func,
 };
