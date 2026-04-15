@@ -83,7 +83,11 @@ export default function ProfileHeaderCard({ profile, onEdit }) {
         <EditOutlinedIcon sx={{ fontSize: 18, color: '#2563eb' }} />
       </IconButton>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 2.25, md: 3 }} alignItems={{ xs: 'flex-start', md: 'center' }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={{ xs: 2.25, md: 3 }}
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+      >
         <Box
           sx={{
             width: { xs: 64, sm: 72 },

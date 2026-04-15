@@ -9,6 +9,7 @@ import {
   Typography,
   Box,
   Stack,
+  Button,
   useTheme,
   useMediaQuery,
   Badge,
@@ -16,13 +17,14 @@ import {
   MenuItem,
   Divider,
   Avatar,
-  ListItemIcon,
 } from "@mui/material";
+import LogoutIcon from '@mui/icons-material/Logout';
+import EditIcon from '@mui/icons-material/Edit';
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import LogoutIcon from "@mui/icons-material/Logout";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import { useNavigate } from "react-router-dom";
 import { useUserProfile } from "../../features/settings/context/UserProfileContext";
 
@@ -32,16 +34,21 @@ const collapsedWidth = 60;
 export default function Topbar({ open, handleToggle }) {
   const theme    = useTheme();
   const navigate = useNavigate();
-  const { profile } = useUserProfile();
+  const { profile, logout } = useUserProfile();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [anchorNotif,  setAnchorNotif]  = useState(null);
   const [anchorAvatar, setAnchorAvatar] = useState(null);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setAnchorAvatar(null);
     setAnchorNotif(null);
-    navigate('/login', { replace: true });
+
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
+    }
   };
 
   // On mobile the sidebar is hidden (width 0), on desktop account for it
@@ -120,67 +127,119 @@ export default function Topbar({ open, handleToggle }) {
           onClose={() => setAnchorAvatar(null)}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
-          PaperProps={{ sx: { width: 300, p: 1 } }}
+          PaperProps={{
+            sx: {
+              width: { xs: 'calc(100vw - 16px)', sm: 320 },
+              maxWidth: 360,
+              p: 1,
+            },
+          }}
         >
           <Box sx={{ position: "relative", px: 2, py: 2, pr: 6 }}>
-           <IconButton
-  onClick={() => {
-    setAnchorAvatar(null);
-    navigate("/settings/user-profile");
-  }}
-  sx={{
-    position: "absolute",
-    top: 28,
-    right: 8,
-    // width: 32, <-- Remove these to allow expansion
-    // height: 32, 
-    borderRadius: "8px", // Make it slightly rounded instead of a circle
-    px: 1, 
-    py: 0.5,
-    bgcolor: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    gap: 0.5, // Adds space between icon and text
-    "&:hover": { bgcolor: "#dbeafe" },
-  }}
->
-  <EditOutlinedIcon sx={{ fontSize: 17, color: "#2563eb" }} />
-  <Typography sx={{ fontSize: 12, color: "#2563eb", fontWeight: 500 }}>
-    Profile
-  </Typography>
-</IconButton>
 
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, pr: 2.5 }}>
               <Avatar
                 src={profile.avatar || ''}
                 sx={{ bgcolor: "#2563eb", width: 48, height: 48, fontWeight: 700 }}
               >
                 {!profile.avatar ? profile.fullName?.charAt(0) || 'U' : null}
               </Avatar>
-              <Box>
-                <Typography fontWeight={700}>{profile.fullName}</Typography>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography
+                  fontWeight={800}
+                  sx={{
+                    fontSize: 15,
+                    lineHeight: 1.25,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: 2,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {profile.fullName}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: 2,
+                    overflow: 'hidden',
+                  }}
+                >
+                  ID: {profile.userName}
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {profile.role}
                 </Typography>
               </Box>
             </Stack>
 
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Email: {profile.email}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Mobile: {profile.mobile}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Phone: {profile.phone}
-              </Typography>
+            <Box sx={{ mt: 2, display: 'grid', gap: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                <EmailOutlinedIcon sx={{ fontSize: 17, color: '#64748b', flexShrink: 0 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                  {profile.email || 'Not available'}
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                <PhoneOutlinedIcon sx={{ fontSize: 17, color: '#64748b', flexShrink: 0 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                  {profile.mobile || 'Not available'}
+                </Typography>
+              </Stack>
             </Box>
           </Box>
           <Divider />
-          <MenuItem onClick={handleLogout} sx={{ color: "red" }}>
-            <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: "red" }} /></ListItemIcon>
-            Logout
-          </MenuItem>
+          <Box sx={{ px: 2, py: 1.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25 }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setAnchorAvatar(null);
+                navigate("/profile");
+              }}
+              startIcon={<EditIcon />}
+              sx={{
+                justifyContent: 'center',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 700,
+                color: '#2563eb',
+                borderColor: '#bfdbfe',
+                bgcolor: '#eff6ff',
+                '&:hover': {
+                  borderColor: '#93c5fd',
+                  bgcolor: '#dbeafe',
+                },
+              }}
+            >
+              Profile
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
+              sx={{
+                justifyContent: 'center',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 700,
+                bgcolor: '#ef4444',
+                boxShadow: 'none',
+                '&:hover': {
+                  bgcolor: '#dc2626',
+                  boxShadow: 'none',
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
         </Menu>
       </Toolbar>
     </AppBar>

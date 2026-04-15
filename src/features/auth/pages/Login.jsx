@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { Box, Paper, Typography, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import TextInputField from '@shared/TextInputField';
 import PasswordInputField from '@shared/PasswordField';
+import { useUserProfile } from '../../../features/settings/context/UserProfileContext';
 
 const LoginSchema = Yup.object().shape({
   username: Yup.string().required('Username is required'),
@@ -12,6 +14,16 @@ const LoginSchema = Yup.object().shape({
 });
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { login, isAuthenticated } = useUserProfile();
+  const [submitError, setSubmitError] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const initialValues = {
     username: '',
     password: '',
@@ -61,10 +73,20 @@ export default function Login() {
             initialValues={initialValues}
             validationSchema={LoginSchema}
             onSubmit={async (values, { setSubmitting }) => {
-              // Simulate API Call
-              await new Promise(r => setTimeout(r, 2000));
-              console.log('Login payload:', values);
-              setSubmitting(false);
+              setSubmitError('');
+
+              try {
+                await login({
+                  login: values.username,
+                  password: values.password,
+                });
+
+                navigate('/', { replace: true });
+              } catch (error) {
+                setSubmitError(error?.message || 'Unable to login.');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             {({ values, errors, touched, handleChange, handleBlur, isValid, dirty, isSubmitting }) => (
@@ -88,7 +110,7 @@ export default function Login() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={touched.password && Boolean(errors.password)}
-                    helperText={touched.password && errors.password ? errors.password : ' '}
+                    helperText={touched.password && errors.password ? errors.password : submitError || ' '}
                   />
 
                   <Button

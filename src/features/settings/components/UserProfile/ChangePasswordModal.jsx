@@ -15,7 +15,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 
-import PasswordField from '../../../../../components/shared/PasswordField';
+import PasswordField from '../../../../components/shared/PasswordField';
 
 const passwordSchema = Yup.object({
   oldPassword: Yup.string().required('Old password is required'),
@@ -33,11 +33,15 @@ export default function ChangePasswordModal({ open, onClose, onSave }) {
     newPassword: '',
     confirmPassword: '',
   };
+  const [submitError, setSubmitError] = React.useState('');
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        setSubmitError('');
+        onClose?.();
+      }}
       fullWidth
       maxWidth="sm"
       PaperProps={{
@@ -92,10 +96,17 @@ export default function ChangePasswordModal({ open, onClose, onSave }) {
         initialValues={initialValues}
         validationSchema={passwordSchema}
         onSubmit={async (values, { resetForm, setSubmitting }) => {
-          await onSave?.(values);
-          resetForm();
-          setSubmitting(false);
-          onClose?.();
+          setSubmitError('');
+
+          try {
+            await onSave?.(values);
+            resetForm();
+            onClose?.();
+          } catch (error) {
+            setSubmitError(error?.message || 'Unable to update password.');
+          } finally {
+            setSubmitting(false);
+          }
         }}
       >
         {({ values, errors, touched, handleChange, handleBlur, isSubmitting, dirty, isValid }) => (
@@ -131,6 +142,12 @@ export default function ChangePasswordModal({ open, onClose, onSave }) {
                   error={touched.confirmPassword && Boolean(errors.confirmPassword)}
                   helperText={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : ' '}
                 />
+
+                {submitError && (
+                  <Typography variant="body2" color="#dc2626">
+                    {submitError}
+                  </Typography>
+                )}
               </Stack>
             </DialogContent>
 
