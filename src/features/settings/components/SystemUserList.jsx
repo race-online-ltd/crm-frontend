@@ -3,12 +3,14 @@ import { Chip } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
+import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import BaseTable from '../../../components/shared/BaseTable';
 
 export default function SystemUserList({
   users = [],
   onEdit,
   onAssign,
+  onConnectAccounts,
   loading = false,
   page = 0,
   rowsPerPage = 10,
@@ -66,17 +68,30 @@ export default function SystemUserList({
       hasAction
       onEditRow={(row) => onEdit?.(users.find((user) => user.id === row.id) || row)}
       renderRowActions={(row) => (
-        <Tooltip title="Assign Mapping">
-          <IconButton
-            size="small"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAssign?.(users.find((user) => user.id === row.id) || row);
-            }}
-          >
-            <AssignmentIndOutlinedIcon sx={{ color: '#2563eb', fontSize: '1.15rem' }} />
-          </IconButton>
-        </Tooltip>
+        <>
+          <Tooltip title="Assign Mapping">
+            <IconButton
+              size="small"
+              onClick={(event) => {
+                event.stopPropagation();
+                onAssign?.(users.find((user) => user.id === row.id) || row);
+              }}
+            >
+              <AssignmentIndOutlinedIcon sx={{ color: '#2563eb', fontSize: '1.15rem' }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Connect System Accounts">
+            <IconButton
+              size="small"
+              onClick={(event) => {
+                event.stopPropagation();
+                onConnectAccounts?.(users.find((user) => user.id === row.id) || row);
+              }}
+            >
+              <HubOutlinedIcon sx={{ color: '#0f766e', fontSize: '1.15rem' }} />
+            </IconButton>
+          </Tooltip>
+        </>
       )}
       showDeleteAction={false}
       showToolbar={false}

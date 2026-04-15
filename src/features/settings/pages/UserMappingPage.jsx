@@ -97,6 +97,7 @@ const EMPTY_ENTITY_KAM_ROW = () => ({
 const EMPTY_MAPPING_VALUES = {
   entityKamBindings: [EMPTY_ENTITY_KAM_ROW()],
   defaultEntityId: '',
+  defaultKamId: '',
   teamSelectAll: false,
   teamIds: [],
   defaultTeamId: '',
@@ -128,6 +129,7 @@ function normalizeMapping(mapping) {
   return {
     entityKamBindings,
     defaultEntityId: safeMapping.defaultEntityId || '',
+    defaultKamId: safeMapping.defaultKamId || '',
     teamSelectAll: Boolean(safeMapping.teams?.selectAll),
     teamIds: Array.isArray(safeMapping.teams?.ids) ? safeMapping.teams.ids : [],
     defaultTeamId: safeMapping.teams?.defaultId || '',
@@ -198,6 +200,7 @@ function EntityKamBindingRow({
   onEntityChange,
   onKamChange,
   onRemove,
+  onAdd,
 }) {
   // Disable entities already chosen in other rows
   const entityOptions = useMemo(
@@ -265,7 +268,19 @@ function EntityKamBindingRow({
       />
 
       {/* Remove row button */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mt: '10px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: '10px' }}>
+        {rowIndex === totalRows - 1 && (
+          <IconButton
+            onClick={onAdd}
+            size="small"
+            sx={{
+              color: '#2563eb',
+              '&:hover': { bgcolor: '#eff6ff' },
+            }}
+          >
+            <AddCircleOutlineIcon fontSize="small" />
+          </IconButton>
+        )}
         <IconButton
           onClick={() => onRemove(rowIndex)}
           disabled={totalRows === 1}
@@ -409,6 +424,7 @@ export default function UserMappingPage() {
             kamIds: b.kamIds,
           })),
           defaultEntityId: values.defaultEntityId || null,
+          defaultKamId: values.defaultKamId || null,
           teams: {
             selectAll: values.teamSelectAll,
             ids: values.teamIds,
@@ -452,6 +468,7 @@ export default function UserMappingPage() {
       // If the removed row held the default entity, clear defaultEntityId
       if (removedEntityId && formik.values.defaultEntityId === removedEntityId) {
         formik.setFieldValue('defaultEntityId', '');
+        formik.setFieldValue('defaultKamId', '');
       }
     },
     [formik],
@@ -468,6 +485,7 @@ export default function UserMappingPage() {
       const oldEntityId = formik.values.entityKamBindings[index].entityId;
       if (oldEntityId && formik.values.defaultEntityId === oldEntityId) {
         formik.setFieldValue('defaultEntityId', '');
+        formik.setFieldValue('defaultKamId', '');
       }
     },
     [formik],
@@ -479,6 +497,15 @@ export default function UserMappingPage() {
         i === index ? { ...row, kamIds } : row,
       );
       formik.setFieldValue('entityKamBindings', updated);
+
+      const targetRow = formik.values.entityKamBindings[index];
+      if (
+        targetRow?.entityId
+        && targetRow.entityId === formik.values.defaultEntityId
+        && !kamIds.includes(formik.values.defaultKamId)
+      ) {
+        formik.setFieldValue('defaultKamId', '');
+      }
     },
     [formik],
   );
@@ -497,6 +524,23 @@ export default function UserMappingPage() {
   const defaultEntityFetcher = useMemo(
     () => async () => defaultEntityOptions,
     [defaultEntityOptions],
+  );
+
+  const defaultKamOptions = useMemo(() => {
+    const selectedBinding = formik.values.entityKamBindings.find(
+      (binding) => binding.entityId === formik.values.defaultEntityId,
+    );
+
+    if (!selectedBinding) {
+      return [];
+    }
+
+    return KAM_OPTIONS.filter((option) => selectedBinding.kamIds.includes(option.id));
+  }, [formik.values.defaultEntityId, formik.values.entityKamBindings]);
+
+  const defaultKamFetcher = useMemo(
+    () => async () => defaultKamOptions,
+    [defaultKamOptions],
   );
 
   // ---- Card wrapper style ----
@@ -593,30 +637,11 @@ export default function UserMappingPage() {
                     onEntityChange={handleEntityChange}
                     onKamChange={handleKamChange}
                     onRemove={handleRemoveRow}
+                    onAdd={handleAddRow}
                   />
                 );
               })}
             </Stack>
-
-            {/* Add row button */}
-            <Box sx={{ mt: 1.5 }}>
-              <Button
-                startIcon={<AddCircleOutlineIcon />}
-                onClick={handleAddRow}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  color: '#2563eb',
-                  borderRadius: '8px',
-                  px: 1.5,
-                  py: 0.5,
-                  '&:hover': { bgcolor: '#eff6ff' },
-                }}
-              >
-                Add Entity Binding
-              </Button>
-            </Box>
 
             {/* Default Entity */}
             <Divider sx={{ my: 2, borderColor: '#e2e8f0' }} />
@@ -624,7 +649,7 @@ export default function UserMappingPage() {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto minmax(0, 1fr) 36px' },
+                gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' },
                 gap: 1.5,
                 alignItems: 'end',
               }}
@@ -634,18 +659,25 @@ export default function UserMappingPage() {
                 label="Default Business Entity"
                 fetchOptions={defaultEntityFetcher}
                 value={formik.values.defaultEntityId}
-                onChange={(id) => formik.setFieldValue('defaultEntityId', id)}
+                onChange={(id) => {
+                  formik.setFieldValue('defaultEntityId', id);
+                  formik.setFieldValue('defaultKamId', '');
+                }}
                 onBlur={formik.handleBlur}
                 disabled={defaultEntityOptions.length === 0}
-                helperText={
-                  defaultEntityOptions.length === 0
-                    ? 'Select at least one entity above'
-                    : undefined
-                }
+                
               />
-              <Box />
-              <Box />
-              <Box />
+
+              <SelectDropdownSingle
+                name="defaultKamId"
+                label="Default KAM"
+                fetchOptions={defaultKamFetcher}
+                value={formik.values.defaultKamId}
+                onChange={(id) => formik.setFieldValue('defaultKamId', id)}
+                onBlur={formik.handleBlur}
+                disabled={!formik.values.defaultEntityId || defaultKamOptions.length === 0}
+                
+              />
             </Box>
           </Box>
 

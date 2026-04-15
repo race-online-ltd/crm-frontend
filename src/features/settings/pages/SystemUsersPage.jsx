@@ -111,6 +111,10 @@ export default function SystemUsersPage() {
     navigate('/settings/users/mapping', { state: { user } });
   };
 
+  const handleConnectAccounts = (user) => {
+    navigate('/settings/users/connect-system-accounts', { state: { user } });
+  };
+
   const roleOptions = useMemo(() => roles, [roles]);
 
   return (
@@ -214,6 +218,7 @@ export default function SystemUsersPage() {
         users={users}
         onEdit={handleEdit}
         onAssign={handleAssign}
+        onConnectAccounts={handleConnectAccounts}
         loading={isLoading}
         page={page}
         rowsPerPage={rowsPerPage}
