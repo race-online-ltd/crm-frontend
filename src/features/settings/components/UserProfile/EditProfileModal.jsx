@@ -17,18 +17,28 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 
-import TextInputField from '../../../../../components/shared/TextInputField';
+import TextInputField from '../../../../components/shared/TextInputField';
 
 const profileSchema = Yup.object({
   fullName: Yup.string().required('Name is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
+  email: Yup.string()
+    .trim()
+    .nullable()
+    .notRequired()
+    .email('Invalid email'),
   mobile: Yup.string()
-    .matches(/^[+\d][\d\s()-]*$/, 'Enter a valid mobile number')
-    .required('Mobile number is required'),
+    .trim()
+    .nullable()
+    .notRequired()
+    .matches(/^[+\d][\d\s()-]*$/, {
+      message: 'Enter a valid mobile number',
+      excludeEmptyString: true,
+    }),
 });
 
 export default function EditProfileModal({ open, profile, onClose, onSave }) {
   const [avatarError, setAvatarError] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
   const initialValues = {
     fullName: profile?.fullName || '',
@@ -39,7 +49,9 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
 
   const handleAvatarChange = (event, setFieldValue) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (file.size > 100 * 1024) {
       setAvatarError('Avatar image must be 100KB or smaller.');
@@ -58,6 +70,7 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
 
   const handleClose = () => {
     setAvatarError('');
+    setSubmitError('');
     onClose?.();
   };
 
@@ -98,7 +111,7 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
               Edit Profile
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Update name, email, mobile, and photo.
+              Update name, email, and mobile.
             </Typography>
           </Box>
 
@@ -118,10 +131,17 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
         initialValues={initialValues}
         validationSchema={profileSchema}
         enableReinitialize
-        onSubmit={(values, { setSubmitting }) => {
-          onSave?.(values);
-          setSubmitting(false);
-          onClose?.();
+        onSubmit={async (values, { setSubmitting }) => {
+          setSubmitError('');
+
+          try {
+            await onSave?.(values);
+            onClose?.();
+          } catch (error) {
+            setSubmitError(error?.message || 'Unable to save profile.');
+          } finally {
+            setSubmitting(false);
+          }
         }}
       >
         {({ values, errors, touched, handleChange, handleBlur, setFieldValue, isSubmitting, dirty }) => (
@@ -146,6 +166,8 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
                       component="label"
                       variant="contained"
                       size="small"
+                      disabled
+                      title="Photo upload is not available"
                       sx={{
                         position: 'absolute',
                         right: -6,
@@ -195,7 +217,7 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
 
                 <TextInputField
                   name="email"
-                  label="Email *"
+                  label="Email"
                   type="email"
                   value={values.email}
                   onChange={handleChange}
@@ -206,13 +228,19 @@ export default function EditProfileModal({ open, profile, onClose, onSave }) {
 
                 <TextInputField
                   name="mobile"
-                  label="Mobile *"
+                  label="Mobile"
                   value={values.mobile}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={touched.mobile && Boolean(errors.mobile)}
                   helperText={touched.mobile && errors.mobile ? errors.mobile : ' '}
                 />
+
+                {submitError && (
+                  <Typography variant="body2" color="#dc2626">
+                    {submitError}
+                  </Typography>
+                )}
               </Stack>
             </DialogContent>
 

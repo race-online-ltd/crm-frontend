@@ -1,9 +1,11 @@
 import React, { Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import CssBaseline from "@mui/material/CssBaseline";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useUserProfile } from "./features/settings/context/UserProfileContext";
+import ProtectedRoute from "./app/ProtectedRoute";
 
 const Login = React.lazy(() => import("./features/auth/pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -38,15 +40,21 @@ const Loading = () => (
 );
 
 export default function App() {
+  const { isAuthenticated } = useUserProfile();
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Suspense fallback={<Loading />}>
         <CssBaseline />
 
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route
+            path="/login"
+            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+          />
 
-          <Route element={<Layout />}>
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
   
             <Route path="/leads" element={<LeadListPage />} />
@@ -72,9 +80,11 @@ export default function App() {
             <Route path="/settings/group" element={<GroupPage />} />
             <Route path="/approval/requests" element={<ApprovalRequestsPage />} />
             <Route path="/settings/user-profile" element={<UserProfile />} />
-          </Route>
+            <Route path="/profile" element={<UserProfile />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
         </Routes>
       </Suspense>
     </LocalizationProvider>

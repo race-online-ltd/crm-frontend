@@ -17,8 +17,16 @@ export const handleApiError = (error) => {
 
   switch (status) {
     case 401:
+      if (error.config?.skipAuthRedirect) {
+        return {
+          status,
+          message: data?.message || "Invalid credentials.",
+          errors: data?.errors || null,
+        };
+      }
+
       // Unauthorized → token expired / invalid
-      tokenService.removeAccessToken();
+      tokenService.clearAuth();
 
       return {
         status,
@@ -27,6 +35,14 @@ export const handleApiError = (error) => {
       };
 
     case 403:
+      if (error.config?.skipAuthRedirect) {
+        return {
+          status,
+          message: data?.message || "You do not have permission to access this resource.",
+          errors: data?.errors || null,
+        };
+      }
+
       return {
         status,
         message: "You do not have permission to access this resource.",
