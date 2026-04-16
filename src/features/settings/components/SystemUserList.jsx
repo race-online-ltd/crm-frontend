@@ -32,7 +32,7 @@ export default function SystemUserList({
       ...user,
       roleDisplay: (
         <Chip
-          label={user.roleName || user.role || 'N/A'}
+          label={user.roleName || user.role_name || 'N/A'}
           size="small"
           sx={{
             fontSize: 11,

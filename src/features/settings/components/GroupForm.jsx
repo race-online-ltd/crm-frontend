@@ -50,8 +50,8 @@ export default function GroupForm({
     },
     validationSchema,
     enableReinitialize: true,
-    onSubmit: (values, { resetForm }) => {
-      onSave?.({
+    onSubmit: async (values, { resetForm }) => {
+      await onSave?.({
         groupName: values.groupName.trim(),
         supervisor: values.supervisor,
         teamName: values.teamName,

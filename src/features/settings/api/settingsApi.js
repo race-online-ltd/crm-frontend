@@ -1,5 +1,25 @@
 import api from '@/api/config/axiosInstance';
 
+export async function fetchBusinessEntities() {
+  const response = await api.get('/system/business-entities');
+  return response.data?.data ?? [];
+}
+
+export async function createBusinessEntity(payload) {
+  const response = await api.post('/system/business-entities', payload);
+  return response.data?.data;
+}
+
+export async function updateBusinessEntity(id, payload) {
+  const response = await api.put(`/system/business-entities/${id}`, payload);
+  return response.data?.data;
+}
+
+export async function deleteBusinessEntity(id) {
+  const response = await api.delete(`/system/business-entities/${id}`);
+  return response.data?.message;
+}
+
 export async function fetchRoles() {
   const response = await api.get('/system/roles');
   return response.data?.data ?? [];
@@ -34,4 +54,44 @@ export async function createSystemUser(payload) {
 export async function updateSystemUser(id, payload) {
   const response = await api.put(`/system/users/${id}`, payload);
   return response.data?.data;
+}
+
+export async function fetchTeams() {
+  const response = await api.get('/system/teams');
+  return response.data?.data ?? [];
+}
+
+export async function createTeam(payload) {
+  const response = await api.post('/system/teams', payload);
+  return response.data?.data;
+}
+
+export async function updateTeam(id, payload) {
+  const response = await api.put(`/system/teams/${id}`, payload);
+  return response.data?.data;
+}
+
+export async function deleteTeam(id) {
+  const response = await api.delete(`/system/teams/${id}`);
+  return response.data?.message;
+}
+
+export async function fetchGroups() {
+  const response = await api.get('/system/groups');
+  return response.data?.data ?? [];
+}
+
+export async function createGroup(payload) {
+  const response = await api.post('/system/groups', payload);
+  return response.data?.data;
+}
+
+export async function updateGroup(id, payload) {
+  const response = await api.put(`/system/groups/${id}`, payload);
+  return response.data?.data;
+}
+
+export async function deleteGroup(id) {
+  const response = await api.delete(`/system/groups/${id}`);
+  return response.data?.message;
 }

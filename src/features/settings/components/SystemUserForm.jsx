@@ -9,10 +9,22 @@ import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingl
 import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
 import CustomToggle from '../../../components/shared/CustomToggle';
 
-const phoneValidation = Yup.string()
-  .matches(/^\d+$/, 'Phone must contain only numbers')
+const optionalEmailValidation = Yup.string()
+  .trim()
+  .transform((value, originalValue) => (originalValue?.trim() === '' ? null : value))
+  .nullable()
+  .email('Invalid email');
+
+const optionalPhoneValidation = Yup.string()
+  .trim()
+  .transform((value, originalValue) => (originalValue?.trim() === '' ? null : value))
+  .nullable()
+  .matches(/^\d+$/, {
+    message: 'Phone must contain only numbers',
+    excludeEmptyString: true,
+  })
   .min(10, 'Phone must be at least 10 digits')
-  .max(13, 'Phone must be at most 13 digits')
+  .max(13, 'Phone must be at most 13 digits');
 
 const passwordValidation = Yup.string()
   .min(6, 'Password must be at least 6 characters')
@@ -26,8 +38,8 @@ const passwordHelperText = 'Minimum 6 characters with uppercase, lowercase, numb
 const validationSchema = Yup.object({
   full_name: Yup.string().required('Full Name is required'),
   user_name: Yup.string().required('User Name is required'),
-  email: Yup.string().email('Invalid email'),
-  phone: phoneValidation,
+  email: optionalEmailValidation,
+  phone: optionalPhoneValidation,
   password: passwordValidation,
   confirm_password: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match'),
   role: Yup.mixed().required('Role is required'),

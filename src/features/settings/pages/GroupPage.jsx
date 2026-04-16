@@ -1,59 +1,90 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import HubIcon from '@mui/icons-material/Hub';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import GroupForm from '../components/GroupForm';
 import GroupTable from '../components/GroupTable';
+import {
+  createGroup,
+  fetchGroups,
+  fetchSystemUsersPaginated,
+  fetchTeams,
+  updateGroup,
+} from '../api/settingsApi';
 
-const supervisorOptions = [
-  { id: 'sup1', label: 'Supervisor One' },
-  { id: 'sup2', label: 'Supervisor Two' },
-  { id: 'sup3', label: 'Supervisor Three' },
-  { id: 'sup4', label: 'Supervisor Four' },
-];
+function mapGroupToForm(group) {
+  return {
+    id: group.id,
+    groupName: group.group_name || group.name || '',
+    supervisor: group.supervisor_id || [],
+    teamName: group.team_id || [],
+    status: Boolean(group.status),
+  };
+}
 
-const teamOptions = [
-  { id: 'team1', label: 'Enterprise Growth' },
-  { id: 'team2', label: 'Regional Sales' },
-  { id: 'team3', label: 'Corporate Accounts' },
-  { id: 'team4', label: 'Strategic Partnerships' },
-];
-
-const initialGroups = [
-  {
-    id: 1,
-    groupName: 'North Cluster',
-    supervisor: ['sup1', 'sup2'],
-    teamName: ['team1', 'team2'],
-    status: true,
-  },
-  {
-    id: 2,
-    groupName: 'Key Accounts Circle',
-    supervisor: ['sup3'],
-    teamName: ['team3', 'team4'],
-    status: false,
-  },
-];
+function buildGroupPayload(values) {
+  return {
+    group_name: values.groupName.trim(),
+    supervisor_id: values.supervisor.map((id) => Number(id)),
+    team_id: values.teamName.map((id) => Number(id)),
+    status: values.status,
+  };
+}
 
 export default function GroupPage() {
   const [view, setView] = useState('list');
-  const [groups, setGroups] = useState(initialGroups);
+  const [groups, setGroups] = useState([]);
+  const [supervisorOptions, setSupervisorOptions] = useState([]);
+  const [teamOptions, setTeamOptions] = useState([]);
   const [editingGroup, setEditingGroup] = useState(null);
 
-  const handleSave = (values) => {
+  useEffect(() => {
+    let active = true;
+
+    const loadData = async () => {
+      try {
+        const [groupData, userData, teamData] = await Promise.all([
+          fetchGroups(),
+          fetchSystemUsersPaginated({ page: 1, per_page: 100 }),
+          fetchTeams(),
+        ]);
+
+        if (!active) return;
+        setGroups((groupData || []).map(mapGroupToForm));
+        setSupervisorOptions((userData.data || []).map((user) => ({
+          id: String(user.id),
+          label: `${user.full_name}${user.role_name ? ` (${user.role_name})` : ''}`,
+        })));
+        setTeamOptions((teamData || []).map((team) => ({
+          id: String(team.id),
+          label: team.team_name || team.name,
+        })));
+      } catch {
+        if (active) {
+          setGroups([]);
+          setSupervisorOptions([]);
+          setTeamOptions([]);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSave = async (values) => {
+    const payload = buildGroupPayload(values);
+
     if (editingGroup) {
-      const updatedGroup = { ...editingGroup, ...values };
+      const updatedGroup = mapGroupToForm(await updateGroup(editingGroup.id, payload));
       setGroups((prev) => prev.map((group) => (group.id === editingGroup.id ? updatedGroup : group)));
-      console.log('Update group:', updatedGroup);
     } else {
-      const nextGroup = {
-        id: Date.now(),
-        ...values,
-      };
+      const nextGroup = mapGroupToForm(await createGroup(payload));
       setGroups((prev) => [nextGroup, ...prev]);
-      console.log('Create group:', nextGroup);
     }
 
     setEditingGroup(null);

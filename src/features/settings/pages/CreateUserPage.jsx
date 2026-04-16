@@ -20,8 +20,8 @@ export default function CreateUserPage() {
     const payload = {
       full_name: values.full_name.trim(),
       user_name: values.user_name.trim(),
-      email: values.email.trim(),
-      phone: String(values.phone).trim(),
+      email: values.email?.trim() ? values.email.trim() : null,
+      phone: String(values.phone).trim() ? String(values.phone).trim() : null,
       role_id: Number(values.role),
       status: values.status,
     };

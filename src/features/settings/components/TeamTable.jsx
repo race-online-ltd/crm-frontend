@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Button, Chip, InputAdornment, Stack, Typography } from '@mui/material';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -14,10 +14,10 @@ const buildLabelMap = (options) =>
     return acc;
   }, {});
 
-function ChipGroup({ ids, labels }) {
+function ChipGroup({ ids = [], labels }) {
   return (
     <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-      {ids.map((id) => (
+      {ids.length > 0 ? ids.map((id) => (
         <Chip
           key={id}
           label={labels[id] || id}
@@ -30,33 +30,27 @@ function ChipGroup({ ids, labels }) {
             border: '1px solid #bfdbfe',
           }}
         />
-      ))}
+      )) : (
+        <Typography variant="caption" color="#94a3b8">
+          Not assigned
+        </Typography>
+      )}
     </Stack>
   );
 }
 
 export default function TeamTable({
   teams = [],
-  businessEntityOptions = [],
-  kamOptions = [],
   supervisorOptions = [],
+  kamOptions = [],
   onAddNew,
   onEdit,
+  loading = false,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  const businessEntityLabels = useMemo(() => buildLabelMap(businessEntityOptions), [businessEntityOptions]);
-  const kamLabels = useMemo(() => buildLabelMap(kamOptions), [kamOptions]);
   const supervisorLabels = useMemo(() => buildLabelMap(supervisorOptions), [supervisorOptions]);
+  const kamLabels = useMemo(() => buildLabelMap(kamOptions), [kamOptions]);
 
   const filteredTeams = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -66,24 +60,22 @@ export default function TeamTable({
 
       const searchText = [
         team.teamName,
-        ...team.businessEntity.map((id) => businessEntityLabels[id] || ''),
-        ...team.assignKAM.map((id) => kamLabels[id] || ''),
         ...team.supervisor.map((id) => supervisorLabels[id] || ''),
+        ...team.assignKAM.map((id) => kamLabels[id] || ''),
       ]
         .join(' ')
         .toLowerCase();
 
       return searchText.includes(query);
     });
-  }, [teams, searchQuery, businessEntityLabels, kamLabels, supervisorLabels]);
+  }, [teams, searchQuery, supervisorLabels, kamLabels]);
 
   const rows = useMemo(
     () =>
       filteredTeams.map((team) => ({
         ...team,
-        businessEntityDisplay: <ChipGroup ids={team.businessEntity} labels={businessEntityLabels} />,
-        assignKAMDisplay: <ChipGroup ids={team.assignKAM} labels={kamLabels} />,
         supervisorDisplay: <ChipGroup ids={team.supervisor} labels={supervisorLabels} />,
+        assignKAMDisplay: <ChipGroup ids={team.assignKAM} labels={kamLabels} />,
         statusDisplay: (
           <Chip
             label={team.status ? 'Active' : 'Inactive'}
@@ -98,14 +90,13 @@ export default function TeamTable({
           />
         ),
       })),
-    [filteredTeams, businessEntityLabels, kamLabels, supervisorLabels]
+    [filteredTeams, supervisorLabels, kamLabels],
   );
 
   const columns = [
     { id: 'teamName', label: 'Team Name' },
-    { id: 'businessEntityDisplay', label: 'Business Entity' },
-    { id: 'assignKAMDisplay', label: 'Assign KAM' },
     { id: 'supervisorDisplay', label: 'Supervisor' },
+    { id: 'assignKAMDisplay', label: 'Assign KAM' },
     { id: 'statusDisplay', label: 'Status' },
   ];
 
@@ -163,10 +154,9 @@ export default function TeamTable({
       <Box sx={{ mb: 2, width: '100%', maxWidth: { xs: '100%', sm: 420 } }}>
         <TextInputField
           name="team-search"
-          // label="Search Team"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by team, entity, KAM, or supervisor"
+          placeholder="Search by team, supervisor, or KAM"
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -180,7 +170,7 @@ export default function TeamTable({
       <BaseTable
         title="Team Directory"
         columns={columns}
-        rows={isLoading ? [] : rows}
+        rows={loading ? [] : rows}
         selectable={false}
         hasAction
         onEditRow={(row) => onEdit?.(teams.find((team) => team.id === row.id) || row)}
@@ -188,11 +178,11 @@ export default function TeamTable({
         showToolbar={false}
         showDenseToggle={false}
         emptyMessage="No data found"
-        loading={isLoading}
+        loading={loading}
         loadingContent={(
           <OrbitLoader
             title="Loading team directory"
-            subtitle="syncing team, business entity, KAM, and supervisor data...."
+            subtitle="syncing team, supervisor, and KAM data...."
             minHeight={220}
           />
         )}
