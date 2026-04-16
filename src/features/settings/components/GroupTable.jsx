@@ -14,13 +14,22 @@ const buildLabelMap = (options) =>
     return acc;
   }, {});
 
-function ChipGroup({ ids, labels }) {
+function ChipGroup({ ids = [], labels = {}, items = [], labelText = '' }) {
+  const resolvedItems = items.length > 0
+    ? items
+    : ids.map((id) => ({
+        id,
+        label: labels[id] || id,
+      }));
+
+  const fallbackText = labelText.trim();
+
   return (
     <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-      {ids.map((id) => (
+      {resolvedItems.length > 0 ? resolvedItems.map((item) => (
         <Chip
-          key={id}
-          label={labels[id] || id}
+          key={item.id}
+          label={item.label || labels[item.id] || item.id}
           size="small"
           sx={{
             fontSize: 11,
@@ -30,7 +39,23 @@ function ChipGroup({ ids, labels }) {
             border: '1px solid #bfdbfe',
           }}
         />
-      ))}
+      )) : fallbackText ? (
+        <Chip
+          label={fallbackText}
+          size="small"
+          sx={{
+            fontSize: 11,
+            fontWeight: 700,
+            bgcolor: '#eff6ff',
+            color: '#2563eb',
+            border: '1px solid #bfdbfe',
+          }}
+        />
+      ) : (
+        <Typography variant="caption" color="#94a3b8">
+          Not assigned
+        </Typography>
+      )}
     </Stack>
   );
 }
@@ -64,6 +89,10 @@ export default function GroupTable({
 
       const searchText = [
         group.groupName,
+        group.supervisorName,
+        group.teamLabel,
+        ...(group.supervisorItems || []).map((item) => item.label || supervisorLabels[item.id] || ''),
+        ...(group.teamItems || []).map((item) => item.label || teamLabels[item.id] || ''),
         ...group.supervisor.map((id) => supervisorLabels[id] || ''),
         ...group.teamName.map((id) => teamLabels[id] || ''),
       ]
@@ -78,8 +107,22 @@ export default function GroupTable({
     () =>
       filteredGroups.map((group) => ({
         ...group,
-        supervisorDisplay: <ChipGroup ids={group.supervisor} labels={supervisorLabels} />,
-        teamNameDisplay: <ChipGroup ids={group.teamName} labels={teamLabels} />,
+        supervisorDisplay: (
+          <ChipGroup
+            ids={group.supervisor}
+            items={group.supervisorItems}
+            labels={supervisorLabels}
+            labelText={group.supervisorName}
+          />
+        ),
+        teamNameDisplay: (
+          <ChipGroup
+            ids={group.teamName}
+            items={group.teamItems}
+            labels={teamLabels}
+            labelText={group.teamLabel}
+          />
+        ),
         statusDisplay: (
           <Chip
             label={group.status ? 'Active' : 'Inactive'}

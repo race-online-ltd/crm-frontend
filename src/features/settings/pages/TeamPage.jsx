@@ -12,6 +12,18 @@ import {
   updateTeam,
 } from '../api/settingsApi';
 
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value === null || value === undefined || value === '') {
+    return [];
+  }
+
+  return [value];
+}
+
 function mapUserToOption(user) {
   return {
     id: String(user.id),
@@ -23,8 +35,8 @@ function mapTeamToForm(team) {
   return {
     id: team.id,
     teamName: team.team_name || '',
-    supervisor: (team.supervisor_id || []).map((value) => String(value)),
-    assignKAM: (team.kam_id || []).map((value) => String(value)),
+    supervisor: toArray(team.supervisor_id).map((value) => String(value)),
+    assignKAM: toArray(team.kam_id).map((value) => String(value)),
     status: Boolean(team.status),
   };
 }
