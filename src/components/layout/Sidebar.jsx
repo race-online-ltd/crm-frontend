@@ -33,6 +33,7 @@ import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import HubIcon from "@mui/icons-material/Hub";
+import ApartmentIcon from "@mui/icons-material/Apartment";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import { Link, useLocation } from "react-router-dom";
@@ -246,6 +247,19 @@ export default function Sidebar({ open, handleToggle }) {
                   <HubOutlinedIcon sx={{ fontSize: '1.2rem' }} />
                 </ListItemIcon>
                 <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+              </ListItemButton>
+
+              <ListItemButton
+                component={Link}
+                to="/settings/business-entities"
+                selected={location.pathname === "/settings/business-entities"}
+                onClick={isMobile ? handleToggle : undefined}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <ApartmentIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="Business Entity" primaryTypographyProps={{ fontSize: '0.85rem' }} />
               </ListItemButton>
 
               {/* Fixed Team Settings */}

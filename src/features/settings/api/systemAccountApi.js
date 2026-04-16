@@ -1,9 +1,4 @@
-const BUSINESS_ENTITY_CONNECTION_OPTIONS = [
-  { id: 'race_online', label: 'Race Online Ltd.' },
-  { id: 'earth_telecom', label: 'Earth Telecom' },
-  { id: 'dhaka_colo', label: 'Dhaka COLO' },
-  { id: 'orbit_internet', label: 'Orbit Internet' },
-];
+import api from '@/api/config/axiosInstance';
 
 const EXTERNAL_USERS_BY_ENTITY = {
   race_online: [
@@ -23,9 +18,13 @@ const EXTERNAL_USERS_BY_ENTITY = {
 };
 
 export async function fetchBusinessEntitiesForAccountConnection() {
-  // Backend-ready placeholder:
-  // return api.get('/system-account-connections/business-entities');
-  return BUSINESS_ENTITY_CONNECTION_OPTIONS;
+  const response = await api.get('/system/business-entities');
+  const data = response.data?.data ?? [];
+
+  return data.map((entity) => ({
+    id: String(entity.id),
+    label: entity.name,
+  }));
 }
 
 export async function fetchExternalUsersForBusinessEntity(businessEntityId) {

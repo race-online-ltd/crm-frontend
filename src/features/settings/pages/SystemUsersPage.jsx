@@ -79,6 +79,7 @@ export default function SystemUsersPage() {
             role: String(user.role_id),
             role_id: user.role_id,
             roleName: user.role_name,
+            role_name: user.role_name,
             status: user.status,
           })),
         );

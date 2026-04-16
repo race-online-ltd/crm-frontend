@@ -1,68 +1,104 @@
-import React, { useState } from 'react';
-import { Box, Stack, Typography } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Stack, Typography } from '@mui/material';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import TeamForm from '../components/TeamForm';
 import TeamTable from '../components/TeamTable';
+import {
+  createTeam,
+  fetchSystemUsersPaginated,
+  fetchTeams,
+  updateTeam,
+} from '../api/settingsApi';
 
-const businessEntityOptions = [
-  { id: 'be1', label: 'Race Online Ltd.' },
-  { id: 'be2', label: 'Earth Telecommunication' },
-  { id: 'be3', label: 'Orbit Internet' },
-  { id: 'be4', label: 'Creative Communications' },
-];
+function mapUserToOption(user) {
+  return {
+    id: String(user.id),
+    label: `${user.full_name}${user.role_name ? ` (${user.role_name})` : ''}`,
+  };
+}
 
-const kamOptions = [
-  { id: 'kam1', label: 'John Doe' },
-  { id: 'kam2', label: 'Jane Smith' },
-  { id: 'kam3', label: 'Rahim Ahmed' },
-  { id: 'kam4', label: 'Sadia Islam' },
-];
+function mapTeamToForm(team) {
+  return {
+    id: team.id,
+    teamName: team.team_name || '',
+    supervisor: (team.supervisor_id || []).map((value) => String(value)),
+    assignKAM: (team.kam_id || []).map((value) => String(value)),
+    status: Boolean(team.status),
+  };
+}
 
-const supervisorOptions = [
-  { id: 'sup1', label: 'Supervisor One' },
-  { id: 'sup2', label: 'Supervisor Two' },
-  { id: 'sup3', label: 'Supervisor Three' },
-  { id: 'sup4', label: 'Supervisor Four' },
-];
-
-const initialTeams = [
-  {
-    id: 1,
-    teamName: 'Enterprise Growth',
-    businessEntity: ['be1', 'be2'],
-    assignKAM: ['kam1', 'kam2'],
-    supervisor: ['sup1'],
-    status: true,
-  },
-  {
-    id: 2,
-    teamName: 'Regional Sales',
-    businessEntity: ['be3'],
-    assignKAM: ['kam3'],
-    supervisor: ['sup2', 'sup3'],
-    status: false,
-  },
-];
+function buildTeamPayload(values) {
+  return {
+    team_name: values.teamName.trim(),
+    supervisor_id: values.supervisor.map((id) => Number(id)),
+    kam_id: values.assignKAM.map((id) => Number(id)),
+    status: values.status,
+  };
+}
 
 export default function TeamPage() {
   const [view, setView] = useState('list');
-  const [teams, setTeams] = useState(initialTeams);
+  const [teams, setTeams] = useState([]);
+  const [userOptions, setUserOptions] = useState([]);
   const [editingTeam, setEditingTeam] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = (values) => {
+  useEffect(() => {
+    let active = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError('');
+
+        const [teamResponse, userResponse] = await Promise.all([
+          fetchTeams(),
+          fetchSystemUsersPaginated({ page: 1, per_page: 100 }),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setTeams((teamResponse || []).map(mapTeamToForm));
+        setUserOptions((userResponse.data || []).map(mapUserToOption));
+      } catch (error) {
+        if (active) {
+          setTeams([]);
+          setUserOptions([]);
+          setLoadError(error?.message || 'Unable to load team directory.');
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const supervisorOptions = useMemo(() => userOptions, [userOptions]);
+  const kamOptions = useMemo(() => userOptions, [userOptions]);
+
+  const handleSave = async (values) => {
+    setLoadError('');
+
+    const payload = buildTeamPayload(values);
+
     if (editingTeam) {
-      const updatedTeam = { ...editingTeam, ...values };
+      const updatedTeam = mapTeamToForm(await updateTeam(editingTeam.id, payload));
       setTeams((prev) => prev.map((team) => (team.id === editingTeam.id ? updatedTeam : team)));
-      console.log('Update team:', updatedTeam);
     } else {
-      const nextTeam = {
-        id: Date.now(),
-        ...values,
-      };
+      const nextTeam = mapTeamToForm(await createTeam(payload));
       setTeams((prev) => [nextTeam, ...prev]);
-      console.log('Create team:', nextTeam);
     }
 
     setEditingTeam(null);
@@ -134,9 +170,8 @@ export default function TeamPage() {
         </Box>
 
         <TeamForm
-          businessEntityOptions={businessEntityOptions}
-          kamOptions={kamOptions}
           supervisorOptions={supervisorOptions}
+          kamOptions={kamOptions}
           initialValues={editingTeam}
           onCancel={handleCancel}
           onSave={handleSave}
@@ -147,13 +182,19 @@ export default function TeamPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+          {loadError}
+        </Alert>
+      )}
+
       <TeamTable
         teams={teams}
-        businessEntityOptions={businessEntityOptions}
-        kamOptions={kamOptions}
         supervisorOptions={supervisorOptions}
+        kamOptions={kamOptions}
         onAddNew={handleCreate}
         onEdit={handleEdit}
+        loading={isLoading}
       />
     </Box>
   );
