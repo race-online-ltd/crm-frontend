@@ -6,6 +6,7 @@ export { default as ConnectSystemAccountsPage } from "./pages/ConnectSystemAccou
 export { default as DataAccessControlPage } from "./pages/DataAccessControlPage";
 export { default as RoleMappingPage } from "./pages/RoleMappingPage";
 export { default as SocialSettingsPage } from "./pages/SocialSettingsPage";
+export { default as BackofficeManagementPage } from "./pages/BackofficeManagementPage";
 export { default as BusinessEntityPage } from "./pages/BusinessEntityPage";
 export { default as TeamPage } from "./pages/TeamPage";
 export { default as GroupPage } from "./pages/GroupPage";

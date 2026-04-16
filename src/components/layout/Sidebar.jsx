@@ -34,6 +34,8 @@ import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import HubIcon from "@mui/icons-material/Hub";
 import ApartmentIcon from "@mui/icons-material/Apartment";
+import DomainAddIcon from "@mui/icons-material/DomainAdd";
+import SellOutlinedIcon from "@mui/icons-material/SellOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import { Link, useLocation } from "react-router-dom";
@@ -71,6 +73,10 @@ export default function Sidebar({ open, handleToggle }) {
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [settingsOpen, setSettingsOpen] = useState(location.pathname.startsWith("/settings"));
+  const [leadMappingOpen, setLeadMappingOpen] = useState(
+    location.pathname === "/settings/backoffice-management"
+    || location.pathname === "/settings/kam-mapping"
+  );
 
   const drawerContent = (
     <>
@@ -248,6 +254,47 @@ export default function Sidebar({ open, handleToggle }) {
                 </ListItemIcon>
                 <ListItemText primary="Social Settings" primaryTypographyProps={{ fontSize: '0.85rem' }} />
               </ListItemButton>
+
+              <ListItemButton
+                onClick={() => setLeadMappingOpen((prev) => !prev)}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <DomainAddIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="Lead Mapping" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+                {leadMappingOpen ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+
+              <Collapse in={leadMappingOpen} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    to="/settings/kam-mapping"
+                    selected={location.pathname === "/settings/kam-mapping"}
+                    onClick={isMobile ? handleToggle : undefined}
+                    sx={{ pl: 10 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                      <SellOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="KAM Mapping" primaryTypographyProps={{ fontSize: '0.82rem' }} />
+                  </ListItemButton>
+
+                  <ListItemButton
+                    component={Link}
+                    to="/settings/backoffice-management"
+                    selected={location.pathname === "/settings/backoffice-management"}
+                    onClick={isMobile ? handleToggle : undefined}
+                    sx={{ pl: 10 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                      <DomainAddIcon sx={{ fontSize: '1.1rem' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Backoffice Management" primaryTypographyProps={{ fontSize: '0.82rem' }} />
+                  </ListItemButton>
+                </List>
+              </Collapse>
 
               <ListItemButton
                 component={Link}

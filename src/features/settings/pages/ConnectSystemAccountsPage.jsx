@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFormik } from 'formik';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -16,14 +16,15 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import {
-  fetchBusinessEntitiesForAccountConnection,
-  fetchExternalUsersForBusinessEntity,
+  fetchExternalSystemsForAccountConnection,
+  fetchExternalUsersForSystem,
+  fetchSystemAccountConnections,
   saveSystemAccountConnections,
 } from '../api/systemAccountApi';
 
 const EMPTY_CONNECTION_ROW = () => ({
   id: crypto.randomUUID(),
-  businessEntityId: '',
+  externalSystemId: '',
   externalUserId: '',
 });
 
@@ -31,23 +32,79 @@ export default function ConnectSystemAccountsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = location.state?.user || null;
+  const [initialConnections, setInitialConnections] = useState([EMPTY_CONNECTION_ROW()]);
+  const [pageError, setPageError] = useState('');
+  const [isInitializing, setIsInitializing] = useState(Boolean(user?.id));
+
+  useEffect(() => {
+    let active = true;
+
+    const loadConnections = async () => {
+      if (!user?.id) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        setIsInitializing(true);
+        setPageError('');
+        const connections = await fetchSystemAccountConnections(user.id);
+
+        if (!active) {
+          return;
+        }
+
+        if (!Array.isArray(connections) || connections.length === 0) {
+          setInitialConnections([EMPTY_CONNECTION_ROW()]);
+          return;
+        }
+
+        setInitialConnections(connections.map((connection) => ({
+          id: connection.id ? String(connection.id) : crypto.randomUUID(),
+          externalSystemId: String(connection.external_system_id ?? ''),
+          externalUserId: String(connection.external_user_id ?? ''),
+        })));
+      } catch (error) {
+        if (active) {
+          setPageError(error?.message || 'Unable to load system account connections.');
+          setInitialConnections([EMPTY_CONNECTION_ROW()]);
+        }
+      } finally {
+        if (active) {
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    loadConnections();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   const formik = useFormik({
     initialValues: {
-      connections: [EMPTY_CONNECTION_ROW()],
+      connections: initialConnections,
     },
+    enableReinitialize: true,
     onSubmit: async (values, { setSubmitting, setStatus }) => {
       try {
         setStatus(undefined);
+        if (!user?.id) {
+          throw new Error('No system user selected for account connection.');
+        }
+
         const payload = {
-          systemUserId: user?.id || null,
-          connections: values.connections.map((row) => ({
-            businessEntityId: row.businessEntityId || null,
-            externalUserId: row.externalUserId || null,
-          })),
+          connections: values.connections
+            .filter((row) => row.externalSystemId && row.externalUserId)
+            .map((row) => ({
+              externalSystemId: row.externalSystemId,
+              externalUserId: row.externalUserId,
+            })),
         };
 
-        await saveSystemAccountConnections(payload);
+        await saveSystemAccountConnections(user.id, payload);
         navigate('/settings/users');
       } catch (error) {
         setStatus({
@@ -71,10 +128,10 @@ export default function ConnectSystemAccountsPage() {
     formik.setFieldValue('connections', nextRows.length > 0 ? nextRows : [EMPTY_CONNECTION_ROW()]);
   }, [formik]);
 
-  const handleEntityChange = useCallback((index, businessEntityId) => {
+  const handleExternalSystemChange = useCallback((index, externalSystemId) => {
     const nextRows = formik.values.connections.map((row, rowIndex) => (
       rowIndex === index
-        ? { ...row, businessEntityId, externalUserId: '' }
+        ? { ...row, externalSystemId, externalUserId: '' }
         : row
     ));
 
@@ -157,15 +214,23 @@ export default function ConnectSystemAccountsPage() {
       <Box component="form" noValidate onSubmit={formik.handleSubmit}>
         <Box sx={cardSx}>
           <Typography variant="subtitle1" fontWeight={700} color="#0f172a" mb={0.5}>
-            Business Entity Account Connections
+            External System Account Connections
           </Typography>
           <Typography variant="body2" color="#64748b" mb={2}>
-            Select a business entity, then load its user list from that entity&apos;s own system and map the external account.
+            Choose an external system, load users from its configured API, and connect them to this CRM user.
           </Typography>
 
-          <Alert severity="info" sx={{ mb: 2, borderRadius: '12px' }}>
-            Backend ready: the second dropdown is wired to call an API per selected business entity.
-          </Alert>
+          {pageError && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+              {pageError}
+            </Alert>
+          )}
+
+          {!user?.id && (
+            <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+              No system user was selected. Please start from the System Users page.
+            </Alert>
+          )}
 
           {formik.status?.error && (
             <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
@@ -174,72 +239,81 @@ export default function ConnectSystemAccountsPage() {
           )}
 
           <Stack spacing={1.5}>
-            {formik.values.connections.map((row, index) => {
-              const businessEntityFetcher = async () => fetchBusinessEntitiesForAccountConnection();
-              const externalUserFetcher = async () => {
-                if (!row.businessEntityId) {
-                  return [];
-                }
+            {isInitializing ? (
+              <SelectDropdownSingle
+                name="connections-loading"
+                label="External System"
+                fetchOptions={async () => []}
+                value=""
+                disabled
+              />
+            ) : (
+              formik.values.connections.map((row, index) => {
+                const externalSystemFetcher = async () => fetchExternalSystemsForAccountConnection();
+                const externalUserFetcher = async () => {
+                  if (!row.externalSystemId) {
+                    return [];
+                  }
 
-                return fetchExternalUsersForBusinessEntity(row.businessEntityId);
-              };
+                  return fetchExternalUsersForSystem(row.externalSystemId);
+                };
 
-              return (
-                <Box
-                  key={row.id}
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr) 72px' },
-                    gap: 1.5,
-                    alignItems: 'start',
-                  }}
-                >
-                  <SelectDropdownSingle
-                    name={`connections[${index}].businessEntityId`}
-                    label="Business Entity"
-                    fetchOptions={businessEntityFetcher}
-                    value={row.businessEntityId}
-                    onChange={(id) => handleEntityChange(index, id)}
-                  />
+                return (
+                  <Box
+                    key={row.id}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr) 72px' },
+                      gap: 1.5,
+                      alignItems: 'start',
+                    }}
+                  >
+                    <SelectDropdownSingle
+                      name={`connections[${index}].externalSystemId`}
+                      label="External System"
+                      fetchOptions={externalSystemFetcher}
+                      value={row.externalSystemId}
+                      onChange={(id) => handleExternalSystemChange(index, id)}
+                    />
 
-                  <SelectDropdownSingle
-                    name={`connections[${index}].externalUserId`}
-                    label="User From Business Entity System"
-                    fetchOptions={externalUserFetcher}
-                    value={row.externalUserId}
-                    onChange={(id) => handleExternalUserChange(index, id)}
-                    disabled={!row.businessEntityId}
-                    helperText={!row.businessEntityId ? 'Select a business entity first' : undefined}
-                  />
+                    <SelectDropdownSingle
+                      name={`connections[${index}].externalUserId`}
+                      label="External System User"
+                      fetchOptions={externalUserFetcher}
+                      value={row.externalUserId}
+                      onChange={(id) => handleExternalUserChange(index, id)}
+                      disabled={!row.externalSystemId}
+                    />
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: '10px' }}>
-                    {index === formik.values.connections.length - 1 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: '10px' }}>
+                      {index === formik.values.connections.length - 1 && (
+                        <IconButton
+                          onClick={handleAddRow}
+                          size="small"
+                          sx={{
+                            color: '#2563eb',
+                            '&:hover': { bgcolor: '#eff6ff' },
+                          }}
+                        >
+                          <AddCircleOutlineIcon fontSize="small" />
+                        </IconButton>
+                      )}
                       <IconButton
-                        onClick={handleAddRow}
+                        onClick={() => handleRemoveRow(index)}
+                        disabled={formik.values.connections.length === 1}
                         size="small"
                         sx={{
-                          color: '#2563eb',
-                          '&:hover': { bgcolor: '#eff6ff' },
+                          color: formik.values.connections.length === 1 ? '#cbd5e1' : '#ef4444',
+                          '&:hover': { bgcolor: '#fef2f2' },
                         }}
                       >
-                        <AddCircleOutlineIcon fontSize="small" />
+                        <RemoveCircleOutlineIcon fontSize="small" />
                       </IconButton>
-                    )}
-                    <IconButton
-                      onClick={() => handleRemoveRow(index)}
-                      disabled={formik.values.connections.length === 1}
-                      size="small"
-                      sx={{
-                        color: formik.values.connections.length === 1 ? '#cbd5e1' : '#ef4444',
-                        '&:hover': { bgcolor: '#fef2f2' },
-                      }}
-                    >
-                      <RemoveCircleOutlineIcon fontSize="small" />
-                    </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })}
+                );
+              })
+            )}
           </Stack>
 
           <Divider sx={{ my: 2.5, borderColor: '#e2e8f0' }} />
@@ -262,7 +336,7 @@ export default function ConnectSystemAccountsPage() {
             <Button
               type="submit"
               variant="contained"
-              disabled={formik.isSubmitting}
+              disabled={formik.isSubmitting || !user?.id || isInitializing}
               sx={{
                 minWidth: { xs: '100%', sm: 150 },
                 textTransform: 'none',
