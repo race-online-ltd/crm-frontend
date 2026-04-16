@@ -25,6 +25,7 @@ const CreateUserPage = React.lazy(() => import("./features/settings/pages/Create
 const UserMappingPage = React.lazy(() => import("./features/settings/pages/UserMappingPage"));
 const ConnectSystemAccountsPage = React.lazy(() => import("./features/settings/pages/ConnectSystemAccountsPage"));
 const DataAccessControlPage = React.lazy(() => import("./features/settings/pages/DataAccessControlPage"));
+const ColumnMappingPage = React.lazy(() => import("./features/settings/pages/ColumnMappingPage"));
 const RoleMappingPage = React.lazy(() => import("./features/settings/pages/RoleMappingPage"));
 const SocialSettingsPage = React.lazy(() => import("./features/settings/pages/SocialSettingsPage"));
 const BusinessEntityPage = React.lazy(() => import("./features/settings/pages/BusinessEntityPage"));
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="/settings/users/mapping" element={<UserMappingPage />} />
             <Route path="/settings/users/connect-system-accounts" element={<ConnectSystemAccountsPage />} />
             <Route path="/settings/data-access-control" element={<DataAccessControlPage />} />
+            <Route path="/settings/column-mapping" element={<ColumnMappingPage />} />
             <Route path="/settings/role-mapping" element={<RoleMappingPage />} />
             <Route path="/settings/social" element={<SocialSettingsPage />} />
             <Route path="/settings/business-entities" element={<BusinessEntityPage />} />

@@ -100,3 +100,38 @@ export async function deleteGroup(id) {
   const response = await api.delete(`/system/groups/${id}`);
   return response.data?.message;
 }
+
+
+
+
+export async function fetchColumnMappings() {
+  const response = await api.get('/entity-column-mappings/');
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+
+export async function storeColumnMapping(payload) {
+  const response = await api.post('/entity-column-mappings/', payload);
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+export async function fetchPageNavigationItems() {
+  const response = await api.get('/entity-column-mappings/get-navigation-items');
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+export async function fetchTableItems() {
+  const response = await api.get('/entity-column-mappings/get-table-items');
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+export async function fetchColumnItems() {
+  const response = await api.get('/entity-column-mappings/get-column-items');
+  return response.data?.data ?? response.data ?? [];
+}
