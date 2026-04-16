@@ -35,6 +35,11 @@ export async function fetchRolePermissions(roleId) {
   return response.data?.data ?? response.data ?? { groups: [], standalone: [] };
 }
 
+export async function updateRolePermissions(roleId, payload) {
+  const response = await api.put(`/system/roles/${roleId}/permissions`, payload);
+  return response.data?.data ?? response.data;
+}
+
 export async function fetchSystemUsers() {
   const response = await api.get('/system/users');
   return {
@@ -99,4 +104,12 @@ export async function updateGroup(id, payload) {
 export async function deleteGroup(id) {
   const response = await api.delete(`/system/groups/${id}`);
   return response.data?.message;
+}
+
+export async function updateRolePermissionsPost(roleId, permissions) {
+  const response = await api.post(`/system/roles/${roleId}/update-permissions`, {
+    permissions,
+  });
+
+  return response.data;
 }

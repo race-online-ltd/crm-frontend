@@ -6,19 +6,26 @@ import {
   Checkbox,
   Chip,
   CircularProgress,
+  Collapse,
   Divider,
+  IconButton,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import AddRoleDialog from '../components/AddRoleDialog';
 import {
   createRole,
   fetchRolePermissions,
   fetchRoles,
+  updateRolePermissions,
+  updateRolePermissionsPost,
 } from '../api/settingsApi';
 
 function normalizeRoleOption(role) {
@@ -31,6 +38,7 @@ function normalizeRoleOption(role) {
 
 function normalizeAction(action) {
   return {
+    id: action?.id, // ✅ MUST
     key: action?.key || '',
     label: action?.label || action?.key || 'Unnamed Action',
     checked: Boolean(action?.checked),
@@ -85,210 +93,217 @@ function updateActionList(actions, nextChecked) {
   return actions.map((action) => ({ ...action, checked: nextChecked }));
 }
 
-function PermissionItemCard({ item, onActionToggle, sectionLabel }) {
-  const checkedCount = item.actions.filter((action) => action.checked).length;
+/* ─── Action Pills ─────────────────────────────────────────────────────── */
+function ActionPills({ item, onActionToggle }) {
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 2, py: 1.25, bgcolor: '#f8fafc' }}>
+      {item.actions.length === 0 ? (
+        <Typography fontSize={12} color="#94a3b8">No actions</Typography>
+      ) : (
+        item.actions.map((action) => (
+          <Box
+            key={action.key}
+            component="label"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.6,
+              px: 1.1,
+              py: 0.5,
+              borderRadius: '999px',
+              border: '1px solid',
+              borderColor: action.checked ? '#bfdbfe' : '#e2e8f0',
+              bgcolor: action.checked ? '#eff6ff' : '#fff',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'background .1s, border-color .1s',
+              '&:hover': { bgcolor: action.checked ? '#dbeafe' : '#f1f5f9' },
+            }}
+          >
+            <Checkbox
+              checked={action.checked}
+              onChange={(e) => onActionToggle(action.key, e.target.checked)}
+              size="small"
+              sx={{
+                p: 0,
+                width: 14,
+                height: 14,
+                color: '#cbd5e1',
+                '&.Mui-checked': { color: '#2563eb' },
+              }}
+            />
+            <Typography
+              fontSize={12.5}
+              fontWeight={action.checked ? 700 : 400}
+              color={action.checked ? '#1d4ed8' : '#475569'}
+            >
+              {action.label}
+            </Typography>
+            <Typography fontSize={11} color="#94a3b8" sx={{ fontFamily: 'monospace' }}>
+              {action.key}
+            </Typography>
+          </Box>
+        ))
+      )}
+    </Box>
+  );
+}
+
+/* ─── Tree Item Row ─────────────────────────────────────────────────────── */
+function TreeItemRow({ item, onActionToggle, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const checkedCount = item.actions.filter((a) => a.checked).length;
 
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        borderRadius: '14px',
         border: '1px solid #e2e8f0',
-        bgcolor: '#fff',
+        borderRadius: '10px',
         overflow: 'hidden',
+        bgcolor: '#fff',
       }}
     >
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        justifyContent="space-between"
-        spacing={1.5}
-        sx={{ px: 2, py: 1.6 }}
+        direction="row"
+        alignItems="center"
+        spacing={0.75}
+        sx={{
+          px: 1.25,
+          py: 0.9,
+          cursor: 'pointer',
+          '&:hover': { bgcolor: '#f8fafc' },
+          userSelect: 'none',
+        }}
+        onClick={() => setOpen((v) => !v)}
       >
-        <Stack spacing={1}>
-          <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-            <Typography fontWeight={700} color="#0f172a" fontSize={14.5}>
-              {item.label}
-            </Typography>
-            <Chip
-              label={sectionLabel}
-              size="small"
-              sx={{
-                height: 24,
-                fontSize: 11.5,
-                fontWeight: 700,
-                borderRadius: '999px',
-                bgcolor: '#eff6ff',
-                color: '#1d4ed8',
-              }}
-            />
-          </Stack>
-
-          <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-            <Chip
-              label={`Key: ${item.key || 'N/A'}`}
-              size="small"
-              variant="outlined"
-              sx={{ borderRadius: '8px', fontSize: 11.5, color: '#475569' }}
-            />
-            <Chip
-              label={`Actions: ${checkedCount}/${item.actions.length}`}
-              size="small"
-              variant="outlined"
-              sx={{ borderRadius: '8px', fontSize: 11.5, color: '#475569' }}
-            />
-          </Stack>
-        </Stack>
-
-        <Typography fontSize={12.5} color="#64748b">
-          Backend checked state অনুযায়ী initial selection load হয়েছে
+        <ChevronRightIcon
+          sx={{
+            fontSize: 16,
+            color: '#94a3b8',
+            flexShrink: 0,
+            transition: 'transform .15s',
+            transform: open ? 'rotate(90deg)' : 'none',
+          }}
+        />
+        <ArticleOutlinedIcon sx={{ fontSize: 15, color: '#64748b', flexShrink: 0 }} />
+        <Typography fontSize={13} color="#0f172a" sx={{ flex: 1 }}>
+          {item.label}
+        </Typography>
+        <Chip
+          label={item.key}
+          size="small"
+          variant="outlined"
+          sx={{ height: 20, fontSize: 11, borderRadius: '4px', fontFamily: 'monospace', color: '#64748b' }}
+        />
+        <Typography fontSize={12} color="#94a3b8" sx={{ whiteSpace: 'nowrap', pr: 0.5 }}>
+          {checkedCount}/{item.actions.length}
         </Typography>
       </Stack>
 
-      <Divider />
-
-      <Box sx={{ px: 2, py: 1.75 }}>
-        {item.actions.length > 0 ? (
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            {item.actions.map((action) => (
-              <Box
-                key={`${item.key}-${action.key}`}
-                sx={{
-                  border: '1px solid',
-                  borderColor: action.checked ? '#bfdbfe' : '#e2e8f0',
-                  bgcolor: action.checked ? '#eff6ff' : '#f8fafc',
-                  borderRadius: '12px',
-                  px: 1.1,
-                  py: 0.8,
-                }}
-              >
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                  <Checkbox
-                    checked={action.checked}
-                    onChange={(event) => onActionToggle(action.key, event.target.checked)}
-                    size="small"
-                    sx={{
-                      p: 0.25,
-                      color: '#cbd5e1',
-                      '&.Mui-checked': { color: '#2563eb' },
-                    }}
-                  />
-                  <Stack spacing={0.15}>
-                    <Typography fontSize={13} fontWeight={700} color={action.checked ? '#1d4ed8' : '#334155'}>
-                      {action.label}
-                    </Typography>
-                    <Typography fontSize={11.5} color="#94a3b8">
-                      {action.key}
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        ) : (
-          <Typography fontSize={13} color="#94a3b8">
-            No actions found for this item.
-          </Typography>
-        )}
-      </Box>
-    </Paper>
+      <Collapse in={open} unmountOnExit>
+        <Divider />
+        <ActionPills item={item} onActionToggle={onActionToggle} />
+      </Collapse>
+    </Box>
   );
 }
 
-function GroupSection({ group, onToggleAll, onToggleAction }) {
+/* ─── Tree Group ────────────────────────────────────────────────────────── */
+function TreeGroupSection({ group, onToggleAll, onToggleAction }) {
+  const [open, setOpen] = useState(true);
   const groupMeta = getGroupMeta(group);
 
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        borderRadius: '16px',
         border: '1px solid #dbe4ee',
+        borderRadius: '12px',
         overflow: 'hidden',
         bgcolor: '#fff',
       }}
     >
-      <Box sx={{ px: 2.25, py: 1.8, bgcolor: '#f8fafc' }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          spacing={1.5}
-        >
-          <Stack spacing={0.9}>
-            <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-              <Checkbox
-                checked={groupMeta.checked}
-                indeterminate={groupMeta.indeterminate}
-                disabled={groupMeta.totalActions === 0}
-                onChange={(event) => onToggleAll(event.target.checked)}
-                size="small"
-                sx={{
-                  p: 0.3,
-                  color: '#cbd5e1',
-                  '&.Mui-checked': { color: '#2563eb' },
-                  '&.MuiCheckbox-indeterminate': { color: '#2563eb' },
-                }}
-              />
-              <Typography fontWeight={800} fontSize={15.5} color="#0f172a">
-                {group.label}
-              </Typography>
-              <Chip
-                label="Grouped Navigation"
-                size="small"
-                sx={{
-                  height: 24,
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  borderRadius: '999px',
-                  bgcolor: '#dbeafe',
-                  color: '#1d4ed8',
-                }}
-              />
-            </Stack>
-
-            <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-              <Chip
-                label={`Group Key: ${group.key || 'N/A'}`}
-                size="small"
-                variant="outlined"
-                sx={{ borderRadius: '8px', fontSize: 11.5, color: '#475569', bgcolor: '#fff' }}
-              />
-              <Chip
-                label={`Items: ${group.items.length}`}
-                size="small"
-                variant="outlined"
-                sx={{ borderRadius: '8px', fontSize: 11.5, color: '#475569', bgcolor: '#fff' }}
-              />
-              <Chip
-                label={`Actions: ${groupMeta.checkedActions}/${groupMeta.totalActions}`}
-                size="small"
-                variant="outlined"
-                sx={{ borderRadius: '8px', fontSize: 11.5, color: '#475569', bgcolor: '#fff' }}
-              />
-            </Stack>
-          </Stack>
-
-          <Typography fontSize={12.5} color="#64748b">
-            Group checkbox use করলে এই group-এর সব action একসাথে toggle হবে
-          </Typography>
-        </Stack>
-      </Box>
-
-      <Divider />
-
-      <Stack spacing={1.5} sx={{ p: 2 }}>
-        {group.items.map((item) => (
-          <PermissionItemCard
-            key={item.key}
-            item={item}
-            sectionLabel={group.label}
-            onActionToggle={(actionKey, checked) => onToggleAction(item.key, actionKey, checked)}
-          />
-        ))}
+      {/* Group header row */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={0.75}
+        sx={{
+          px: 1.5,
+          py: 1,
+          bgcolor: '#f1f5f9',
+          cursor: 'pointer',
+          userSelect: 'none',
+          '&:hover': { bgcolor: '#e8edf3' },
+        }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronRightIcon
+          sx={{
+            fontSize: 17,
+            color: '#64748b',
+            flexShrink: 0,
+            transition: 'transform .15s',
+            transform: open ? 'rotate(90deg)' : 'none',
+          }}
+        />
+        <Checkbox
+          checked={groupMeta.checked}
+          indeterminate={groupMeta.indeterminate}
+          disabled={groupMeta.totalActions === 0}
+          onChange={(e) => { e.stopPropagation(); onToggleAll(e.target.checked); }}
+          onClick={(e) => e.stopPropagation()}
+          size="small"
+          sx={{
+            p: 0.2,
+            color: '#cbd5e1',
+            '&.Mui-checked': { color: '#2563eb' },
+            '&.MuiCheckbox-indeterminate': { color: '#2563eb' },
+          }}
+        />
+        <FolderOutlinedIcon sx={{ fontSize: 16, color: '#3b82f6', flexShrink: 0 }} />
+        <Typography fontSize={13.5} fontWeight={700} color="#0f172a" sx={{ flex: 1 }}>
+          {group.label}
+        </Typography>
+        <Chip
+          label={`${group.key}`}
+          size="small"
+          variant="outlined"
+          sx={{ height: 20, fontSize: 11, borderRadius: '4px', fontFamily: 'monospace', color: '#64748b' }}
+        />
+        <Chip
+          label={`${groupMeta.checkedActions}/${groupMeta.totalActions}`}
+          size="small"
+          sx={{
+            height: 20,
+            fontSize: 11,
+            borderRadius: '999px',
+            bgcolor: '#dbeafe',
+            color: '#1d4ed8',
+            fontWeight: 700,
+          }}
+        />
       </Stack>
-    </Paper>
+
+      <Collapse in={open} unmountOnExit>
+        <Divider />
+        {/* All items in one single div / Box */}
+        <Box sx={{ p: 1.25 }}>
+          <Stack spacing={0.75}>
+            {group.items.map((item) => (
+              <TreeItemRow
+                key={item.key}
+                item={item}
+                onActionToggle={(actionKey, checked) => onToggleAction(item.key, actionKey, checked)}
+              />
+            ))}
+          </Stack>
+        </Box>
+      </Collapse>
+    </Box>
   );
 }
 
+/* ─── Main Page ─────────────────────────────────────────────────────────── */
 export default function RoleMappingPage() {
   const [roles, setRoles] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
@@ -301,49 +316,31 @@ export default function RoleMappingPage() {
 
   useEffect(() => {
     let active = true;
-
     const loadRoles = async () => {
       try {
         setRolesLoading(true);
         setLoadError('');
         const roleData = await fetchRoles();
-
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         const normalizedRoles = roleData.map(normalizeRoleOption);
         setRoles(normalizedRoles);
         setSelectedRoleId((prev) => prev || normalizedRoles[0]?.id || '');
       } catch (error) {
-        if (active) {
-          setLoadError(error?.message || 'Unable to load roles.');
-        }
+        if (active) setLoadError(error?.message || 'Unable to load roles.');
       } finally {
-        if (active) {
-          setRolesLoading(false);
-        }
+        if (active) setRolesLoading(false);
       }
     };
-
     loadRoles();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   const loadRolePermissions = useCallback(async (roleId) => {
-    if (!roleId) {
-      setPermissionData({ groups: [], standalone: [] });
-      return;
-    }
-
+    if (!roleId) { setPermissionData({ groups: [], standalone: [] }); return; }
     try {
       setPageLoading(true);
       setLoadError('');
       setSaveError('');
-
       const response = await fetchRolePermissions(roleId);
       setPermissionData(normalizePermissionResponse(response));
     } catch (error) {
@@ -354,9 +351,7 @@ export default function RoleMappingPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadRolePermissions(selectedRoleId);
-  }, [loadRolePermissions, selectedRoleId]);
+  useEffect(() => { loadRolePermissions(selectedRoleId); }, [loadRolePermissions, selectedRoleId]);
 
   const selectedRoleLabel = useMemo(
     () => roles.find((role) => role.id === selectedRoleId)?.label || '',
@@ -366,14 +361,11 @@ export default function RoleMappingPage() {
   const summary = useMemo(() => {
     const groupedItems = permissionData.groups.flatMap((group) => group.items);
     const allItems = [...groupedItems, ...permissionData.standalone];
-    const totalActions = countAllActions(allItems);
-    const checkedActions = countCheckedActions(allItems);
-
     return {
       groups: permissionData.groups.length,
       standalone: permissionData.standalone.length,
-      totalActions,
-      checkedActions,
+      totalActions: countAllActions(allItems),
+      checkedActions: countCheckedActions(allItems),
     };
   }, [permissionData]);
 
@@ -382,56 +374,62 @@ export default function RoleMappingPage() {
   function updateGroupActions(groupKey, nextChecked) {
     setPermissionData((prev) => ({
       ...prev,
-      groups: prev.groups.map((group) => (
+      groups: prev.groups.map((group) =>
         group.key === groupKey
-          ? {
-              ...group,
-              items: group.items.map((item) => ({
-                ...item,
-                actions: updateActionList(item.actions, nextChecked),
-              })),
-            }
-          : group
-      )),
+          ? { ...group, items: group.items.map((item) => ({ ...item, actions: updateActionList(item.actions, nextChecked) })) }
+          : group,
+      ),
     }));
   }
 
   function updateGroupedAction(groupKey, itemKey, actionKey, nextChecked) {
     setPermissionData((prev) => ({
       ...prev,
-      groups: prev.groups.map((group) => (
+      groups: prev.groups.map((group) =>
         group.key === groupKey
           ? {
               ...group,
-              items: group.items.map((item) => (
+              items: group.items.map((item) =>
                 item.key === itemKey
-                  ? {
-                      ...item,
-                      actions: item.actions.map((action) => (
-                        action.key === actionKey ? { ...action, checked: nextChecked } : action
-                      )),
-                    }
-                  : item
-              )),
+                  ? { ...item, actions: item.actions.map((action) => (action.key === actionKey ? { ...action, checked: nextChecked } : action)) }
+                  : item,
+              ),
             }
-          : group
-      )),
+          : group,
+      ),
     }));
   }
+function buildPermissionPayload() {
+  const selected = [];
 
+  permissionData.groups.forEach((group) => {
+    group.items.forEach((item) => {
+      item.actions.forEach((action) => {
+        if (action.checked && action.id) {
+          selected.push(action.id);
+        }
+      });
+    });
+  });
+
+  permissionData.standalone.forEach((item) => {
+    item.actions.forEach((action) => {
+      if (action.checked && action.id) {
+        selected.push(action.id);
+      }
+    });
+  });
+
+  return selected;
+}
   function updateStandaloneAction(itemKey, actionKey, nextChecked) {
     setPermissionData((prev) => ({
       ...prev,
-      standalone: prev.standalone.map((item) => (
+      standalone: prev.standalone.map((item) =>
         item.key === itemKey
-          ? {
-              ...item,
-              actions: item.actions.map((action) => (
-                action.key === actionKey ? { ...action, checked: nextChecked } : action
-              )),
-            }
-          : item
-      )),
+          ? { ...item, actions: item.actions.map((action) => (action.key === actionKey ? { ...action, checked: nextChecked } : action)) }
+          : item,
+      ),
     }));
   }
 
@@ -447,70 +445,52 @@ export default function RoleMappingPage() {
     }
   }
 
+
+async function handleSubmitPermissions() {
+  try {
+    setSaveError('');
+
+    const permissions = buildPermissionPayload();
+
+    await updateRolePermissionsPost(selectedRoleId, permissions);
+
+    alert('Permissions saved successfully');
+  } catch (error) {
+    setSaveError(error?.message || 'Failed to save permissions');
+  }
+}
+  const LoadingState = (
+    <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 180 }}>
+      <CircularProgress size={26} />
+      <Typography fontSize={13} color="#64748b">Loading permissions...</Typography>
+    </Stack>
+  );
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
-      <Box mb={3}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 42,
-              height: 42,
-              borderRadius: '12px',
-              bgcolor: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <SecurityOutlinedIcon sx={{ fontSize: 22, color: '#2563eb' }} />
-          </Box>
-          <Box>
-            <Typography variant="h5" fontWeight={800} color="#111827" letterSpacing="-0.3px">
-              Role Mapping
-            </Typography>
-            <Typography variant="body2" color="#64748b" mt={0.35}>
-              Role select করলে backend response-এর group, item, আর action permission exactly সেই structure-এ দেখাবে।
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', px: { xs: 2, sm: 3 }, py: 3 }}>
+      {/* Header */}
+      <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
+        <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <SecurityOutlinedIcon sx={{ fontSize: 20, color: '#2563eb' }} />
+        </Box>
+        <Box>
+          <Typography variant="h5" fontWeight={800} color="#111827" letterSpacing="-0.3px">
+            Role Mapping
+          </Typography>
+          <Typography variant="body2" color="#64748b" mt={0.3}>
+            Role select করলে backend response-এর group, item, আর action tree view-এ দেখাবে।
+          </Typography>
+        </Box>
+      </Stack>
 
-      {loadError && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-          {loadError}
-        </Alert>
-      )}
+      {loadError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{loadError}</Alert>}
+      {saveError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{saveError}</Alert>}
 
-      {saveError && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-          {saveError}
-        </Alert>
-      )}
-
-      <Paper
-        elevation={0}
-        sx={{
-          mb: 2.5,
-          borderRadius: '16px',
-          border: '1px solid #dbe4ee',
-          overflow: 'hidden',
-        }}
-      >
-        <Stack
-          direction={{ xs: 'column', lg: 'row' }}
-          spacing={2}
-          justifyContent="space-between"
-          sx={{ px: 2.25, py: 2.25 }}
-        >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems={{ xs: 'stretch', md: 'flex-start' }}
-            sx={{ flex: 1 }}
-          >
-            <Box sx={{ width: { xs: '100%', md: 320 } }}>
+      {/* Toolbar */}
+      <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} justifyContent="space-between" sx={{ px: 2.25, py: 2 }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'flex-start' }} sx={{ flex: 1 }}>
+            <Box sx={{ width: { xs: '100%', md: 300 } }}>
               <SelectDropdownSingle
                 name="roleId"
                 label="Role"
@@ -520,34 +500,20 @@ export default function RoleMappingPage() {
                 disabled={rolesLoading}
               />
             </Box>
-
             <Button
               variant="outlined"
               startIcon={<RefreshRoundedIcon />}
               onClick={() => loadRolePermissions(selectedRoleId)}
               disabled={!selectedRoleId || pageLoading}
-              sx={{
-                minHeight: 45,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 700,
-              }}
+              sx={{ minHeight: 45, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
             >
               Refresh
             </Button>
           </Stack>
-
           <Button
             variant="contained"
             onClick={() => setAddRoleOpen(true)}
-            sx={{
-              minHeight: 45,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 700,
-              px: 2.25,
-              alignSelf: { xs: 'stretch', lg: 'flex-start' },
-            }}
+            sx={{ minHeight: 45, borderRadius: 2, textTransform: 'none', fontWeight: 700, px: 2.5, alignSelf: { xs: 'stretch', lg: 'flex-start' } }}
           >
             Add Role
           </Button>
@@ -555,127 +521,95 @@ export default function RoleMappingPage() {
 
         <Divider />
 
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={1.2}
-          useFlexGap
-          flexWrap="wrap"
-          sx={{ px: 2.25, py: 1.75, bgcolor: '#f8fafc' }}
-        >
-          <Chip
-            label={`Role: ${selectedRoleLabel || 'No role selected'}`}
-            sx={{ borderRadius: '999px', bgcolor: '#fff', fontWeight: 700 }}
-          />
-          <Chip
-            label={`Groups: ${summary.groups}`}
-            sx={{ borderRadius: '999px', bgcolor: '#fff' }}
-          />
-          <Chip
-            label={`Standalone: ${summary.standalone}`}
-            sx={{ borderRadius: '999px', bgcolor: '#fff' }}
-          />
-          <Chip
-            label={`Assigned Actions: ${summary.checkedActions}/${summary.totalActions}`}
-            sx={{ borderRadius: '999px', bgcolor: '#fff' }}
-          />
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ px: 2.25, py: 1.5, bgcolor: '#f8fafc' }}>
+          <Chip label={`Role: ${selectedRoleLabel || 'No role selected'}`} sx={{ borderRadius: '999px', bgcolor: '#fff', fontWeight: 700 }} />
+          <Chip label={`Groups: ${summary.groups}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
+          <Chip label={`Standalone: ${summary.standalone}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
+          <Chip label={`Assigned Actions: ${summary.checkedActions}/${summary.totalActions}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
         </Stack>
       </Paper>
 
-      <Stack spacing={2}>
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: '16px',
-            border: '1px solid #dbe4ee',
-            overflow: 'hidden',
-          }}
-        >
-          <Box sx={{ px: 2.25, py: 2 }}>
-            <Typography fontSize={16} fontWeight={800} color="#0f172a">
-              Group Permissions
-            </Typography>
-            <Typography fontSize={13} color="#64748b" mt={0.5}>
-              `groups` array থেকে আসা navigation sections এখানে render হচ্ছে।
+      {/* Two-column grid */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
+        {/* Group Permissions */}
+        <Paper elevation={0} sx={{ borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
+          <Box sx={{ px: 2.25, py: 1.75 }}>
+            <Typography fontSize={15} fontWeight={800} color="#0f172a">Group Permissions</Typography>
+            <Typography fontSize={12.5} color="#64748b" mt={0.4}>
+              groups array — collapse/expand করে items ও actions দেখুন।
             </Typography>
           </Box>
-
           <Divider />
 
-          {pageLoading ? (
-            <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 220 }}>
-              <CircularProgress size={28} />
-              <Typography fontSize={13} color="#64748b">
-                Loading role permissions...
-              </Typography>
-            </Stack>
-          ) : permissionData.groups.length === 0 ? (
-            <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 180 }}>
-              <Typography fontSize={14} fontWeight={700} color="#334155">
-                No grouped permissions found.
-              </Typography>
+          {pageLoading ? LoadingState : permissionData.groups.length === 0 ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 150 }}>
+              <Typography fontSize={13.5} fontWeight={700} color="#334155">No grouped permissions found.</Typography>
             </Stack>
           ) : (
-            <Stack spacing={2} sx={{ p: 2 }}>
-              {permissionData.groups.map((group) => (
-                <GroupSection
-                  key={group.key}
-                  group={group}
-                  onToggleAll={(checked) => updateGroupActions(group.key, checked)}
-                  onToggleAction={(itemKey, actionKey, checked) => (
-                    updateGroupedAction(group.key, itemKey, actionKey, checked)
-                  )}
-                />
-              ))}
-            </Stack>
+            /* ── All groups in one single Box ── */
+            <Box sx={{ p: 1.75 }}>
+              <Stack spacing={1.25}>
+                {permissionData.groups.map((group) => (
+                  <TreeGroupSection
+                    key={group.key}
+                    group={group}
+                    onToggleAll={(checked) => updateGroupActions(group.key, checked)}
+                    onToggleAction={(itemKey, actionKey, checked) =>
+                      updateGroupedAction(group.key, itemKey, actionKey, checked)
+                    }
+                  />
+                ))}
+              </Stack>
+            </Box>
           )}
         </Paper>
 
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: '16px',
-            border: '1px solid #dbe4ee',
-            overflow: 'hidden',
-          }}
-        >
-          <Box sx={{ px: 2.25, py: 2 }}>
-            <Typography fontSize={16} fontWeight={800} color="#0f172a">
-              Standalone Permissions
-            </Typography>
-            <Typography fontSize={13} color="#64748b" mt={0.5}>
-              `standalone` array-এর items এখানে দেখাবে।
+        {/* Standalone Permissions */}
+        <Paper elevation={0} sx={{ borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
+          <Box sx={{ px: 2.25, py: 1.75 }}>
+            <Typography fontSize={15} fontWeight={800} color="#0f172a">Standalone Permissions</Typography>
+            <Typography fontSize={12.5} color="#64748b" mt={0.4}>
+              standalone array — সরাসরি items ও actions।
             </Typography>
           </Box>
-
           <Divider />
 
-          {pageLoading ? (
-            <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 220 }}>
-              <CircularProgress size={28} />
-              <Typography fontSize={13} color="#64748b">
-                Loading standalone permissions...
-              </Typography>
-            </Stack>
-          ) : permissionData.standalone.length === 0 ? (
-            <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 180 }}>
-              <Typography fontSize={14} fontWeight={700} color="#334155">
-                No standalone permissions found.
-              </Typography>
+          {pageLoading ? LoadingState : permissionData.standalone.length === 0 ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 150 }}>
+              <Typography fontSize={13.5} fontWeight={700} color="#334155">No standalone permissions found.</Typography>
             </Stack>
           ) : (
-            <Stack spacing={1.5} sx={{ p: 2 }}>
-              {permissionData.standalone.map((item) => (
-                <PermissionItemCard
-                  key={item.key}
-                  item={item}
-                  sectionLabel="Standalone"
-                  onActionToggle={(actionKey, checked) => updateStandaloneAction(item.key, actionKey, checked)}
-                />
-              ))}
-            </Stack>
+            /* ── All standalone items in one single Box ── */
+            <Box sx={{ p: 1.75 }}>
+              <Stack spacing={0.75}>
+                {permissionData.standalone.map((item) => (
+                  <TreeItemRow
+                    key={item.key}
+                    item={item}
+                    onActionToggle={(actionKey, checked) => updateStandaloneAction(item.key, actionKey, checked)}
+                  />
+                ))}
+              </Stack>
+            </Box>
           )}
         </Paper>
-      </Stack>
+      </Box>
+
+      <Stack direction="row" justifyContent="flex-end" mt={2}>
+  <Button
+    variant="contained"
+    onClick={handleSubmitPermissions}
+    disabled={!selectedRoleId || pageLoading}
+    sx={{
+      borderRadius: 2,
+      textTransform: 'none',
+      fontWeight: 700,
+      px: 3,
+    }}
+  >
+    Save Permissions
+  </Button>
+</Stack>
 
       <AddRoleDialog
         open={addRoleOpen}
@@ -685,3 +619,7 @@ export default function RoleMappingPage() {
     </Box>
   );
 }
+
+
+
+
