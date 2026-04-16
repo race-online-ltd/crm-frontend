@@ -30,6 +30,11 @@ export async function createRole(payload) {
   return response.data?.data;
 }
 
+export async function fetchRolePermissions(roleId) {
+  const response = await api.get(`/system/roles/${roleId}/permissions`);
+  return response.data?.data ?? response.data ?? { groups: [], standalone: [] };
+}
+
 export async function fetchSystemUsers() {
   const response = await api.get('/system/users');
   return {
