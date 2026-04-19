@@ -18,6 +18,7 @@ const TaskCreation = React.lazy(() => import("./features/task/pages/TaskCreation
 const TasksShell = React.lazy(() => import("./features/task/pages/TasksShell"));
 const PriceProposalPage = React.lazy(() => import("./features/priceproposal/pages/PriceProposalPage"));
 const PriceHistoryPage = React.lazy(() => import("./features/pricehistory/pages/PriceHistoryPage"));
+const ClientsPage = React.lazy(() => import("./features/client/pages/ClientsPage"));
 const TargetList = React.lazy(() => import("./features/target/pages/TargetList"));
 const SetTargetPage = React.lazy(() => import("./features/target/pages/SetTargetPage"));
 const SystemUsersPage = React.lazy(() => import("./features/settings/pages/SystemUsersPage"));
@@ -68,6 +69,8 @@ export default function App() {
             <Route path="/tasks/new" element={<TasksShell />} />
             <Route path="/price-proposal" element={<PriceProposalPage />} />
             <Route path="/price-history" element={<PriceHistoryPage />} />
+            <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/clients/new" element={<ClientCreation />} />
             <Route path="/client/new" element={<ClientCreation />} />
             <Route path="/social" element={<Social />} />
             <Route path="/social_v1" element={<Social />} />

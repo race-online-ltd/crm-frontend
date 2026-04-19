@@ -15,6 +15,7 @@ export default defineConfig({
       // Now 'path' and '__dirname' are defined and will work
       "@": path.resolve(__dirname, "./src"),
       "@shared": path.resolve(__dirname, "./src/components/shared"),
+      "react-toastify": path.resolve(__dirname, "./src/vendor/react-toastify.js"),
     },
   },
 })

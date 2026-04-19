@@ -38,6 +38,7 @@ import DomainAddIcon from "@mui/icons-material/DomainAdd";
 import SellOutlinedIcon from "@mui/icons-material/SellOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { Link, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import logo from "../../assets/earth.png";
@@ -54,6 +55,7 @@ const menuItems = [
   { text: "Target",     icon: <TrackChangesIcon />,           path: "/target" },
   { text: "Leads",      icon: <LeaderboardIcon />,            path: "/leads" },
   { text: "Tasks",      icon: <TaskAltIcon />,                path: "/tasks" },
+  { text: "Clients",    icon: <PeopleAltOutlinedIcon />,      path: "/clients" },
   { text: "Price Proposal", icon: <RequestQuoteOutlinedIcon />, path: "/price-proposal" },
   { text: "Price History", icon: <HistoryOutlinedIcon />, path: "/price-history" },
   { text: "Approval Requests", icon: <AssignmentTurnedInOutlinedIcon />, path: "/approval/requests" },
@@ -110,7 +112,11 @@ export default function Sidebar({ open, handleToggle }) {
             key={item.text}
             component={Link}
             to={item.path}
-            selected={location.pathname === item.path}
+            selected={
+              item.path === '/clients'
+                ? location.pathname === '/clients' || location.pathname.startsWith('/clients/')
+                : location.pathname === item.path
+            }
             onClick={isMobile ? handleToggle : undefined}
             sx={{
               justifyContent: open ? "initial" : "center",
