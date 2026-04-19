@@ -230,6 +230,19 @@ export default function Sidebar({ open, handleToggle }) {
 
               <ListItemButton
                 component={Link}
+                to="/settings/column-mapping"
+                selected={location.pathname === "/settings/column-mapping"}
+                onClick={isMobile ? handleToggle : undefined}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <LockOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="Column Mapping" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+              </ListItemButton>
+
+              <ListItemButton
+                component={Link}
                 to="/settings/role-mapping"
                 selected={location.pathname === "/settings/role-mapping"}
                 onClick={isMobile ? handleToggle : undefined}

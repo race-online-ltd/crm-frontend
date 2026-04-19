@@ -36,6 +36,7 @@ const UserProfile = React.lazy(() => import("./features/settings/pages/UserProfi
 const ApprovalRequestsPage = React.lazy(() => import("./features/approval/pages/ApprovalRequestsPage"));
 const KamPerformancePage = React.lazy(() => import("./features/performance/pages/KamPerformancePage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
+const ColumnMappingPage = React.lazy(() => import("./features/settings/pages/ColumnMappingPage"));
 
 const Loading = () => (
   <div className="loader-container">
@@ -89,6 +90,7 @@ export default function App() {
             <Route path="/approval/requests" element={<ApprovalRequestsPage />} />
             <Route path="/settings/user-profile" element={<UserProfile />} />
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/settings/column-mapping" element={<ColumnMappingPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
