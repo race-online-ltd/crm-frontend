@@ -106,6 +106,11 @@ export async function deleteGroup(id) {
   return response.data?.message;
 }
 
+export async function updateRolePermissionsPost(roleId, payload) {
+  const response = await api.post(`/system/roles/${roleId}/update-permissions`, payload);
+  return response.data?.data ?? response.data;
+}
+
 export async function fetchBackofficeOptions() {
   const response = await api.get('/system/backoffice/options');
   return response.data?.data ?? {
