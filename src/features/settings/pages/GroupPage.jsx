@@ -13,12 +13,53 @@ import {
   updateGroup,
 } from '../api/settingsApi';
 
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value === null || value === undefined || value === '') {
+    return [];
+  }
+
+  return [value];
+}
+
+function toOptionList(items = []) {
+  return toArray(items)
+    .map((item) => {
+      if (item && typeof item === 'object') {
+        return {
+          id: String(item.id),
+          label: item.label || item.full_name || item.team_name || String(item.id),
+        };
+      }
+
+      return {
+        id: String(item),
+        label: String(item),
+      };
+    })
+    .filter((item) => item.id);
+}
+
 function mapGroupToForm(group) {
+  const supervisorItems = toOptionList(group.supervisors);
+  const teamItems = toOptionList(group.teams);
+
   return {
     id: group.id,
     groupName: group.group_name || group.name || '',
-    supervisor: group.supervisor_id || [],
-    teamName: group.team_id || [],
+    supervisor: supervisorItems.length > 0
+      ? supervisorItems.map((item) => item.id)
+      : toArray(group.supervisor_id).map((value) => String(value)),
+    teamName: teamItems.length > 0
+      ? teamItems.map((item) => item.id)
+      : toArray(group.team_id).map((value) => String(value)),
+    supervisorItems,
+    teamItems,
+    supervisorName: group.supervisor_name || supervisorItems.map((item) => item.label).join(', '),
+    teamLabel: group.team_name || teamItems.map((item) => item.label).join(', '),
     status: Boolean(group.status),
   };
 }
