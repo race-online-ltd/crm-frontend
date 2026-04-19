@@ -106,10 +106,58 @@ export async function deleteGroup(id) {
   return response.data?.message;
 }
 
-export async function updateRolePermissionsPost(roleId, permissions) {
-  const response = await api.post(`/system/roles/${roleId}/update-permissions`, {
-    permissions,
-  });
+export async function fetchBackofficeOptions() {
+  const response = await api.get('/system/backoffice/options');
+  return response.data?.data ?? {
+    business_entities: [],
+    system_users: [],
+  };
+}
 
-  return response.data;
+export async function fetchBackoffices() {
+  const response = await api.get('/system/backoffice');
+  return response.data?.data ?? [];
+}
+
+export async function createBackoffice(payload) {
+  const response = await api.post('/system/backoffice', payload);
+  return response.data?.data;
+}
+
+export async function updateBackoffice(id, payload) {
+  const response = await api.put(`/system/backoffice/${id}`, payload);
+  return response.data?.data;
+}
+
+export async function deleteBackoffice(id) {
+  const response = await api.delete(`/system/backoffice/${id}`);
+  return response.data?.message;
+}
+
+export async function fetchKamMappingOptions() {
+  const response = await api.get('/system/kam-mappings/options');
+  return response.data?.data ?? {
+    system_users: [],
+    business_entities: [],
+  };
+}
+
+export async function fetchProductsByBusinessEntity(businessEntityId) {
+  const response = await api.get(`/system/business-entities/${businessEntityId}/products`);
+  return response.data?.data ?? [];
+}
+
+export async function fetchKamProductMapping(params) {
+  const response = await api.get('/system/kam-mappings', { params });
+  return response.data?.data ?? {
+    user_id: null,
+    business_entity_id: null,
+    product_ids: [],
+    products: [],
+  };
+}
+
+export async function saveKamProductMapping(payload) {
+  const response = await api.post('/system/kam-mappings', payload);
+  return response.data?.data;
 }

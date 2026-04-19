@@ -27,6 +27,8 @@ const ConnectSystemAccountsPage = React.lazy(() => import("./features/settings/p
 const DataAccessControlPage = React.lazy(() => import("./features/settings/pages/DataAccessControlPage"));
 const RoleMappingPage = React.lazy(() => import("./features/settings/pages/RoleMappingPage"));
 const SocialSettingsPage = React.lazy(() => import("./features/settings/pages/SocialSettingsPage"));
+const BackofficeManagementPage = React.lazy(() => import("./features/settings/pages/BackofficeManagementPage"));
+const KamMappingPage = React.lazy(() => import("./features/settings/pages/KamMappingPage"));
 const BusinessEntityPage = React.lazy(() => import("./features/settings/pages/BusinessEntityPage"));
 const TeamPage = React.lazy(() => import("./features/settings/pages/TeamPage"));
 const GroupPage = React.lazy(() => import("./features/settings/pages/GroupPage"));
@@ -79,6 +81,8 @@ export default function App() {
             <Route path="/settings/data-access-control" element={<DataAccessControlPage />} />
             <Route path="/settings/role-mapping" element={<RoleMappingPage />} />
             <Route path="/settings/social" element={<SocialSettingsPage />} />
+            <Route path="/settings/backoffice-management" element={<BackofficeManagementPage />} />
+            <Route path="/settings/kam-mapping" element={<KamMappingPage />} />
             <Route path="/settings/business-entities" element={<BusinessEntityPage />} />
             <Route path="/settings/team" element={<TeamPage />} />
             <Route path="/settings/group" element={<GroupPage />} />

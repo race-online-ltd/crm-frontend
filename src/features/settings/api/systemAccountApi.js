@@ -1,41 +1,31 @@
 import api from '@/api/config/axiosInstance';
 
-const EXTERNAL_USERS_BY_ENTITY = {
-  race_online: [
-    { id: 'race_usr_1', label: 'Race User - Ahmed Khan' },
-    { id: 'race_usr_2', label: 'Race User - Nabila Sultana' },
-  ],
-  earth_telecom: [
-    { id: 'earth_usr_1', label: 'Earth User - Farhan Ali' },
-    { id: 'earth_usr_2', label: 'Earth User - Tanjim Noor' },
-  ],
-  dhaka_colo: [
-    { id: 'colo_usr_1', label: 'Dhaka COLO User - Imran Hossain' },
-  ],
-  orbit_internet: [
-    { id: 'orbit_usr_1', label: 'Orbit User - Sadia Karim' },
-  ],
-};
-
-export async function fetchBusinessEntitiesForAccountConnection() {
-  const response = await api.get('/system/business-entities');
+export async function fetchExternalSystemsForAccountConnection() {
+  const response = await api.get('/system/external-systems');
   const data = response.data?.data ?? [];
 
-  return data.map((entity) => ({
-    id: String(entity.id),
-    label: entity.name,
+  return data.map((externalSystem) => ({
+    id: String(externalSystem.id),
+    label: externalSystem.external_system_name,
   }));
 }
 
-export async function fetchExternalUsersForBusinessEntity(businessEntityId) {
-  // Backend-ready placeholder:
-  // return api.get(`/system-account-connections/business-entities/${businessEntityId}/users`);
-  return EXTERNAL_USERS_BY_ENTITY[businessEntityId] || [];
+export async function fetchExternalUsersForSystem(externalSystemId) {
+  const response = await api.get(`/system/external-systems/${externalSystemId}/users`);
+  const data = response.data?.data ?? [];
+
+  return data.map((user) => ({
+    id: String(user.id),
+    label: user.label,
+  }));
 }
 
-export async function saveSystemAccountConnections(payload) {
-  // Backend-ready placeholder:
-  // return api.post('/system-account-connections', payload);
-  console.log('Connect system accounts payload:', payload);
-  return { success: true };
+export async function fetchSystemAccountConnections(systemUserId) {
+  const response = await api.get(`/system/users/${systemUserId}/external-account-connections`);
+  return response.data?.data ?? [];
+}
+
+export async function saveSystemAccountConnections(systemUserId, payload) {
+  const response = await api.post(`/system/users/${systemUserId}/external-account-connections`, payload);
+  return response.data;
 }
