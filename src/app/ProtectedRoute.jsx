@@ -3,7 +3,11 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useUserProfile } from '../features/settings/context/UserProfileContext';
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useUserProfile();
+  const { authReady, isAuthenticated } = useUserProfile();
+
+  if (!authReady) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

@@ -7,6 +7,18 @@ const api = axios.create({
   timeout: 15000,
 });
 
+function setAuthHeaders(token) {
+  const normalizedToken = token || "";
+
+  if (normalizedToken) {
+    api.defaults.headers.common.Authorization = `Bearer ${normalizedToken}`;
+    axios.defaults.headers.common.Authorization = `Bearer ${normalizedToken}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+    delete axios.defaults.headers.common.Authorization;
+  }
+}
+
 async function refreshAccessToken() {
   const currentToken = tokenService.getAccessToken();
   if (!currentToken) {
@@ -31,6 +43,7 @@ async function refreshAccessToken() {
   }
 
   tokenService.setAccessToken(refreshedData.token);
+  setAuthHeaders(refreshedData.token);
   if (refreshedData.user) {
     tokenService.setUser(refreshedData.user);
   }
@@ -38,21 +51,47 @@ async function refreshAccessToken() {
   return refreshedData.token;
 }
 
+function syncAuthFromResponse(response) {
+  const headerToken = response?.headers?.authorization || response?.headers?.Authorization;
+  if (!headerToken) {
+    return;
+  }
+
+  const token = headerToken.toLowerCase().startsWith("bearer ")
+    ? headerToken.slice(7).trim()
+    : headerToken.trim();
+
+  if (token) {
+    tokenService.setAccessToken(token);
+    setAuthHeaders(token);
+  }
+}
+
 // Attach token automatically
 api.interceptors.request.use((config) => {
   const token = tokenService.getAccessToken();
   if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  tokenService.setLastActivity(Date.now());
   return config;
 });
 
 // Handle errors globally
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    syncAuthFromResponse(response);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config || {};
     const status = error.response?.status;
+
+    if (error.response) {
+      syncAuthFromResponse(error.response);
+    }
 
     if (
       status === 401 &&
@@ -81,17 +120,10 @@ api.interceptors.response.use(
       }
     }
 
-    if (status === 401 && !originalRequest.skipAuthRedirect) {
-      tokenService.clearAuth();
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
-    }
-
     const formattedError = handleApiError(error);
     return Promise.reject(formattedError);
   }
 );
 
 export default api;
+export { setAuthHeaders };

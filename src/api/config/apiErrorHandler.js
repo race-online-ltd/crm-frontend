@@ -1,5 +1,3 @@
-import { tokenService } from "./tokenService";
-
 /**
  * Centralized API Error Handler
  */
@@ -24,9 +22,6 @@ export const handleApiError = (error) => {
           errors: data?.errors || null,
         };
       }
-
-      // Unauthorized → token expired / invalid
-      tokenService.clearAuth();
 
       return {
         status,

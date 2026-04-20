@@ -35,17 +35,9 @@ import {
   updateClient,
 } from '../api/clientApi';
 
-const SOURCE_OPTIONS = [
-  { id: 'Prism', label: 'Prism' },
-  { id: 'MQ', label: 'MQ' },
-  { id: 'maxim Orbit', label: 'maxim Orbit' },
-  { id: 'maxim Race', label: 'maxim Race' },
-];
-
 const clientSchema = Yup.object({
   name: Yup.string().trim().required('Client name is required'),
   businessEntity: Yup.mixed().required('Business entity is required'),
-  source: Yup.string().required('Source is required'),
   contactPerson: Yup.string().trim().required('Contact person is required'),
   contactNumber: Yup.string().trim().required('Contact number is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -58,10 +50,8 @@ const clientSchema = Yup.object({
 
 function buildInitialValues(client) {
   return {
-    clientId: client?.client_id || '',
     name: client?.client_name || '',
     businessEntity: client?.business_entity_id ? Number(client.business_entity_id) : '',
-    source: client?.client_from || '',
     contactPerson: client?.contact_person || '',
     contactNumber: client?.contact_no || '',
     email: client?.email || '',
@@ -315,9 +305,7 @@ export default function ClientForm({
       try {
         const payload = {
           business_entity_id: Number(values.businessEntity),
-          client_id: values.clientId?.trim() || undefined,
           client_name: values.name.trim(),
-          client_from: values.source,
           contact_person: values.contactPerson.trim() || null,
           contact_no: values.contactNumber.trim() || null,
           email: values.email.trim() || null,
@@ -429,7 +417,6 @@ export default function ClientForm({
   const fetchDivisionOptions = useCallback(async () => divisionOptions, [divisionOptions]);
   const fetchDistrictOptions = useCallback(async () => districtOptions, [districtOptions]);
   const fetchThanaOptions = useCallback(async () => thanaOptions, [thanaOptions]);
-  const fetchSourceOptions = useCallback(async () => SOURCE_OPTIONS, []);
 
   useEffect(() => {
     if (!values.division || !values.district || !districtOptions.length) {
@@ -482,29 +469,15 @@ export default function ClientForm({
           }}
         >
           <SectionHeader icon={<BusinessIcon />} title="Basic Information" />
-          <Box sx={{ gridColumn: '1 / -1' }}>
-            <TextInputField
-              name="clientId"
-              label="Client ID"
-              value={values.clientId}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled
-              helperText={isEdit ? 'Existing client reference' : 'Will be generated automatically'}
-              error={false}
-            />
-          </Box>
-          <Box sx={{ gridColumn: '1 / -1' }}>
-            <TextInputField
-              name="name"
-              label="Client Name *"
-              value={values.name}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled={isReadOnly}
-              {...field('name')}
-            />
-          </Box>
+          <TextInputField
+            name="name"
+            label="Client Name *"
+            value={values.name}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            disabled={isReadOnly}
+            {...field('name')}
+          />
           <SelectDropdownSingle
             name="businessEntity"
             label="Business Entity *"
@@ -515,21 +488,9 @@ export default function ClientForm({
             disabled={isReadOnly}
             {...field('businessEntity')}
           />
-          <SelectDropdownSingle
-            name="source"
-            label="Source *"
-            fetchOptions={fetchSourceOptions}
-            value={values.source}
-            onChange={(id) => setFieldValue('source', id)}
-            onBlur={handleBlur}
-            disabled={isReadOnly}
-            {...field('source')}
-          />
-
-          <Box sx={{ gridColumn: '1 / -1', mt: 0.5, mb: 0.5 }}>
+          <Box sx={{ gridColumn: '1 / -1', mt: -0.5 }}>
             <Divider />
           </Box>
-
           <SectionHeader icon={<BusinessIcon />} title="Contact Information" mt={1} />
           <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: '4px 20px' }}>
             <TextInputField
