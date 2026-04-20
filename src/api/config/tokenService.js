@@ -2,6 +2,7 @@ const ACCESS_TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 const TAB_ID_KEY = "auth_tab_id";
 const ACTIVE_TABS_KEY = "auth_active_tabs";
+const LAST_ACTIVITY_KEY = "auth_last_activity";
 
 function getStorage() {
   if (typeof window === "undefined") {
@@ -94,6 +95,7 @@ export const tokenService = {
     storage?.removeItem(ACCESS_TOKEN_KEY);
     storage?.removeItem(USER_KEY);
     storage?.removeItem(ACTIVE_TABS_KEY);
+    storage?.removeItem(LAST_ACTIVITY_KEY);
   },
 
   getTabId() {
@@ -148,5 +150,27 @@ export const tokenService = {
 
   hasActiveTabs() {
     return readActiveTabs(getStorage()).length > 0;
+  },
+
+  getLastActivity() {
+    const storage = getStorage();
+    if (!storage) {
+      return null;
+    }
+
+    const raw = storage.getItem(LAST_ACTIVITY_KEY);
+    const timestamp = Number(raw);
+
+    return Number.isFinite(timestamp) ? timestamp : null;
+  },
+
+  setLastActivity(timestamp = Date.now()) {
+    const storage = getStorage();
+    storage?.setItem(LAST_ACTIVITY_KEY, String(timestamp));
+  },
+
+  removeLastActivity() {
+    const storage = getStorage();
+    storage?.removeItem(LAST_ACTIVITY_KEY);
   },
 };
