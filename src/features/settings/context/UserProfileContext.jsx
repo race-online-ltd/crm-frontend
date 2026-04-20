@@ -160,7 +160,41 @@ export function UserProfileProvider({ children }) {
 
   useEffect(() => {
     initAuth();
+    tokenService.registerTab();
   }, [initAuth]);
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key !== 'auth_token' && event.key !== 'auth_user' && event.key !== null) {
+        return;
+      }
+
+      const nextToken = tokenService.getAccessToken() || '';
+      const nextProfile = tokenService.getUser() ? readStoredUser() : defaultProfile;
+
+      setToken(nextToken);
+      setProfile(nextProfile);
+      setIsAuthenticated(Boolean(nextToken));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      tokenService.unregisterTab();
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []);
 
   const value = useMemo(() => ({
     profile,
