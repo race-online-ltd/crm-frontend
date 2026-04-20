@@ -6,345 +6,728 @@ import {
   Checkbox,
   Chip,
   CircularProgress,
-  Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
-  IconButton,
+  FormControlLabel,
+  FormGroup,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from '@mui/material';
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import AddRoleDialog from '../components/AddRoleDialog';
 import {
   createRole,
   fetchRolePermissions,
   fetchRoles,
-  updateRolePermissions,
   updateRolePermissionsPost,
 } from '../api/settingsApi';
 
-function normalizeRoleOption(role) {
-  return {
-    ...role,
-    id: role?.id ?? '',
-    label: role?.label || role?.name || 'Unnamed Role',
-  };
-}
+/* ══════════════════════════════════════════════════════════════════════════
+   THEME COLOR
+══════════════════════════════════════════════════════════════════════════ */
+const PRIMARY       = '#5000f0';
+const PRIMARY_DARK  = '#3d00c4';
+const PRIMARY_LIGHT = '#ede8ff';
+const PRIMARY_BORDER= '#c4b0ff';
 
+/* ══════════════════════════════════════════════════════════════════════════
+   NORMALIZE HELPERS
+══════════════════════════════════════════════════════════════════════════ */
+function normalizeRoleOption(role) {
+  return { ...role, id: role?.id ?? '', label: role?.label || role?.name || 'Unnamed Role' };
+}
 function normalizeAction(action) {
   return {
-    id: action?.id, // ✅ MUST
+    id: action?.id,
     key: action?.key || '',
     label: action?.label || action?.key || 'Unnamed Action',
     checked: Boolean(action?.checked),
   };
 }
-
 function normalizeItem(item) {
   return {
-    key: item?.key || '',
+    key: item?.key || item?.id?.toString() || '',
     label: item?.label || item?.key || 'Unnamed Item',
-    actions: Array.isArray(item?.actions) ? item.actions.map(normalizeAction) : [],
-  };
-}
-
-function normalizePermissionResponse(payload) {
-  return {
-    groups: Array.isArray(payload?.groups)
-      ? payload.groups.map((group) => ({
-          key: group?.key || '',
-          label: group?.label || group?.key || 'Unnamed Group',
-          items: Array.isArray(group?.items) ? group.items.map(normalizeItem) : [],
-        }))
+    actions: Array.isArray(item?.actions)
+      ? item.actions.map(normalizeAction)
+      : Array.isArray(item?.permissions)
+      ? item.permissions.map(normalizeAction)
       : [],
-    standalone: Array.isArray(payload?.standalone) ? payload.standalone.map(normalizeItem) : [],
   };
 }
+function normalizePermissionResponse(payload) {
+  const menus = Array.isArray(payload?.menus)
+    ? payload.menus
+    : Array.isArray(payload?.data?.menus)
+    ? payload.data.menus
+    : [];
 
+  const groups = [];
+  const standalone = [];
+
+  menus.forEach((menu) => {
+    const normalized = normalizeItem(menu);
+    const children = Array.isArray(menu?.children) ? menu.children.map(normalizeItem) : [];
+
+    if (children.length > 0) {
+      groups.push({
+        key: menu?.key || menu?.id?.toString() || `group-${groups.length}`,
+        label: menu?.label || menu?.key || 'Unnamed Group',
+        actions: normalized.actions,
+        items: children,
+      });
+    } else {
+      standalone.push(normalized);
+    }
+  });
+
+  return { groups, standalone };
+}
 function countCheckedActions(items) {
-  return items.reduce(
-    (total, item) => total + item.actions.filter((action) => action.checked).length,
-    0,
-  );
+  return items.reduce((t, item) => {
+    if (Array.isArray(item?.actions)) {
+      return t + item.actions.filter((a) => a.checked).length;
+    }
+    return t;
+  }, 0);
 }
-
 function countAllActions(items) {
-  return items.reduce((total, item) => total + item.actions.length, 0);
+  return items.reduce((t, item) => {
+    if (Array.isArray(item?.actions)) {
+      return t + item.actions.length;
+    }
+    return t;
+  }, 0);
 }
 
-function getGroupMeta(group) {
-  const totalActions = countAllActions(group.items);
-  const checkedActions = countCheckedActions(group.items);
-
-  return {
-    totalActions,
-    checkedActions,
-    checked: totalActions > 0 && checkedActions === totalActions,
-    indeterminate: checkedActions > 0 && checkedActions < totalActions,
-  };
+/* ══════════════════════════════════════════════════════════════════════════
+   BADGE STYLES  (screenshot colors)
+══════════════════════════════════════════════════════════════════════════ */
+function getBadgeStyle(label = '') {
+  const k = label.toLowerCase();
+  if (k.includes('create')) return { color: '#16a34a', bgcolor: '#f0fdf4', border: '1.5px solid #86efac', fontWeight: 600 };
+  if (k.includes('export')) return { color: '#db2777', bgcolor: '#fdf2f8', border: '1.5px solid #f9a8d4', fontWeight: 600 };
+  if (k.includes('update')) return { color: '#d97706', bgcolor: '#fffbeb', border: '1.5px solid #fcd34d', fontWeight: 600 };
+  if (k.includes('delete')) return { color: '#dc2626', bgcolor: '#fff1f2', border: '1.5px solid #fca5a5', fontWeight: 600 };
+  // Single View, List View etc.
+  return { color: '#374151', bgcolor: '#fff', border: '1.5px solid #d1d5db', fontWeight: 400 };
 }
 
-function updateActionList(actions, nextChecked) {
-  return actions.map((action) => ({ ...action, checked: nextChecked }));
-}
-
-/* ─── Action Pills ─────────────────────────────────────────────────────── */
-function ActionPills({ item, onActionToggle }) {
+function PermBadge({ label }) {
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 2, py: 1.25, bgcolor: '#f8fafc' }}>
-      {item.actions.length === 0 ? (
-        <Typography fontSize={12} color="#94a3b8">No actions</Typography>
-      ) : (
-        item.actions.map((action) => (
-          <Box
-            key={action.key}
-            component="label"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.6,
-              px: 1.1,
-              py: 0.5,
-              borderRadius: '999px',
-              border: '1px solid',
-              borderColor: action.checked ? '#bfdbfe' : '#e2e8f0',
-              bgcolor: action.checked ? '#eff6ff' : '#fff',
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'background .1s, border-color .1s',
-              '&:hover': { bgcolor: action.checked ? '#dbeafe' : '#f1f5f9' },
-            }}
-          >
-            <Checkbox
-              checked={action.checked}
-              onChange={(e) => onActionToggle(action.key, e.target.checked)}
-              size="small"
-              sx={{
-                p: 0,
-                width: 14,
-                height: 14,
-                color: '#cbd5e1',
-                '&.Mui-checked': { color: '#2563eb' },
-              }}
-            />
-            <Typography
-              fontSize={12.5}
-              fontWeight={action.checked ? 700 : 400}
-              color={action.checked ? '#1d4ed8' : '#475569'}
-            >
-              {action.label}
-            </Typography>
-            <Typography fontSize={11} color="#94a3b8" sx={{ fontFamily: 'monospace' }}>
-              {action.key}
-            </Typography>
-          </Box>
-        ))
-      )}
+    <Box
+      sx={{
+        display: 'inline-flex', alignItems: 'center',
+        px: 1.4, py: 0.35, borderRadius: '6px',
+        fontSize: 12.5, lineHeight: 1.7, whiteSpace: 'nowrap',
+        ...getBadgeStyle(label),
+      }}
+    >
+      {label}
     </Box>
   );
 }
 
-/* ─── Tree Item Row ─────────────────────────────────────────────────────── */
-function TreeItemRow({ item, onActionToggle, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const checkedCount = item.actions.filter((a) => a.checked).length;
+/* BadgeCell — shows ALL actions whose checked=true */
+function BadgeCell({ actions }) {
+  const checkedActions = actions.filter((a) => a.checked);
+  if (!checkedActions.length) return <Typography fontSize={12} color="#cbd5e1">—</Typography>;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.65 }}>
+      {checkedActions.map((a) => <PermBadge key={a.key} label={a.label} />)}
+    </Box>
+  );
+}
 
+/* ══════════════════════════════════════════════════════════════════════════
+   SHARED STYLES
+══════════════════════════════════════════════════════════════════════════ */
+const iconBtnBase = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  width: 36, height: 36, borderRadius: '8px', border: '1.5px solid #e2e8f0',
+  bgcolor: '#fff', cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
+};
+
+const headCellSx = {
+  color: PRIMARY, fontWeight: 700, fontSize: 13.5,
+  py: 1.5, bgcolor: '#fff', borderBottom: `2px solid ${PRIMARY_BORDER}`,
+};
+const cellSx = {
+  py: 1.15, px: 2, fontSize: 13.5,
+  borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle',
+};
+const cbSx = {
+  p: 0.4,
+  color: '#d1d5db',
+  '&.Mui-checked': { color: PRIMARY },
+  '&.MuiCheckbox-indeterminate': { color: PRIMARY },
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ICON BUTTONS
+══════════════════════════════════════════════════════════════════════════ */
+function ExpandBtn({ expanded, onClick }) {
   return (
     <Box
+      onClick={onClick}
       sx={{
-        border: '1px solid #e2e8f0',
-        borderRadius: '10px',
-        overflow: 'hidden',
-        bgcolor: '#fff',
+        ...iconBtnBase, color: '#64748b',
+        '&:hover': { borderColor: PRIMARY, bgcolor: PRIMARY_LIGHT, color: PRIMARY },
       }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={0.75}
+      {expanded
+        ? <KeyboardArrowUpRoundedIcon sx={{ fontSize: 18 }} />
+        : <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} />}
+    </Box>
+  );
+}
+
+function EditBtn({ onClick }) {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        ...iconBtnBase, color: '#64748b',
+        '&:hover': { borderColor: PRIMARY, bgcolor: PRIMARY_LIGHT, color: PRIMARY },
+      }}
+    >
+      <EditOutlinedIcon sx={{ fontSize: 16 }} />
+    </Box>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EDIT PERMISSIONS DIALOG
+══════════════════════════════════════════════════════════════════════════ */
+function EditPermissionsDialog({ open, item, onClose, onSave }) {
+  const [checkedKeys, setCheckedKeys] = useState([]);
+
+  // Re-sync whenever the item changes (i.e. different row opened)
+  useEffect(() => {
+    if (item) setCheckedKeys(item.actions.filter((a) => a.checked).map((a) => a.key));
+  }, [item]);
+
+  if (!item) return null;
+
+  const allChecked  = item.actions.length > 0 && checkedKeys.length === item.actions.length;
+  const someChecked = checkedKeys.length > 0 && !allChecked;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        elevation: 0,
+        sx: {
+          borderRadius: '14px',
+          border: `1px solid ${PRIMARY_BORDER}`,
+          boxShadow: `0 12px 40px rgba(80,0,240,0.12)`,
+        },
+      }}
+    >
+      {/* ── Header ── */}
+      <DialogTitle
         sx={{
-          px: 1.25,
-          py: 0.9,
-          cursor: 'pointer',
-          '&:hover': { bgcolor: '#f8fafc' },
-          userSelect: 'none',
+          px: 3, py: 2,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${PRIMARY_BORDER}`,
         }}
-        onClick={() => setOpen((v) => !v)}
       >
-        <ChevronRightIcon
+        <Typography fontSize={15} fontWeight={600} color="#0f172a">
+          Role Permissions of{' '}
+          <Box component="span" sx={{ color: PRIMARY }}>{item.label}</Box>
+        </Typography>
+        <Box
+          onClick={onClose}
           sx={{
-            fontSize: 16,
+            ...iconBtnBase, width: 28, height: 28, borderRadius: '6px',
             color: '#94a3b8',
-            flexShrink: 0,
-            transition: 'transform .15s',
-            transform: open ? 'rotate(90deg)' : 'none',
+            '&:hover': { borderColor: PRIMARY, bgcolor: PRIMARY_LIGHT, color: PRIMARY },
           }}
-        />
-        <ArticleOutlinedIcon sx={{ fontSize: 15, color: '#64748b', flexShrink: 0 }} />
-        <Typography fontSize={13} color="#0f172a" sx={{ flex: 1 }}>
-          {item.label}
-        </Typography>
-        <Chip
-          label={item.key}
-          size="small"
-          variant="outlined"
-          sx={{ height: 20, fontSize: 11, borderRadius: '4px', fontFamily: 'monospace', color: '#64748b' }}
-        />
-        <Typography fontSize={12} color="#94a3b8" sx={{ whiteSpace: 'nowrap', pr: 0.5 }}>
-          {checkedCount}/{item.actions.length}
-        </Typography>
-      </Stack>
+        >
+          <CloseIcon sx={{ fontSize: 15 }} />
+        </Box>
+      </DialogTitle>
 
-      <Collapse in={open} unmountOnExit>
-        <Divider />
-        <ActionPills item={item} onActionToggle={onActionToggle} />
-      </Collapse>
-    </Box>
+      {/* ── Body ── */}
+      <DialogContent sx={{ px: 3, py: 2.5 }}>
+        {item.actions.length === 0 ? (
+          <Typography fontSize={13} color="#94a3b8">No actions available.</Typography>
+        ) : (
+          <FormGroup>
+            {/* All */}
+            <FormControlLabel
+              sx={{ mb: 0.5 }}
+              control={
+                <Checkbox
+                  checked={allChecked}
+                  indeterminate={someChecked}
+                  onChange={(e) => setCheckedKeys(e.target.checked ? item.actions.map((a) => a.key) : [])}
+                  sx={{ color: '#d1d5db', '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: PRIMARY } }}
+                />
+              }
+              label={<Typography fontSize={13.5} fontWeight={600} color="#0f172a">All</Typography>}
+            />
+            <Divider sx={{ mb: 1.5 }} />
+
+            {/* Individual */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>
+              {item.actions.map((action) => (
+                <FormControlLabel
+                  key={action.key}
+                  control={
+                    <Checkbox
+                      checked={checkedKeys.includes(action.key)}
+                      onChange={(e) =>
+                        setCheckedKeys((prev) =>
+                          e.target.checked
+                            ? [...prev, action.key]
+                            : prev.filter((k) => k !== action.key),
+                        )
+                      }
+                      sx={{ color: '#d1d5db', '&.Mui-checked': { color: PRIMARY } }}
+                    />
+                  }
+                  label={
+                    <Typography fontSize={13} color="#374151" sx={{ textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                      {action.label}
+                    </Typography>
+                  }
+                />
+              ))}
+            </Box>
+          </FormGroup>
+        )}
+      </DialogContent>
+
+      <Divider sx={{ borderColor: PRIMARY_BORDER }} />
+
+      {/* ── Footer ── */}
+      <DialogActions sx={{ px: 3, py: 1.75, gap: 1 }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          sx={{
+            borderRadius: '8px', textTransform: 'none', fontWeight: 500,
+            color: '#475569', borderColor: '#d1d5db', px: 2.5,
+            '&:hover': { borderColor: PRIMARY, color: PRIMARY, bgcolor: PRIMARY_LIGHT },
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={() => { onSave(item.key, checkedKeys); onClose(); }}
+          variant="contained"
+          sx={{
+            borderRadius: '8px', textTransform: 'none', fontWeight: 600,
+            bgcolor: PRIMARY, px: 3,
+            '&:hover': { bgcolor: PRIMARY_DARK },
+            boxShadow: `0 2px 8px rgba(80,0,240,0.3)`,
+          }}
+        >
+          OK
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
-/* ─── Tree Group ────────────────────────────────────────────────────────── */
-function TreeGroupSection({ group, onToggleAll, onToggleAction }) {
-  const [open, setOpen] = useState(true);
-  const groupMeta = getGroupMeta(group);
+/* ══════════════════════════════════════════════════════════════════════════
+   PERMISSION TABLE
+   — groups with expand/collapse
+   — parent checkbox → auto-check all children
+   — BadgeCell shows initial checked actions from API
+══════════════════════════════════════════════════════════════════════════ */
+function PermissionTable({ groups, standalone, loading, onSaveEdit, permissionData, setPermissionData }) {
+  // expanded state per group (default: all expanded)
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  // checkbox state: true = checked, false = unchecked
+  // keyed by group.key (parents) and `${groupKey}__${itemKey}` (children) or item.key (standalone)
+  const [rowChecked, setRowChecked] = useState({});
+
+  // select all state
+  const [selectAll, setSelectAll] = useState(false);
+
+  const [editItem, setEditItem] = useState(null);
+  const [editOpen, setEditOpen]  = useState(false);
+
+  // Init expand + checkbox from API data
+  useEffect(() => {
+    const expInit = {};
+    const cbInit  = {};
+    groups.forEach((g) => {
+      expInit[g.key] = true;          // all expanded by default
+      // parent checked if ANY child has a permission assigned
+      const anyChildChecked = g.items.some((item) => item.actions.some((a) => a.checked));
+      cbInit[g.key] = anyChildChecked;
+      g.items.forEach((item) => {
+        const ck = `${g.key}__${item.key}`;
+        cbInit[ck] = item.actions.some((a) => a.checked);
+      });
+    });
+    standalone.forEach((item) => {
+      cbInit[item.key] = item.actions.some((a) => a.checked);
+    });
+    setExpandedGroups(expInit);
+    setRowChecked(cbInit);
+  }, [groups, standalone]);
+
+  // Compute selectAll based on rowChecked
+  useEffect(() => {
+    const allKeys = [
+      ...groups.map((g) => g.key),
+      ...groups.flatMap((g) => g.items.map((item) => `${g.key}__${item.key}`)),
+      ...standalone.map((item) => item.key),
+    ];
+    const allChecked = allKeys.every((key) => rowChecked[key] === true);
+    const someChecked = allKeys.some((key) => rowChecked[key] === true);
+    setSelectAll(allChecked ? true : someChecked ? 'indeterminate' : false);
+  }, [rowChecked, groups, standalone]);
+
+  /* ── Parent checkbox toggle → auto-check ALL children ── */
+  function handleParentCheck(groupKey, checked) {
+    const group = groups.find((g) => g.key === groupKey);
+    if (!group) return;
+
+    // Update rowChecked state for parent + all children
+    setRowChecked((prev) => {
+      const next = { ...prev, [groupKey]: checked };
+      group.items.forEach((item) => {
+        next[`${groupKey}__${item.key}`] = checked;
+      });
+      return next;
+    });
+
+    // Also update permissionData actions so badges update
+    setPermissionData((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.key === groupKey
+          ? {
+              ...g,
+              actions: g.actions?.map((a) => ({ ...a, checked })) ?? [],
+              items: g.items.map((item) => ({
+                ...item,
+                actions: item.actions.map((a) => ({ ...a, checked })),
+              })),
+            }
+          : g,
+      ),
+    }));
+  }
+
+  /* ── Child checkbox toggle ── */
+  function handleChildCheck(groupKey, itemKey, checked) {
+    const ck = `${groupKey}__${itemKey}`;
+    setRowChecked((prev) => {
+      const next = { ...prev, [ck]: checked };
+      // re-evaluate parent: checked when any child item is checked
+      const group = groups.find((g) => g.key === groupKey);
+      if (group) {
+        const anyChecked = group.items.some((item) =>
+          next[`${groupKey}__${item.key}`] === true,
+        );
+        next[groupKey] = anyChecked;
+      }
+      return next;
+    });
+
+    // Update permissionData actions
+    setPermissionData((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.key === groupKey
+          ? {
+              ...g,
+              items: g.items.map((item) =>
+                item.key === itemKey
+                  ? { ...item, actions: item.actions.map((a) => ({ ...a, checked })) }
+                  : item,
+              ),
+            }
+          : g,
+      ),
+    }));
+  }
+
+  /* ── Select All toggle ── */
+  function handleSelectAll(checked) {
+    setRowChecked((prev) => {
+      const next = { ...prev };
+      groups.forEach((g) => {
+        next[g.key] = checked;
+        g.items.forEach((item) => {
+          next[`${g.key}__${item.key}`] = checked;
+        });
+      });
+      standalone.forEach((item) => {
+        next[item.key] = checked;
+      });
+      return next;
+    });
+
+    // Update permissionData actions
+    setPermissionData((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) => ({
+        ...g,
+        actions: g.actions?.map((a) => ({ ...a, checked })) ?? [],
+        items: g.items.map((item) => ({
+          ...item,
+          actions: item.actions.map((a) => ({ ...a, checked })),
+        })),
+      })),
+      standalone: prev.standalone.map((item) => ({
+        ...item,
+        actions: item.actions.map((a) => ({ ...a, checked })),
+      })),
+    }));
+  }
+
+  /* ── Standalone checkbox toggle ── */
+  function handleStandaloneCheck(itemKey, checked) {
+    setRowChecked((prev) => ({ ...prev, [itemKey]: checked }));
+    setPermissionData((prev) => ({
+      ...prev,
+      standalone: prev.standalone.map((item) =>
+        item.key === itemKey
+          ? { ...item, actions: item.actions.map((a) => ({ ...a, checked })) }
+          : item,
+      ),
+    }));
+  }
+
+  if (loading) {
+    return (
+      <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 200 }}>
+        <CircularProgress size={24} sx={{ color: PRIMARY }} />
+        <Typography fontSize={13} color="#64748b">Loading permissions…</Typography>
+      </Stack>
+    );
+  }
+
+  if (!groups.length && !standalone.length) {
+    return (
+      <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 160 }}>
+        <Typography fontSize={13.5} color="#94a3b8">No permissions found for this role.</Typography>
+      </Stack>
+    );
+  }
 
   return (
-    <Box
-      sx={{
-        border: '1px solid #dbe4ee',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        bgcolor: '#fff',
-      }}
-    >
-      {/* Group header row */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={0.75}
-        sx={{
-          px: 1.5,
-          py: 1,
-          bgcolor: '#f1f5f9',
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: '#e8edf3' },
-        }}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ChevronRightIcon
-          sx={{
-            fontSize: 17,
-            color: '#64748b',
-            flexShrink: 0,
-            transition: 'transform .15s',
-            transform: open ? 'rotate(90deg)' : 'none',
-          }}
-        />
-        <Checkbox
-          checked={groupMeta.checked}
-          indeterminate={groupMeta.indeterminate}
-          disabled={groupMeta.totalActions === 0}
-          onChange={(e) => { e.stopPropagation(); onToggleAll(e.target.checked); }}
-          onClick={(e) => e.stopPropagation()}
-          size="small"
-          sx={{
-            p: 0.2,
-            color: '#cbd5e1',
-            '&.Mui-checked': { color: '#2563eb' },
-            '&.MuiCheckbox-indeterminate': { color: '#2563eb' },
-          }}
-        />
-        <FolderOutlinedIcon sx={{ fontSize: 16, color: '#3b82f6', flexShrink: 0 }} />
-        <Typography fontSize={13.5} fontWeight={700} color="#0f172a" sx={{ flex: 1 }}>
-          {group.label}
-        </Typography>
-        <Chip
-          label={`${group.key}`}
-          size="small"
-          variant="outlined"
-          sx={{ height: 20, fontSize: 11, borderRadius: '4px', fontFamily: 'monospace', color: '#64748b' }}
-        />
-        <Chip
-          label={`${groupMeta.checkedActions}/${groupMeta.totalActions}`}
-          size="small"
-          sx={{
-            height: 20,
-            fontSize: 11,
-            borderRadius: '999px',
-            bgcolor: '#dbeafe',
-            color: '#1d4ed8',
-            fontWeight: 700,
-          }}
-        />
-      </Stack>
+    <>
+      <TableContainer>
+        <Table size="small">
+          {/* ── Head ── */}
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...headCellSx, width: 64, pl: 2.5 }}>
+                <Checkbox
+                  checked={selectAll === true}
+                  indeterminate={selectAll === 'indeterminate'}
+                  onChange={() => {
+                    const shouldCheck = selectAll !== true;
+                    handleSelectAll(shouldCheck);
+                  }}
+                  sx={cbSx}
+                />
+              </TableCell>
+              <TableCell sx={{ ...headCellSx, pl: 2 }}>Menu Name</TableCell>
+              <TableCell sx={{ ...headCellSx }}>Permissions</TableCell>
+              <TableCell sx={{ ...headCellSx, width: 80, textAlign: 'center', pr: 2 }}>Action</TableCell>
+            </TableRow>
+          </TableHead>
 
-      <Collapse in={open} unmountOnExit>
-        <Divider />
-        {/* All items in one single div / Box */}
-        <Box sx={{ p: 1.25 }}>
-          <Stack spacing={0.75}>
-            {group.items.map((item) => (
-              <TreeItemRow
-                key={item.key}
-                item={item}
-                onActionToggle={(actionKey, checked) => onToggleAction(item.key, actionKey, checked)}
-              />
-            ))}
-          </Stack>
-        </Box>
-      </Collapse>
-    </Box>
+          {/* ── Body ── */}
+          <TableBody>
+            {/* ▸ Grouped rows */}
+            {groups.map((group) => {
+              const isExpanded  = expandedGroups[group.key] !== false;
+              const pChecked    = rowChecked[group.key] === true;
+              const pIndeterminate = !pChecked && group.items.some((item) => rowChecked[`${group.key}__${item.key}`] === true);
+
+              return (
+                <React.Fragment key={group.key}>
+                  {/* Parent row */}
+                  <TableRow sx={{ bgcolor: '#faf8ff', '&:hover td': { bgcolor: '#f3eeff' } }}>
+                    <TableCell sx={{ ...cellSx, pl: 2.5 }}>
+                      <Checkbox
+                        checked={pChecked}
+                        indeterminate={pIndeterminate}
+                        onChange={(e) => handleParentCheck(group.key, e.target.checked)}
+                        sx={cbSx}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ ...cellSx, fontWeight: 700, color: '#111827', pl: 2 }}>
+                      {group.label}
+                    </TableCell>
+                    <TableCell sx={cellSx}>
+                      <BadgeCell actions={group.actions ?? []} />
+                    </TableCell>
+                    <TableCell sx={{ ...cellSx, textAlign: 'center', pr: 2 }}>
+                      <ExpandBtn
+                        expanded={isExpanded}
+                        onClick={() =>
+                          setExpandedGroups((prev) => ({ ...prev, [group.key]: !isExpanded }))
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Child rows */}
+                  {isExpanded &&
+                    group.items.map((item) => {
+                      const ck       = `${group.key}__${item.key}`;
+                      const cChecked = rowChecked[ck] === true;
+                      return (
+                        <TableRow key={item.key} sx={{ bgcolor: '#fff', '&:hover td': { bgcolor: '#faf8ff' } }}>
+                          <TableCell sx={{ ...cellSx, pl: 2.5 }}>
+                            <Checkbox
+                              checked={cChecked}
+                              onChange={(e) => handleChildCheck(group.key, item.key, e.target.checked)}
+                              sx={cbSx}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ ...cellSx, color: '#374151', pl: 3.5 }}>
+                            — {item.label}
+                          </TableCell>
+                          <TableCell sx={cellSx}>
+                            <BadgeCell actions={item.actions} />
+                          </TableCell>
+                          <TableCell sx={{ ...cellSx, textAlign: 'center', pr: 2 }}>
+                            <EditBtn
+                              onClick={() => {
+                                setEditItem(item);
+                                setEditOpen(true);
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </React.Fragment>
+              );
+            })}
+
+            {/* ▸ Standalone rows */}
+            {standalone.map((item) => {
+              const cChecked = rowChecked[item.key] === true;
+              return (
+                <TableRow key={item.key} sx={{ bgcolor: '#fff', '&:hover td': { bgcolor: '#faf8ff' } }}>
+                  <TableCell sx={{ ...cellSx, pl: 2.5 }}>
+                    <Checkbox
+                      checked={cChecked}
+                      onChange={(e) => handleStandaloneCheck(item.key, e.target.checked)}
+                      sx={cbSx}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ ...cellSx, fontWeight: 600, color: '#111827', pl: 2 }}>
+                    {item.label}
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    <BadgeCell actions={item.actions} />
+                  </TableCell>
+                  <TableCell sx={{ ...cellSx, textAlign: 'center', pr: 2 }}>
+                            <EditBtn
+                              onClick={() => {
+                                setEditItem(item);
+                                setEditOpen(true);
+                              }}
+                            />
+                          </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Edit Dialog */}
+      <EditPermissionsDialog
+        open={editOpen}
+        item={editItem}
+        onClose={() => { setEditOpen(false); setEditItem(null); }}
+        onSave={(itemKey, checkedKeys) => {
+          // 1. Propagate up to permissionData (badges update)
+          onSaveEdit(itemKey, checkedKeys);
+          // 2. Refresh local editItem so dialog shows updated state if reopened
+          setEditItem((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  actions: prev.actions.map((a) => ({
+                    ...a,
+                    checked: checkedKeys.includes(a.key),
+                  })),
+                }
+              : null,
+          );
+        }}
+      />
+    </>
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════════════════════════════════════ */
 export default function RoleMappingPage() {
-  const [roles, setRoles] = useState([]);
+  const [roles, setRoles]                   = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [permissionData, setPermissionData] = useState({ groups: [], standalone: [] });
-  const [addRoleOpen, setAddRoleOpen] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [saveError, setSaveError] = useState('');
-  const [rolesLoading, setRolesLoading] = useState(true);
-  const [pageLoading, setPageLoading] = useState(false);
+  const [addRoleOpen, setAddRoleOpen]       = useState(false);
+  const [loadError, setLoadError]           = useState('');
+  const [saveError, setSaveError]           = useState('');
+  const [rolesLoading, setRolesLoading]     = useState(true);
+  const [pageLoading, setPageLoading]       = useState(false);
 
+  /* ── Load roles ── */
   useEffect(() => {
     let active = true;
-    const loadRoles = async () => {
+    (async () => {
       try {
-        setRolesLoading(true);
-        setLoadError('');
-        const roleData = await fetchRoles();
+        setRolesLoading(true); setLoadError('');
+        const data = await fetchRoles();
         if (!active) return;
-        const normalizedRoles = roleData.map(normalizeRoleOption);
-        setRoles(normalizedRoles);
-        setSelectedRoleId((prev) => prev || normalizedRoles[0]?.id || '');
-      } catch (error) {
-        if (active) setLoadError(error?.message || 'Unable to load roles.');
+        const normalized = data.map(normalizeRoleOption);
+        setRoles(normalized);
+        setSelectedRoleId((prev) => prev || normalized[0]?.id || '');
+      } catch (e) {
+        if (active) setLoadError(e?.message || 'Unable to load roles.');
       } finally {
         if (active) setRolesLoading(false);
       }
-    };
-    loadRoles();
+    })();
     return () => { active = false; };
   }, []);
 
+  /* ── Load permissions ── */
   const loadRolePermissions = useCallback(async (roleId) => {
     if (!roleId) { setPermissionData({ groups: [], standalone: [] }); return; }
     try {
-      setPageLoading(true);
-      setLoadError('');
-      setSaveError('');
-      const response = await fetchRolePermissions(roleId);
-      setPermissionData(normalizePermissionResponse(response));
-    } catch (error) {
-      setLoadError(error?.message || 'Unable to load role permissions.');
+      setPageLoading(true); setLoadError(''); setSaveError('');
+      setPermissionData(normalizePermissionResponse(await fetchRolePermissions(roleId)));
+    } catch (e) {
+      setLoadError(e?.message || 'Unable to load permissions.');
       setPermissionData({ groups: [], standalone: [] });
     } finally {
       setPageLoading(false);
@@ -354,143 +737,126 @@ export default function RoleMappingPage() {
   useEffect(() => { loadRolePermissions(selectedRoleId); }, [loadRolePermissions, selectedRoleId]);
 
   const selectedRoleLabel = useMemo(
-    () => roles.find((role) => role.id === selectedRoleId)?.label || '',
+    () => roles.find((r) => r.id === selectedRoleId)?.label || '',
     [roles, selectedRoleId],
   );
-
   const summary = useMemo(() => {
-    const groupedItems = permissionData.groups.flatMap((group) => group.items);
-    const allItems = [...groupedItems, ...permissionData.standalone];
-    return {
-      groups: permissionData.groups.length,
-      standalone: permissionData.standalone.length,
-      totalActions: countAllActions(allItems),
-      checkedActions: countCheckedActions(allItems),
-    };
+    const all = [
+      ...permissionData.groups.flatMap((g) => [
+        ...(Array.isArray(g.actions) ? g.actions : []),
+        ...g.items,
+      ]),
+      ...permissionData.standalone,
+    ];
+    return { total: countAllActions(all), checked: countCheckedActions(all) };
   }, [permissionData]);
 
   const fetchRoleOptions = useCallback(async () => roles, [roles]);
 
-  function updateGroupActions(groupKey, nextChecked) {
+  /* ── Save edit from modal → update permissionData ── */
+  function handleSaveEdit(itemKey, checkedKeys) {
     setPermissionData((prev) => ({
-      ...prev,
-      groups: prev.groups.map((group) =>
-        group.key === groupKey
-          ? { ...group, items: group.items.map((item) => ({ ...item, actions: updateActionList(item.actions, nextChecked) })) }
-          : group,
-      ),
-    }));
-  }
-
-  function updateGroupedAction(groupKey, itemKey, actionKey, nextChecked) {
-    setPermissionData((prev) => ({
-      ...prev,
-      groups: prev.groups.map((group) =>
-        group.key === groupKey
-          ? {
-              ...group,
-              items: group.items.map((item) =>
-                item.key === itemKey
-                  ? { ...item, actions: item.actions.map((action) => (action.key === actionKey ? { ...action, checked: nextChecked } : action)) }
-                  : item,
-              ),
-            }
-          : group,
-      ),
-    }));
-  }
-function buildPermissionPayload() {
-  const selected = [];
-
-  permissionData.groups.forEach((group) => {
-    group.items.forEach((item) => {
-      item.actions.forEach((action) => {
-        if (action.checked && action.id) {
-          selected.push(action.id);
-        }
-      });
-    });
-  });
-
-  permissionData.standalone.forEach((item) => {
-    item.actions.forEach((action) => {
-      if (action.checked && action.id) {
-        selected.push(action.id);
-      }
-    });
-  });
-
-  return selected;
-}
-  function updateStandaloneAction(itemKey, actionKey, nextChecked) {
-    setPermissionData((prev) => ({
-      ...prev,
+      groups: prev.groups.map((g) => ({
+        ...g,
+        items: g.items.map((item) =>
+          item.key === itemKey
+            ? { ...item, actions: item.actions.map((a) => ({ ...a, checked: checkedKeys.includes(a.key) })) }
+            : item,
+        ),
+      })),
       standalone: prev.standalone.map((item) =>
         item.key === itemKey
-          ? { ...item, actions: item.actions.map((action) => (action.key === actionKey ? { ...action, checked: nextChecked } : action)) }
+          ? { ...item, actions: item.actions.map((a) => ({ ...a, checked: checkedKeys.includes(a.key) })) }
           : item,
       ),
     }));
   }
 
+  /* ── Build payload ── */
+  function buildPermissionPayload() {
+    const ids = [];
+    permissionData.groups.forEach((g) => {
+      if (Array.isArray(g.actions)) {
+        g.actions.forEach((a) => { if (a.checked && a.id) ids.push(a.id); });
+      }
+      g.items.forEach((item) =>
+        item.actions.forEach((a) => { if (a.checked && a.id) ids.push(a.id); }),
+      );
+    });
+    permissionData.standalone.forEach((item) =>
+      item.actions.forEach((a) => { if (a.checked && a.id) ids.push(a.id); }),
+    );
+    return ids;
+  }
+
+  /* ── Add role ── */
   async function handleAddRole(payload) {
     try {
       setSaveError('');
-      const createdRole = normalizeRoleOption(await createRole({ name: payload.name }));
-      setRoles((prev) => [...prev, createdRole]);
-      setSelectedRoleId(createdRole.id);
+      const created = normalizeRoleOption(await createRole({ name: payload.name }));
+      setRoles((prev) => [...prev, created]);
+      setSelectedRoleId(created.id);
       setAddRoleOpen(false);
-    } catch (error) {
-      setSaveError(error?.message || 'Unable to create role.');
+    } catch (e) {
+      setSaveError(e?.message || 'Unable to create role.');
     }
   }
 
-
-async function handleSubmitPermissions() {
-  try {
-    setSaveError('');
-
-    const permissions = buildPermissionPayload();
-
-    await updateRolePermissionsPost(selectedRoleId, permissions);
-
-    alert('Permissions saved successfully');
-  } catch (error) {
-    setSaveError(error?.message || 'Failed to save permissions');
+  /* ── Submit permissions ── */
+  async function handleSubmitPermissions() {
+    try {
+      setSaveError('');
+      await updateRolePermissionsPost(selectedRoleId, { permissions: buildPermissionPayload() });
+      alert('Permissions saved successfully');
+    } catch (e) {
+      setSaveError(e?.message || 'Failed to save permissions.');
+    }
   }
-}
-  const LoadingState = (
-    <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ minHeight: 180 }}>
-      <CircularProgress size={26} />
-      <Typography fontSize={13} color="#64748b">Loading permissions...</Typography>
-    </Stack>
-  );
 
+  /* ══════════════════════════════════════════════════════════════════════
+     RENDER
+  ══════════════════════════════════════════════════════════════════════ */
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', px: { xs: 2, sm: 3 }, py: 3 }}>
-      {/* Header */}
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f6ff', px: { xs: 2, sm: 3 }, py: 3 }}>
+
+      {/* ── Header ── */}
       <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-        <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <SecurityOutlinedIcon sx={{ fontSize: 20, color: '#2563eb' }} />
+        <Box
+          sx={{
+            width: 44, height: 44, borderRadius: '12px',
+            bgcolor: PRIMARY_LIGHT, border: `1.5px solid ${PRIMARY_BORDER}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}
+        >
+          <SecurityOutlinedIcon sx={{ fontSize: 22, color: PRIMARY }} />
         </Box>
         <Box>
-          <Typography variant="h5" fontWeight={800} color="#111827" letterSpacing="-0.3px">
+          <Typography variant="h5" fontWeight={800} color="#0f172a" letterSpacing="-0.4px">
             Role Mapping
           </Typography>
-          <Typography variant="body2" color="#64748b" mt={0.3}>
-            Role select করলে backend response-এর group, item, আর action tree view-এ দেখাবে।
+          <Typography variant="body2" color="#64748b" mt={0.2}>
+            Manage role-based permissions across all menu items.
           </Typography>
         </Box>
       </Stack>
 
-      {loadError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{loadError}</Alert>}
-      {saveError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{saveError}</Alert>}
+      {loadError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }}>{loadError}</Alert>}
+      {saveError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }}>{saveError}</Alert>}
 
-      {/* Toolbar */}
-      <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
-        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} justifyContent="space-between" sx={{ px: 2.25, py: 2 }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'flex-start' }} sx={{ flex: 1 }}>
-            <Box sx={{ width: { xs: '100%', md: 300 } }}>
+      {/* ── Toolbar ── */}
+      <Paper
+        elevation={0}
+        sx={{ mb: 2.5, borderRadius: '12px', border: `1px solid ${PRIMARY_BORDER}`, overflow: 'hidden', bgcolor: '#fff' }}
+      >
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          justifyContent="space-between"
+          sx={{ px: 2.5, py: 2 }}
+        >
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ flex: 1 }}>
+            <Box sx={{ width: { xs: '100%', sm: 280 } }}>
               <SelectDropdownSingle
                 name="roleId"
                 label="Role"
@@ -505,111 +871,75 @@ async function handleSubmitPermissions() {
               startIcon={<RefreshRoundedIcon />}
               onClick={() => loadRolePermissions(selectedRoleId)}
               disabled={!selectedRoleId || pageLoading}
-              sx={{ minHeight: 45, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+              sx={{
+                minHeight: 42, borderRadius: '8px', textTransform: 'none', fontWeight: 600,
+                borderColor: PRIMARY_BORDER, color: PRIMARY,
+                '&:hover': { borderColor: PRIMARY, bgcolor: PRIMARY_LIGHT },
+              }}
             >
               Refresh
             </Button>
           </Stack>
-          <Button
-            variant="contained"
-            onClick={() => setAddRoleOpen(true)}
-            sx={{ minHeight: 45, borderRadius: 2, textTransform: 'none', fontWeight: 700, px: 2.5, alignSelf: { xs: 'stretch', lg: 'flex-start' } }}
-          >
-            Add Role
-          </Button>
-        </Stack>
 
-        <Divider />
-
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ px: 2.25, py: 1.5, bgcolor: '#f8fafc' }}>
-          <Chip label={`Role: ${selectedRoleLabel || 'No role selected'}`} sx={{ borderRadius: '999px', bgcolor: '#fff', fontWeight: 700 }} />
-          <Chip label={`Groups: ${summary.groups}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
-          <Chip label={`Standalone: ${summary.standalone}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
-          <Chip label={`Assigned Actions: ${summary.checkedActions}/${summary.totalActions}`} sx={{ borderRadius: '999px', bgcolor: '#fff' }} />
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            {selectedRoleLabel && (
+              <Chip
+                label={`${selectedRoleLabel} · ${summary.checked} / ${summary.total}`}
+                size="small"
+                sx={{
+                  bgcolor: PRIMARY_LIGHT, color: PRIMARY,
+                  fontWeight: 600, border: `1px solid ${PRIMARY_BORDER}`,
+                  borderRadius: '6px', fontSize: 12.5,
+                }}
+              />
+            )}
+            <Button
+              variant="contained"
+              onClick={() => setAddRoleOpen(true)}
+              sx={{
+                minHeight: 42, borderRadius: '8px', textTransform: 'none',
+                fontWeight: 600, px: 2.5,
+                bgcolor: PRIMARY, boxShadow: `0 2px 8px rgba(80,0,240,0.25)`,
+                '&:hover': { bgcolor: PRIMARY_DARK },
+              }}
+            >
+              + Add Role
+            </Button>
+          </Stack>
         </Stack>
       </Paper>
 
-      {/* Two-column grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-        {/* Group Permissions */}
-        <Paper elevation={0} sx={{ borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
-          <Box sx={{ px: 2.25, py: 1.75 }}>
-            <Typography fontSize={15} fontWeight={800} color="#0f172a">Group Permissions</Typography>
-            <Typography fontSize={12.5} color="#64748b" mt={0.4}>
-              groups array — collapse/expand করে items ও actions দেখুন।
-            </Typography>
-          </Box>
-          <Divider />
+      {/* ── Permissions Table ── */}
+      <Paper
+        elevation={0}
+        sx={{ borderRadius: '12px', border: `1px solid ${PRIMARY_BORDER}`, overflow: 'hidden', bgcolor: '#fff' }}
+      >
+        <PermissionTable
+          groups={permissionData.groups}
+          standalone={permissionData.standalone}
+          loading={pageLoading}
+          onSaveEdit={handleSaveEdit}
+          permissionData={permissionData}
+          setPermissionData={setPermissionData}
+        />
+      </Paper>
 
-          {pageLoading ? LoadingState : permissionData.groups.length === 0 ? (
-            <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 150 }}>
-              <Typography fontSize={13.5} fontWeight={700} color="#334155">No grouped permissions found.</Typography>
-            </Stack>
-          ) : (
-            /* ── All groups in one single Box ── */
-            <Box sx={{ p: 1.75 }}>
-              <Stack spacing={1.25}>
-                {permissionData.groups.map((group) => (
-                  <TreeGroupSection
-                    key={group.key}
-                    group={group}
-                    onToggleAll={(checked) => updateGroupActions(group.key, checked)}
-                    onToggleAction={(itemKey, actionKey, checked) =>
-                      updateGroupedAction(group.key, itemKey, actionKey, checked)
-                    }
-                  />
-                ))}
-              </Stack>
-            </Box>
-          )}
-        </Paper>
-
-        {/* Standalone Permissions */}
-        <Paper elevation={0} sx={{ borderRadius: '14px', border: '1px solid #dbe4ee', overflow: 'hidden' }}>
-          <Box sx={{ px: 2.25, py: 1.75 }}>
-            <Typography fontSize={15} fontWeight={800} color="#0f172a">Standalone Permissions</Typography>
-            <Typography fontSize={12.5} color="#64748b" mt={0.4}>
-              standalone array — সরাসরি items ও actions।
-            </Typography>
-          </Box>
-          <Divider />
-
-          {pageLoading ? LoadingState : permissionData.standalone.length === 0 ? (
-            <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 150 }}>
-              <Typography fontSize={13.5} fontWeight={700} color="#334155">No standalone permissions found.</Typography>
-            </Stack>
-          ) : (
-            /* ── All standalone items in one single Box ── */
-            <Box sx={{ p: 1.75 }}>
-              <Stack spacing={0.75}>
-                {permissionData.standalone.map((item) => (
-                  <TreeItemRow
-                    key={item.key}
-                    item={item}
-                    onActionToggle={(actionKey, checked) => updateStandaloneAction(item.key, actionKey, checked)}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          )}
-        </Paper>
-      </Box>
-
-      <Stack direction="row" justifyContent="flex-end" mt={2}>
-  <Button
-    variant="contained"
-    onClick={handleSubmitPermissions}
-    disabled={!selectedRoleId || pageLoading}
-    sx={{
-      borderRadius: 2,
-      textTransform: 'none',
-      fontWeight: 700,
-      px: 3,
-    }}
-  >
-    Save Permissions
-  </Button>
-</Stack>
+      {/* ── Save ── */}
+      <Stack direction="row" justifyContent="flex-end" mt={2.5}>
+        <Button
+          variant="contained"
+          onClick={handleSubmitPermissions}
+          disabled={!selectedRoleId || pageLoading}
+          sx={{
+            borderRadius: '8px', textTransform: 'none', fontWeight: 600,
+            px: 3.5, minHeight: 42,
+            bgcolor: PRIMARY, boxShadow: `0 2px 8px rgba(80,0,240,0.25)`,
+            '&:hover': { bgcolor: PRIMARY_DARK },
+          }}
+        >
+          Save Permissions
+        </Button>
+      </Stack>
 
       <AddRoleDialog
         open={addRoleOpen}
@@ -619,7 +949,3 @@ async function handleSubmitPermissions() {
     </Box>
   );
 }
-
-
-
-
