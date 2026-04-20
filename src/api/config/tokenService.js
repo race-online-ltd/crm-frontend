@@ -1,8 +1,10 @@
-const ACCESS_TOKEN_KEY = "auth_token";
+const ACCESS_TOKEN_KEYS = ["auth_token", "token", "access_token"];
 const USER_KEY = "auth_user";
 const TAB_ID_KEY = "auth_tab_id";
 const ACTIVE_TABS_KEY = "auth_active_tabs";
 const LAST_ACTIVITY_KEY = "auth_last_activity";
+const AUTH_CLOSE_PENDING_KEY = "auth_close_pending_at";
+const BROWSER_CLOSE_GRACE_MS = 3000;
 
 function getStorage() {
   if (typeof window === "undefined") {
@@ -18,6 +20,21 @@ function getSessionStorage() {
   }
 
   return window.sessionStorage;
+}
+
+function readTokenFromStorage(storage) {
+  if (!storage) {
+    return null;
+  }
+
+  for (const key of ACCESS_TOKEN_KEYS) {
+    const token = storage.getItem(key);
+    if (token) {
+      return token;
+    }
+  }
+
+  return null;
 }
 
 function readActiveTabs(storage) {
@@ -50,20 +67,35 @@ function createTabId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function clearAuthStorage(storage) {
+  if (!storage) {
+    return;
+  }
+
+  ACCESS_TOKEN_KEYS.forEach((key) => storage.removeItem(key));
+  storage.removeItem(USER_KEY);
+  storage.removeItem(AUTH_CLOSE_PENDING_KEY);
+}
+
 export const tokenService = {
   getAccessToken() {
-    const storage = getStorage();
-    return storage ? storage.getItem(ACCESS_TOKEN_KEY) : null;
+    return readTokenFromStorage(getStorage());
   },
 
   setAccessToken(token) {
     const storage = getStorage();
-    storage?.setItem(ACCESS_TOKEN_KEY, token);
+    if (!storage) {
+      return;
+    }
+
+    ACCESS_TOKEN_KEYS.forEach((key) => {
+      storage.setItem(key, token);
+    });
+    storage.removeItem(AUTH_CLOSE_PENDING_KEY);
   },
 
   removeAccessToken() {
-    const storage = getStorage();
-    storage?.removeItem(ACCESS_TOKEN_KEY);
+    clearAuthStorage(getStorage());
   },
 
   getUser() {
@@ -83,17 +115,18 @@ export const tokenService = {
   setUser(user) {
     const storage = getStorage();
     storage?.setItem(USER_KEY, JSON.stringify(user));
+    storage?.removeItem(AUTH_CLOSE_PENDING_KEY);
   },
 
   removeUser() {
     const storage = getStorage();
     storage?.removeItem(USER_KEY);
+    storage?.removeItem(AUTH_CLOSE_PENDING_KEY);
   },
 
   clearAuth() {
     const storage = getStorage();
-    storage?.removeItem(ACCESS_TOKEN_KEY);
-    storage?.removeItem(USER_KEY);
+    clearAuthStorage(storage);
     storage?.removeItem(ACTIVE_TABS_KEY);
     storage?.removeItem(LAST_ACTIVITY_KEY);
   },
@@ -127,6 +160,7 @@ export const tokenService = {
       writeActiveTabs(storage, tabs);
     }
 
+    storage.removeItem(AUTH_CLOSE_PENDING_KEY);
     return tabs;
   },
 
@@ -144,7 +178,8 @@ export const tokenService = {
       return tabs;
     }
 
-    this.clearAuth();
+    storage.setItem(AUTH_CLOSE_PENDING_KEY, String(Date.now()));
+    storage.removeItem(ACTIVE_TABS_KEY);
     return [];
   },
 
@@ -172,5 +207,34 @@ export const tokenService = {
   removeLastActivity() {
     const storage = getStorage();
     storage?.removeItem(LAST_ACTIVITY_KEY);
+  },
+
+  getClosePendingAt() {
+    const storage = getStorage();
+    if (!storage) {
+      return null;
+    }
+
+    const raw = storage.getItem(AUTH_CLOSE_PENDING_KEY);
+    const timestamp = Number(raw);
+    return Number.isFinite(timestamp) ? timestamp : null;
+  },
+
+  isClosePendingExpired() {
+    const pendingAt = this.getClosePendingAt();
+    if (!pendingAt) {
+      return false;
+    }
+
+    return Date.now() - pendingAt >= BROWSER_CLOSE_GRACE_MS;
+  },
+
+  clearClosePending() {
+    const storage = getStorage();
+    storage?.removeItem(AUTH_CLOSE_PENDING_KEY);
+  },
+
+  getBrowserCloseGraceMs() {
+    return BROWSER_CLOSE_GRACE_MS;
   },
 };

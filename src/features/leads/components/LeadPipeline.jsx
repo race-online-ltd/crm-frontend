@@ -1,5 +1,5 @@
 // src/features/leads/components/LeadPipeline.jsx
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   Box, Typography, Card, CardContent, Chip, Stack, IconButton,
@@ -19,12 +19,19 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import ForwardIcon from '@mui/icons-material/Forward';
 import AddTaskIcon from '@mui/icons-material/AddTask';
-import StageChangeDialog from './StageChangeDialog';
-import LeadForwardDialog from './LeadForwardDialog';
-import ViewDetailsDrawer from './ViewDetailsDrawer';
-import TaskForm from '../../task/components/TaskForm';
 import OrbitLoader from '../../../components/shared/OrbitLoader';
 import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
+
+const StageChangeDialog = React.lazy(() => import('./StageChangeDialog'));
+const LeadForwardDialog = React.lazy(() => import('./LeadForwardDialog'));
+const ViewDetailsDrawer = React.lazy(() => import('./ViewDetailsDrawer'));
+const TaskForm = React.lazy(() => import('../../task/components/TaskForm'));
+
+const DialogLoading = (
+  <Box sx={{ p: 3, textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
+    Loading...
+  </Box>
+);
 
 // ── Stage config ──
 const STAGES = [
@@ -540,30 +547,38 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
       )}
 
       {/* Stage Change Confirmation Dialog */}
-      <StageChangeDialog
-        open={stageChangeDialog.open}
-        onClose={handleCancelStageChange}
-        onConfirm={handleConfirmStageChange}
-        leadName={stageChangeDialog.lead?.name || ''}
-        fromStage={stageChangeDialog.fromStage}
-        toStage={stageChangeDialog.toStage}
-      />
+      <Suspense fallback={DialogLoading}>
+        {stageChangeDialog.open ? (
+          <StageChangeDialog
+            open={stageChangeDialog.open}
+            onClose={handleCancelStageChange}
+            onConfirm={handleConfirmStageChange}
+            leadName={stageChangeDialog.lead?.name || ''}
+            fromStage={stageChangeDialog.fromStage}
+            toStage={stageChangeDialog.toStage}
+          />
+        ) : null}
+      </Suspense>
 
       {/* Forward Lead Dialog */}
-      <LeadForwardDialog
-        open={forwardDialog.open}
-        onClose={() => setForwardDialog({ open: false, lead: null })}
-        onForward={(data) => {
-          console.log('Forward lead:', { leadId: forwardDialog.lead?.id, ...data });
-          appendLeadActivity(forwardDialog.lead?.id, {
-            title: 'Lead forwarded',
-            description: `Lead was forwarded${data?.to ? ` to ${data.to}` : ''}${data?.note ? `. Note: ${data.note}` : '.'}`,
-          });
-          // TODO: Send to backend API
-          setForwardDialog({ open: false, lead: null });
-        }}
-        leadName={forwardDialog.lead?.name || ''}
-      />
+      <Suspense fallback={DialogLoading}>
+        {forwardDialog.open ? (
+          <LeadForwardDialog
+            open={forwardDialog.open}
+            onClose={() => setForwardDialog({ open: false, lead: null })}
+            onForward={(data) => {
+              console.log('Forward lead:', { leadId: forwardDialog.lead?.id, ...data });
+              appendLeadActivity(forwardDialog.lead?.id, {
+                title: 'Lead forwarded',
+                description: `Lead was forwarded${data?.to ? ` to ${data.to}` : ''}${data?.note ? `. Note: ${data.note}` : '.'}`,
+              });
+              // TODO: Send to backend API
+              setForwardDialog({ open: false, lead: null });
+            }}
+            leadName={forwardDialog.lead?.name || ''}
+          />
+        ) : null}
+      </Suspense>
 
       {/* Add Task Dialog */}
       <Dialog
@@ -579,45 +594,51 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ pt: 2.5, overflow: 'visible' }}>
-          <TaskForm
-            initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null }}
-            lockedAssociation={taskDialog.lead ? {
-              mode: 'lead',
-              option: { id: taskDialog.lead.id, label: taskDialog.lead.name },
-            } : null}
-            onCancel={() => setTaskDialog({ open: false, lead: null })}
-            onSubmit={(payload) => {
-              console.log('Task created:', payload);
-              appendLeadTask(taskDialog.lead?.id, {
-                leadName: taskDialog.lead?.name || '',
-                taskType: payload?.taskType || '',
-                title: payload?.title || 'Untitled Task',
-                details: payload?.details || '',
-                scheduledAt: payload?.scheduledAt || null,
-                location: payload?.location || null,
-              });
-              appendLeadActivity(taskDialog.lead?.id, {
-                title: 'Task created',
-                description: `A follow-up task was added${payload?.title ? `: ${payload.title}` : ''}.`,
-              });
-              // TODO: Send to backend API
-              setTaskDialog({ open: false, lead: null });
-            }}
-          />
+          <Suspense fallback={DialogLoading}>
+            {taskDialog.open ? (
+              <TaskForm
+                initialValues={{ lead: taskDialog.lead?.id || '', client: '', taskType: '', title: '', details: '', scheduledAt: null, location: null }}
+                lockedAssociation={taskDialog.lead ? {
+                  mode: 'lead',
+                  option: { id: taskDialog.lead.id, label: taskDialog.lead.name },
+                } : null}
+                onCancel={() => setTaskDialog({ open: false, lead: null })}
+                onSubmit={(payload) => {
+                  console.log('Task created:', payload);
+                  appendLeadTask(taskDialog.lead?.id, {
+                    leadName: taskDialog.lead?.name || '',
+                    taskType: payload?.taskType || '',
+                    title: payload?.title || 'Untitled Task',
+                    details: payload?.details || '',
+                    scheduledAt: payload?.scheduledAt || null,
+                    location: payload?.location || null,
+                  });
+                  appendLeadActivity(taskDialog.lead?.id, {
+                    title: 'Task created',
+                    description: `A follow-up task was added${payload?.title ? `: ${payload.title}` : ''}.`,
+                  });
+                  // TODO: Send to backend API
+                  setTaskDialog({ open: false, lead: null });
+                }}
+              />
+            ) : null}
+          </Suspense>
         </DialogContent>
       </Dialog>
 
-      {viewDetailsDrawer.open ? (
-        <ViewDetailsDrawer
-          open={viewDetailsDrawer.open}
-          onClose={() => setViewDetailsDrawer({ open: false, lead: null })}
-          lead={viewDetailsDrawer.lead}
-          notes={leadNotes[viewDetailsDrawer.lead?.id] || []}
-          activities={leadActivities[viewDetailsDrawer.lead?.id] || []}
-          tasks={leadTasks[viewDetailsDrawer.lead?.id] || []}
-          onAddNote={handleAddNote}
-        />
-      ) : null}
+      <Suspense fallback={DialogLoading}>
+        {viewDetailsDrawer.open ? (
+          <ViewDetailsDrawer
+            open={viewDetailsDrawer.open}
+            onClose={() => setViewDetailsDrawer({ open: false, lead: null })}
+            lead={viewDetailsDrawer.lead}
+            notes={leadNotes[viewDetailsDrawer.lead?.id] || []}
+            activities={leadActivities[viewDetailsDrawer.lead?.id] || []}
+            tasks={leadTasks[viewDetailsDrawer.lead?.id] || []}
+            onAddNote={handleAddNote}
+          />
+        ) : null}
+      </Suspense>
     </Box>
   );
 }

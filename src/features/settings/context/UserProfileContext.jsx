@@ -8,6 +8,7 @@ import {
   logout as logoutApi,
   me as meApi,
 } from '../../../api/authAPI';
+import { setAuthHeaders } from '../../../api/config/axiosInstance';
 import { tokenService } from '../../../api/config/tokenService';
 
 const UserProfileContext = createContext(null);
@@ -58,12 +59,34 @@ function persistUser(profile) {
   tokenService.setUser(profile);
 }
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string' || token.split('.').length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), '=');
+    return JSON.parse(window.atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function isJwtExpired(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) {
+    return false;
+  }
+
+  return Date.now() >= (payload.exp * 1000);
+}
+
 export function UserProfileProvider({ children }) {
-  const [token, setToken] = useState(() => (
-    tokenService.getAccessToken() || ''
-  ));
-  const [profile, setProfile] = useState(readStoredUser);
-  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(token));
+  const [token, setToken] = useState('');
+  const [profile, setProfile] = useState(defaultProfile);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   const syncAuthState = useCallback((nextToken, nextProfile) => {
     setToken(nextToken || '');
@@ -72,10 +95,38 @@ export function UserProfileProvider({ children }) {
 
     if (nextToken) {
       tokenService.setAccessToken(nextToken);
+      setAuthHeaders(nextToken);
       persistUser(nextProfile || defaultProfile);
+      tokenService.registerTab();
     } else {
       tokenService.clearAuth();
+      setAuthHeaders('');
     }
+  }, []);
+
+  const bootstrapAuth = useCallback(() => {
+    const storedToken = tokenService.getAccessToken() || '';
+    const closePendingExpired = tokenService.isClosePendingExpired();
+    const hasExpired = storedToken ? isJwtExpired(storedToken) : false;
+
+    if (!storedToken || hasExpired || closePendingExpired) {
+      tokenService.clearAuth();
+      setAuthHeaders('');
+      setToken('');
+      setProfile(defaultProfile);
+      setIsAuthenticated(false);
+      return;
+    }
+
+    const storedUser = tokenService.getUser();
+    const nextProfile = storedUser ? readStoredUser() : defaultProfile;
+
+    tokenService.setAccessToken(storedToken);
+    tokenService.clearClosePending();
+    setAuthHeaders(storedToken);
+    setToken(storedToken);
+    setProfile(nextProfile);
+    setIsAuthenticated(true);
   }, []);
 
   const applyProfileUpdate = useCallback((updates = {}) => {
@@ -121,6 +172,10 @@ export function UserProfileProvider({ children }) {
 
     if (!storedToken) {
       tokenService.removeUser();
+      setAuthHeaders('');
+    } else {
+      tokenService.clearClosePending();
+      setAuthHeaders(storedToken);
     }
   }, []);
 
@@ -159,9 +214,16 @@ export function UserProfileProvider({ children }) {
   const changePassword = useCallback(async (payload) => changePasswordApi(payload), []);
 
   useEffect(() => {
-    initAuth();
-    tokenService.registerTab();
-  }, [initAuth]);
+    const frameId = window.requestAnimationFrame(() => {
+      bootstrapAuth();
+      if (tokenService.getAccessToken()) {
+        tokenService.registerTab();
+      }
+      setAuthReady(true);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [bootstrapAuth]);
 
   useEffect(() => {
     const handleStorageChange = (event) => {
@@ -175,6 +237,7 @@ export function UserProfileProvider({ children }) {
       setToken(nextToken);
       setProfile(nextProfile);
       setIsAuthenticated(Boolean(nextToken));
+      setAuthHeaders(nextToken);
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -200,9 +263,11 @@ export function UserProfileProvider({ children }) {
     profile,
     token,
     isAuthenticated,
+    authReady,
     login,
     logout,
     initAuth,
+    bootstrapAuth,
     me,
     getProfile,
     changePassword,
@@ -218,7 +283,9 @@ export function UserProfileProvider({ children }) {
     logout,
     me,
     profile,
+    bootstrapAuth,
     token,
+    authReady,
     updateProfile,
     updateUser,
   ]);

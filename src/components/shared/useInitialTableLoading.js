@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 
-export default function useInitialTableLoading(delay = 1000) {
+export default function useInitialTableLoading() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
+    const frameId = window.requestAnimationFrame(() => {
       setIsLoading(false);
-    }, delay);
+    });
 
-    return () => window.clearTimeout(timeoutId);
-  }, [delay]);
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
 
   return isLoading;
 }
