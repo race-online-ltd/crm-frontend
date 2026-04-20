@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
-  IconButton,
+  Button,
+  Checkbox,
   Paper,
   Stack,
   Table,
@@ -13,11 +14,9 @@ import {
   Typography,
 } from '@mui/material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import OrbitLoader from '../../../components/shared/OrbitLoader';
 import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
-import DataAccessPermissionDialog from '../components/DataAccessPermissionDialog';
 import {
   BUSINESS_ENTITIES,
   CRITERIA_OPTIONS,
@@ -27,34 +26,78 @@ import {
   getMockFieldLevelAccessControl,
   permissionLabel,
 } from '../constants/dataAccessControl';
+import { fetchRoles, fetchPageNames, fetchPageFeatures, getUserViewPermissions, updateUserViewPermissions } from '../api/settingsApi';
+
 
 export default function DataAccessControlPage() {
   const isLoading = useInitialTableLoading();
   const [selectedCriteria, setSelectedCriteria] = useState(CRITERIA_OPTIONS[0].id);
-  const [selectedRole, setSelectedRole] = useState(ROLE_OPTIONS[0].id);
-  const [selectedFeature, setSelectedFeature] = useState(FEATURE_OPTIONS[0].id);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedFeature, setSelectedFeature] = useState('');
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [pageOptions, setPageOptions] = useState([]);
+  const [pageFeatures, setPageFeatures] = useState([]);
+  const [selectedFieldIds, setSelectedFieldIds] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [accessControl, setAccessControl] = useState(() => (
     getMockBusinessEntityAccessControl(ROLE_OPTIONS[0].id, FEATURE_OPTIONS[0].id)
   ));
-  const [activeField, setActiveField] = useState(null);
 
   const selectedRoleLabel = useMemo(
-    () => ROLE_OPTIONS.find((item) => item.id === selectedRole)?.label || '',
-    [selectedRole],
+    () => roleOptions.find((item) => item.id === selectedRole)?.label
+      || ROLE_OPTIONS.find((item) => item.id === selectedRole)?.label
+      || '',
+    [roleOptions, selectedRole],
   );
 
   const selectedFeatureLabel = useMemo(
-    () => FEATURE_OPTIONS.find((item) => item.id === selectedFeature)?.label || '',
-    [selectedFeature],
+    () => pageOptions.find((item) => item.id === selectedFeature)?.label
+      || FEATURE_OPTIONS.find((item) => item.id === selectedFeature)?.label
+      || '',
+    [pageOptions, selectedFeature],
   );
 
   async function fetchCriteriaOptions() {
     return CRITERIA_OPTIONS;
   }
 
-  async function fetchRoleOptions() {
-    return ROLE_OPTIONS;
-  }
+  const fetchRoleOptions = useCallback(async () => {
+    try {
+      const rawRoles = await fetchRoles();
+      const normalizedRoles = Array.isArray(rawRoles)
+        ? rawRoles.map((role) => ({
+            ...role,
+            id: role?.id ?? '',
+            label: role?.label || role?.name || 'Unnamed Role',
+          }))
+        : [];
+      setRoleOptions(normalizedRoles);
+      return normalizedRoles;
+    } catch {
+      setRoleOptions([]);
+      return [];
+    }
+  }, []);
+
+  const fetchPageOptions = useCallback(async () => {
+    try {
+      const rawPages = await fetchPageNames();
+      const normalizedPages = Array.isArray(rawPages)
+        ? rawPages.map((page) => ({
+            ...page,
+            id: page?.id ?? '',
+            label: page?.label || 'Unnamed Page',
+          }))
+        : [];
+      setPageOptions(normalizedPages);
+      return normalizedPages;
+    } catch {
+      setPageOptions([]);
+      return [];
+    }
+  }, []);
+
+ 
 
   async function fetchFeatureOptions() {
     return FEATURE_OPTIONS;
@@ -83,23 +126,125 @@ export default function DataAccessControlPage() {
 
   function handleFeatureChange(featureKey) {
     setSelectedFeature(featureKey);
+    setSelectedFieldIds([]); // Reset selections when page changes
+    setSelectAll(false);
     loadAccessControl(selectedCriteria, selectedRole, featureKey);
     setActiveField(null);
   }
 
-  function handleSavePermissions(fieldName, permissions) {
-    setAccessControl((prev) => ({
-      ...prev,
-      fields: prev.fields.map((field) => (
-        field.fieldName === fieldName
-          ? { ...field, permissions }
-          : field
-      )),
-    }));
+  function handleFieldSelection(fieldId, checked) {
+    setSelectedFieldIds((prev) =>
+      checked
+        ? [...prev, fieldId]
+        : prev.filter((id) => id !== fieldId)
+    );
+  }
 
-    // Ready for backend integration later:
-    // await axios.post('/settings/data-access-control', { criteria: selectedCriteria, ...updatedPayload });
-    setActiveField(null);
+  function handleSelectAll(checked) {
+    if (checked) {
+      const allIds = accessControl.fields.map((field) => field.id);
+      setSelectedFieldIds(allIds);
+      setSelectAll(true);
+    } else {
+      setSelectedFieldIds([]);
+      setSelectAll(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedRole && roleOptions.length > 0) {
+      const firstRoleId = roleOptions[0].id;
+      setSelectedRole(firstRoleId);
+      loadAccessControl(selectedCriteria, firstRoleId, selectedFeature);
+    }
+  }, [roleOptions, selectedRole, selectedCriteria, selectedFeature]);
+
+  useEffect(() => {
+    if (!selectedFeature && pageOptions.length > 0) {
+      const firstPageId = pageOptions[0].id;
+      setSelectedFeature(firstPageId);
+      loadAccessControl(selectedCriteria, selectedRole, firstPageId);
+    }
+  }, [pageOptions, selectedFeature, selectedCriteria, selectedRole]);
+
+  useEffect(() => {
+    const loadPageFeatures = async () => {
+      if (selectedFeature) {
+        try {
+          const features = await fetchPageFeatures(selectedFeature);
+          const normalizedFeatures = Array.isArray(features)
+            ? features.map((feature) => ({
+                id: feature?.id,
+                fieldName: feature?.feature_name || 'Unnamed Feature',
+                permissions: {}, // Initialize with empty permissions
+              }))
+            : [];
+          setPageFeatures(normalizedFeatures);
+          setAccessControl((prev) => ({
+            ...prev,
+            fields: normalizedFeatures,
+          }));
+        } catch (error) {
+          console.error('Failed to load page features:', error);
+          setPageFeatures([]);
+          setAccessControl((prev) => ({
+            ...prev,
+            fields: [],
+          }));
+        }
+      } else {
+        setPageFeatures([]);
+        setAccessControl((prev) => ({
+          ...prev,
+          fields: [],
+        }));
+      }
+    };
+
+    loadPageFeatures();
+  }, [selectedFeature]);
+
+  useEffect(() => {
+    const loadExistingPermissions = async () => {
+      if (selectedRole && selectedFeature) {
+        try {
+          const existing = await getUserViewPermissions(selectedRole, selectedFeature);
+          const selectedIds = Array.isArray(existing)
+            ? existing.map((featureId) => featureId)
+            : [];
+          setSelectedFieldIds(selectedIds.filter(Boolean));
+          setSelectAll(selectedIds.length === accessControl.fields.length && accessControl.fields.length > 0);
+        } catch (error) {
+          console.error('Failed to load existing permissions:', error);
+          setSelectedFieldIds([]);
+          setSelectAll(false);
+        }
+      } else {
+        setSelectedFieldIds([]);
+        setSelectAll(false);
+      }
+    };
+
+    loadExistingPermissions();
+  }, [selectedRole, selectedFeature, accessControl.fields]);
+
+  useEffect(() => {
+    setSelectAll(selectedFieldIds.length === accessControl.fields.length && accessControl.fields.length > 0);
+  }, [selectedFieldIds, accessControl.fields]);
+
+  function handleSave() {
+    updateUserViewPermissions({
+      role_id: selectedRole,
+      navigation_id: selectedFeature,
+      feature_ids: selectedFieldIds,
+    })
+      .then(() => {
+        alert('Permissions updated successfully');
+      })
+      .catch((error) => {
+        console.error('Failed to update permissions:', error);
+        alert('Failed to update permissions');
+      });
   }
 
   return (
@@ -134,13 +279,6 @@ export default function DataAccessControlPage() {
           gap: '0px 20px',
         }}
       >
-        <SelectDropdownSingle
-          name="criteria"
-          label="Criteria *"
-          fetchOptions={fetchCriteriaOptions}
-          value={selectedCriteria}
-          onChange={handleCriteriaChange}
-        />
 
         <SelectDropdownSingle
           name="roleId"
@@ -152,8 +290,8 @@ export default function DataAccessControlPage() {
 
         <SelectDropdownSingle
           name="featureKey"
-          label="Feature *"
-          fetchOptions={fetchFeatureOptions}
+          label="Page Name *"
+          fetchOptions={fetchPageOptions}
           value={selectedFeature}
           onChange={handleFeatureChange}
         />
@@ -176,27 +314,25 @@ export default function DataAccessControlPage() {
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, minWidth: 160 }}>Fields</TableCell>
-                  {BUSINESS_ENTITIES.map((entity) => (
-                    <TableCell key={entity.id} sx={{ fontWeight: 700, minWidth: 140 }}>
-                      {entity.label}
-                    </TableCell>
-                  ))}
-                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>Action</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>
+                    <Checkbox
+                      checked={selectAll}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      indeterminate={selectedFieldIds.length > 0 && selectedFieldIds.length < accessControl.fields.length}
+                    />
+                    Select All
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {accessControl.fields.map((field) => (
-                  <TableRow key={field.fieldName} hover>
+                  <TableRow key={field.id} hover>
                     <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{field.fieldName}</TableCell>
-                    {BUSINESS_ENTITIES.map((entity) => (
-                      <TableCell key={entity.id} sx={{ color: '#475569' }}>
-                        {permissionLabel(field.permissions?.[entity.label]) || '—'}
-                      </TableCell>
-                    ))}
                     <TableCell align="center">
-                      <IconButton size="small" onClick={() => setActiveField(field)}>
-                        <EditOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
-                      </IconButton>
+                      <Checkbox
+                        checked={selectedFieldIds.includes(field.id)}
+                        onChange={(e) => handleFieldSelection(field.id, e.target.checked)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -210,12 +346,19 @@ export default function DataAccessControlPage() {
                   <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Read</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Write</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, minWidth: 100 }}>Modify</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>Action</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 90 }}>
+                    <Checkbox
+                      checked={selectAll}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      indeterminate={selectedFieldIds.length > 0 && selectedFieldIds.length < accessControl.fields.length}
+                    />
+                    Select All
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {accessControl.fields.map((field) => (
-                  <TableRow key={field.fieldName} hover>
+                  <TableRow key={field.id} hover>
                     <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{field.fieldName}</TableCell>
                     <TableCell align="center" sx={{ color: '#475569' }}>
                       {field.permissions?.read ? 'Yes' : '—'}
@@ -227,9 +370,10 @@ export default function DataAccessControlPage() {
                       {field.permissions?.modify ? 'Yes' : '—'}
                     </TableCell>
                     <TableCell align="center">
-                      <IconButton size="small" onClick={() => setActiveField(field)}>
-                        <EditOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
-                      </IconButton>
+                      <Checkbox
+                        checked={selectedFieldIds.includes(field.id)}
+                        onChange={(e) => handleFieldSelection(field.id, e.target.checked)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -239,15 +383,11 @@ export default function DataAccessControlPage() {
         </TableContainer>
       </Paper>
 
-      <DataAccessPermissionDialog
-        open={Boolean(activeField)}
-        criteria={selectedCriteria}
-        fieldConfig={activeField}
-        roleLabel={selectedRoleLabel}
-        featureLabel={selectedFeatureLabel}
-        onClose={() => setActiveField(null)}
-        onSave={handleSavePermissions}
-      />
+      <Box mt={3} display="flex" justifyContent="flex-end">
+        <Button variant="contained" onClick={handleSave}>
+          Save Permissions
+        </Button>
+      </Box>
     </Box>
   );
 }

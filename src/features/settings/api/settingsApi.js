@@ -200,3 +200,41 @@ export async function fetchColumnItems() {
   const response = await api.get('/entity-column-mappings/get-column-items');
   return response.data?.data ?? response.data ?? [];
 }
+
+
+
+// api for user wise view permissuions in page navigation
+
+export async function fetchPageNames() {
+  const response = await api.get('/navigation-items/active');
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+export async function fetchPageFeatures(navigationId) {
+  const response = await api.get(`/navigation-features/${navigationId}`);
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+export async function storeUserViewPermissions(payload) {
+  const response = await api.post('/user-view-permissions/', payload);
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+export async function getUserViewPermissions(role_id, navigation_id) {
+  const response = await api.get('/user-view-permissions', {
+    params: { role_id, navigation_id }
+  });
+
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+export async function updateUserViewPermissions(payload) {
+  const response = await api.put('/user-view-permissions', payload);
+  return response.data?.data ?? response.data ?? [];
+}
