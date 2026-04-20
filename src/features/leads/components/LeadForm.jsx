@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import PersonAddAltIcon       from '@mui/icons-material/PersonAddAlt';
 import CloudUploadIcon        from '@mui/icons-material/CloudUpload';
 import FileDownloadIcon       from '@mui/icons-material/FileDownload';
 import BusinessIcon           from '@mui/icons-material/Business';
@@ -26,6 +25,7 @@ import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMul
 import AmountInputField       from '../../../components/shared/AmountInputField';
 import DatePickerField        from '../../../components/shared/DatePickerField';
 import AttachmentField        from '../../../components/shared/AttachmentField';
+import AddClientButton        from '../../../components/shared/AddClientButton';
 import { buildMultipartFormData } from '../../../utils/formData';
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
@@ -334,23 +334,11 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                 onBlur={handleBlur}
                 error={Boolean(touched.client && errors.client)}
                 helperText={touched.client && errors.client ? errors.client : ' '}
-                disabled={isEdit}
-                searchable={!isEdit}
-              />
+              disabled={isEdit}
+              searchable={!isEdit}
+            />
               {!isEdit && (
-                <Button
-                  variant="contained"
-                  startIcon={<PersonAddAltIcon />}
-                  onClick={() => navigate('/client/new')}
-                  sx={{
-                    height: '45px', fontWeight: 600, fontSize: '0.8rem',
-                    bgcolor: '#2563eb', borderRadius: '8px', boxShadow: 'none',
-                    whiteSpace: 'nowrap', px: 2,
-                    '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' },
-                  }}
-                >
-                  Add Client
-                </Button>
+                <AddClientButton onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })} />
               )}
             </Box>
 
