@@ -1,74 +1,174 @@
 // src/features/target/components/SetTarget.jsx
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Box, Button, Typography, Stack, InputAdornment,
+  Box,
+  Button,
   TextField,
+  Typography,
+  InputAdornment,
 } from '@mui/material';
-import { useFormik }              from 'formik';
-import * as Yup                   from 'yup';
-import CheckCircleOutlineIcon     from '@mui/icons-material/CheckCircleOutline';
-import EmojiEventsIcon            from '@mui/icons-material/EmojiEvents';
-import { useNavigate }            from 'react-router-dom';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { useNavigate } from 'react-router-dom';
 
-import SelectDropdownSingle       from '../../../components/shared/SelectDropdownSingle';
-import SelectDropdownMultiple     from '../../../components/shared/SelectDropdownMultiple';
-import AmountInputField           from '../../../components/shared/AmountInputField';
-import MonthPickerField           from '../components/MonthPickerField';
+import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
+import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
+import { CustomPeriodPicker } from '../../../components/shared/date-picker';
+import {
+  fetchBackoffices,
+  fetchBusinessEntities,
+  fetchProductsByBusinessEntity,
+} from '../../settings/api/settingsApi';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const fetchDivisions = async () => [
-  { id: 'dv1', label: 'Dhaka Central' },
-  { id: 'dv2', label: 'Chattogram' },
-  { id: 'dv3', label: 'Sylhet' },
-  { id: 'dv4', label: 'Khulna' },
-  { id: 'dv5', label: 'Rajshahi' },
-];
-const fetchTargetTypes = async () => [
-  { id: 'revenue', label: 'Revenue' },
-  { id: 'client',  label: 'Clients'  },
-];
-const PRODUCT_OPTIONS = [
-  { id: 'p1', label: 'Product Alpha' },
-  { id: 'p2', label: 'Product Beta'  },
-  { id: 'p3', label: 'Product Gamma' },
-  { id: 'p4', label: 'Product Delta' },
+const TARGET_MODES = [
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'quarterly', label: 'Quarterly' },
 ];
 
-// ─── Validation schema ────────────────────────────────────────────────────────
+const periodSchema = Yup.object({
+  year: Yup.number().required(),
+});
+
+const monthlySchema = periodSchema.shape({
+  month: Yup.number().required(),
+});
+
+const quarterlySchema = periodSchema.shape({
+  quarter: Yup.number().required(),
+});
+
 const setTargetSchema = Yup.object({
-  businessEntities: Yup.array().min(1, 'Select at least one business entity'),
-  division:         Yup.string().required('Division is required'),
-  products:         Yup.array().min(1, 'Select at least one product'),
-  targetType:       Yup.string().oneOf(['client', 'revenue']).required('Target type is required'),
-  targetMonth:      Yup.date().nullable().required('Target month is required'),
-  targetAmount:     Yup.number()
+  businessEntityId: Yup.string().required('Business entity is required'),
+  kamId: Yup.string().required('KAM is required'),
+  targetMode: Yup.string().oneOf(['monthly', 'quarterly']).required('Target mode is required'),
+  targetMonth: monthlySchema.nullable().when('targetMode', {
+    is: 'monthly',
+    then: (schema) => schema.required('Month target is required'),
+    otherwise: (schema) => schema.nullable().notRequired(),
+  }),
+  targetQuarter: quarterlySchema.nullable().when('targetMode', {
+    is: 'quarterly',
+    then: (schema) => schema.required('Quarter target is required'),
+    otherwise: (schema) => schema.nullable().notRequired(),
+  }),
+  products: Yup.array().min(1, 'Select at least one product'),
+  revenueTarget: Yup.number()
     .typeError('Must be a number')
     .positive('Must be greater than 0')
-    .required('Target value is required'),
-  reward:           Yup.string(),
+    .required('Revenue target is required'),
+  reward: Yup.string(),
 });
 
 const INITIAL_VALUES = {
-  businessEntities: [],
-  division:         '',
-  products:         [],
-  targetType:       'revenue',
-  targetMonth:      null,
-  targetAmount:     '',
-  reward:           '',
+  businessEntityId: '',
+  kamId: '',
+  targetMode: 'monthly',
+  targetMonth: null,
+  targetQuarter: null,
+  products: [],
+  revenueTarget: '',
+  reward: '',
 };
 
-// ─── Main SetTarget component ─────────────────────────────────────────────────
+function toOptionList(items = [], labelKey = 'label') {
+  return items
+    .map((item) => ({
+      id: String(item.id),
+      label: String(item[labelKey] ?? item.label ?? ''),
+    }))
+    .filter((item) => item.label);
+}
+
+function buildKamOptions(backoffices = [], businessEntityId = '') {
+  if (!businessEntityId) {
+    return [];
+  }
+
+  const rows = backoffices.filter(
+    (backoffice) => String(backoffice.business_entity_id) === String(businessEntityId)
+  );
+
+  const options = rows.flatMap((backoffice) => (
+    Array.isArray(backoffice.system_users)
+      ? backoffice.system_users.map((user) => ({
+        id: String(user.id),
+        label: user.full_name || user.user_name || `User ${user.id}`,
+      }))
+      : []
+  ));
+
+  return Array.from(
+    new Map(options.map((option) => [option.id, option])).values()
+  ).sort((a, b) => a.label.localeCompare(b.label));
+}
+
 export default function SetTarget({ onCancel, onSubmit }) {
   const navigate = useNavigate();
+  const [businessEntities, setBusinessEntities] = useState([]);
+  const [backoffices, setBackoffices] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loadingBusinessEntities, setLoadingBusinessEntities] = useState(false);
+  const [loadingBackoffices, setLoadingBackoffices] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      setLoadingBusinessEntities(true);
+      setLoadingBackoffices(true);
+
+      try {
+        const [entities, backofficeRows] = await Promise.all([
+          fetchBusinessEntities(),
+          fetchBackoffices(),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setBusinessEntities(toOptionList(entities, 'name'));
+        setBackoffices(Array.isArray(backofficeRows) ? backofficeRows : []);
+      } catch {
+        if (active) {
+          setBusinessEntities([]);
+          setBackoffices([]);
+        }
+      } finally {
+        if (active) {
+          setLoadingBusinessEntities(false);
+          setLoadingBackoffices(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const formik = useFormik({
-    initialValues:    INITIAL_VALUES,
+    initialValues: INITIAL_VALUES,
     validationSchema: setTargetSchema,
-    onSubmit: (values, { setSubmitting }) => {
-      onSubmit?.(values);
-      setSubmitting(false);
-      navigate('/target');
+    onSubmit: async (values, { setSubmitting }) => {
+      const payload = {
+        ...values,
+        targetType: 'revenue',
+        targetMonth: values.targetMode === 'monthly' ? values.targetMonth : null,
+        targetQuarter: values.targetMode === 'quarterly' ? values.targetQuarter : null,
+      };
+
+      try {
+        await onSubmit?.(payload);
+        navigate('/target');
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
@@ -76,6 +176,7 @@ export default function SetTarget({ onCancel, onSubmit }) {
     values,
     errors,
     touched,
+    submitCount,
     isSubmitting,
     setFieldValue,
     handleBlur,
@@ -83,13 +184,88 @@ export default function SetTarget({ onCancel, onSubmit }) {
     handleSubmit,
   } = formik;
 
-  const amountLabel = values.targetType === 'client'
-    ? 'Number of Clients *'
-    : 'Revenue Target (৳) *';
+  const kamOptions = useMemo(
+    () => buildKamOptions(backoffices, values.businessEntityId),
+    [backoffices, values.businessEntityId]
+  );
+
+  const businessEntityFetcher = useCallback(async () => businessEntities, [businessEntities]);
+  const kamFetcher = useCallback(async () => kamOptions, [kamOptions]);
+  const targetModeFetcher = useCallback(async () => TARGET_MODES, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProducts = async () => {
+      if (!values.businessEntityId) {
+        setProducts([]);
+        setLoadingProducts(false);
+        return;
+      }
+
+      setLoadingProducts(true);
+
+      try {
+        const entityProducts = await fetchProductsByBusinessEntity(values.businessEntityId);
+
+        if (!active) {
+          return;
+        }
+
+        const filtered = (Array.isArray(entityProducts) ? entityProducts : [])
+          .map((product) => ({
+            id: String(product.id),
+            label: product.product_name || product.label || `Product ${product.id}`,
+            business_entity_id: product.business_entity_id,
+          }))
+
+        setProducts(filtered);
+      } catch {
+        if (active) {
+          setProducts([]);
+        }
+      } finally {
+        if (active) {
+          setLoadingProducts(false);
+        }
+      }
+    };
+
+    loadProducts();
+
+    return () => {
+      active = false;
+    };
+  }, [values.businessEntityId]);
+
+  useEffect(() => {
+    setFieldValue('kamId', '');
+    setFieldValue('products', []);
+    setFieldValue('targetMonth', null);
+    setFieldValue('targetQuarter', null);
+  }, [values.businessEntityId, setFieldValue]);
+
+  const targetPeriodError = submitCount > 0 || touched.targetMonth || touched.targetQuarter
+    ? (
+      values.targetMode === 'monthly' && !values.targetMonth
+        ? 'Month target is required'
+        : values.targetMode === 'quarterly' && !values.targetQuarter
+          ? 'Quarter target is required'
+          : ''
+    )
+    : '';
+
+  const targetModeError = touched.targetMode && errors.targetMode ? errors.targetMode : ' ';
+  const productDisabled = !values.businessEntityId || !values.kamId;
+  const productHelperText = !values.businessEntityId ? 'Select a business entity first' : ' ';
 
   const handleCancel = () => {
-    if (onCancel) onCancel();
-    else navigate('/target');
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+
+    navigate('/target');
   };
 
   return (
@@ -103,109 +279,141 @@ export default function SetTarget({ onCancel, onSubmit }) {
             width: '100%',
           }}
         >
-          {/* Business Entities — full width, multi-select */}
-          <Box sx={{ gridColumn: '1 / -1' }}>
-            <SelectDropdownMultiple
-              name="businessEntities"
-              label="Business Entity *"
-              options={[
-                { id: 'be1', label: 'Alpha Corp'      },
-                { id: 'be2', label: 'Beta Holdings'   },
-                { id: 'be3', label: 'Gamma Ltd'       },
-              ]}
-              value={values.businessEntities}
-              onChange={(ids) => setFieldValue('businessEntities', ids)}
-              onBlur={handleBlur}
-              error={Boolean(touched.businessEntities && errors.businessEntities)}
-              helperText={
-                touched.businessEntities && errors.businessEntities
-                  ? errors.businessEntities
-                  : ' '
-              }
-            />
-          </Box>
-
-          {/* Division — single */}
-          <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'span 1' } }}>
+          <Box>
             <SelectDropdownSingle
-              name="division"
-              label="Division *"
-              fetchOptions={fetchDivisions}
-              value={values.division}
-              onChange={(id) => setFieldValue('division', id)}
+              name="businessEntityId"
+              label="Business Entity *"
+              fetchOptions={businessEntityFetcher}
+              value={values.businessEntityId}
+              onChange={(id) => setFieldValue('businessEntityId', id)}
               onBlur={handleBlur}
-              error={Boolean(touched.division && errors.division)}
-              helperText={touched.division && errors.division ? errors.division : ' '}
+              error={Boolean(touched.businessEntityId && errors.businessEntityId)}
+              helperText={touched.businessEntityId && errors.businessEntityId ? errors.businessEntityId : ' '}
+              loading={loadingBusinessEntities}
             />
           </Box>
 
-          {/* Target Month — single */}
-          <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'span 1' } }}>
-            <MonthPickerField
-              label="Target Month *"
-              value={values.targetMonth}
-              onChange={(val) => setFieldValue('targetMonth', val)}
-              error={Boolean(touched.targetMonth && errors.targetMonth)}
-              helperText={
-                touched.targetMonth && errors.targetMonth
-                  ? errors.targetMonth
-                  : ' '
-              }
+          <Box>
+            <SelectDropdownSingle
+              name="kamId"
+              label="Select KAM *"
+              fetchOptions={kamFetcher}
+              value={values.kamId}
+              onChange={(id) => setFieldValue('kamId', id)}
+              onBlur={handleBlur}
+              disabled={!values.businessEntityId}
+              error={Boolean(touched.kamId && errors.kamId)}
+              helperText={touched.kamId && errors.kamId ? errors.kamId : productDisabled ? 'Select a business entity first' : ' '}
+              loading={loadingBackoffices}
             />
           </Box>
 
-          {/* Products — full width, multi-select */}
-          <Box sx={{ gridColumn: '1 / -1' }}>
+          <Box>
+            <SelectDropdownSingle
+              name="targetMode"
+              label="Target Mode *"
+              fetchOptions={targetModeFetcher}
+              value={values.targetMode}
+              onChange={(mode) => {
+                setFieldValue('targetMode', mode);
+                setFieldValue('targetMonth', null);
+                setFieldValue('targetQuarter', null);
+              }}
+              onBlur={handleBlur}
+              error={Boolean(touched.targetMode && errors.targetMode)}
+              helperText={targetModeError}
+            />
+          </Box>
+
+          <Box>
+            {values.targetMode === 'monthly' ? (
+              <CustomPeriodPicker
+                mode="monthly"
+                label="Month-Year *"
+                value={values.targetMonth}
+                onChange={(val) => {
+                  setFieldValue('targetMonth', val);
+                  setFieldValue('targetQuarter', null);
+                }}
+                placeholder="Select month"
+                error={Boolean(targetPeriodError)}
+                helperText={targetPeriodError || ' '}
+              />
+            ) : (
+              <CustomPeriodPicker
+                mode="quarterly"
+                label="Quarter-Year *"
+                value={values.targetQuarter}
+                onChange={(val) => {
+                  setFieldValue('targetQuarter', val);
+                  setFieldValue('targetMonth', null);
+                }}
+                placeholder="Select quarter"
+                error={Boolean(targetPeriodError)}
+                helperText={targetPeriodError || ' '}
+                tooltipText="Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec"
+              />
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              gridColumn: '1 / -1',
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: 2,
+              alignItems: 'start',
+            }}
+          >
             <SelectDropdownMultiple
               name="products"
-              label="Select Products *"
-              options={PRODUCT_OPTIONS}
+              label="Select Product *"
+              options={products}
               value={values.products}
               onChange={(ids) => setFieldValue('products', ids)}
               onBlur={handleBlur}
+              disabled={!values.businessEntityId}
+              loading={loadingProducts}
               error={Boolean(touched.products && errors.products)}
-              helperText={
-                touched.products && errors.products ? errors.products : ' '
-              }
+              helperText={touched.products && errors.products ? errors.products : productHelperText}
             />
-          </Box>
 
-          {/* Target Type — single */}
-          <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'span 1' } }}>
-            <SelectDropdownSingle
-              name="targetType"
-              label="Target Type *"
-              fetchOptions={fetchTargetTypes}
-              value={values.targetType}
-              onChange={(id) => {
-                setFieldValue('targetType', id);
-                setFieldValue('targetAmount', '');
-              }}
+            <TextField
+              fullWidth
+              name="revenueTarget"
+              label="Revenue Target *"
+              value={values.revenueTarget}
+              onChange={handleChange}
               onBlur={handleBlur}
-              error={Boolean(touched.targetType && errors.targetType)}
-              helperText={touched.targetType && errors.targetType ? errors.targetType : ' '}
+              error={Boolean(touched.revenueTarget && errors.revenueTarget)}
+              helperText={touched.revenueTarget && errors.revenueTarget ? errors.revenueTarget : ' '}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Typography component="span" sx={{ fontSize: 18, color: '#94a3b8', fontWeight: 700, lineHeight: 1 }}>
+                      ৳
+                    </Typography>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  minHeight: '45px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '8px',
+                  '& fieldset': { borderColor: '#e2e8f0' },
+                  '&:hover fieldset': { borderColor: '#94a3b8' },
+                  '&.Mui-focused fieldset': { borderColor: '#2563eb' },
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: '0.8125rem',
+                  padding: '4px 0 !important',
+                },
+              }}
             />
           </Box>
 
-          {/* Target Amount — dynamic label */}
-          <AmountInputField
-            name="targetAmount"
-            label={amountLabel}
-            value={values.targetAmount}
-            onChange={(e) => setFieldValue('targetAmount', e.target.value)}
-            onBlur={handleBlur}
-            error={Boolean(touched.targetAmount && errors.targetAmount)}
-            helperText={
-              touched.targetAmount && errors.targetAmount
-                ? errors.targetAmount
-                : values.targetType === 'client'
-                ? 'Enter number of new clients to acquire'
-                : 'Enter revenue target in BDT'
-            }
-            {...(values.targetType === 'client' ? { currencySymbol: '#' } : {})}
-          />
-
-          {/* Reward — optional, full width */}
           <Box sx={{ gridColumn: '1 / -1' }}>
             <Typography
               variant="caption"
@@ -263,8 +471,7 @@ export default function SetTarget({ onCancel, onSubmit }) {
           </Box>
         </Box>
 
-        {/* ── Actions ── */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={4}>
+        <Box sx={{ display: 'flex', gap: 2, mt: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Button
             fullWidth
             variant="outlined"
@@ -297,7 +504,7 @@ export default function SetTarget({ onCancel, onSubmit }) {
           >
             Set Target
           </Button>
-        </Stack>
+        </Box>
       </form>
     </Box>
   );

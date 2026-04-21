@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
@@ -54,29 +55,30 @@ export default function SelectDropdownSingle({
   height      = 45,
   fullWidth   = true,
   width       = 240,
+  loading     = false,
   sx          = {},
 }) {
   const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      setLoading(true);
+      setInternalLoading(true);
       try {
         const data = await fetchOptions();
         if (mounted) setOptions(data || []);
       } catch {
         if (mounted) setOptions([]);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setInternalLoading(false);
       }
     };
     load();
     return () => { mounted = false; };
   }, [fetchOptions]);
 
-  if (loading) {
+  if (loading || internalLoading) {
     return (
       <Skeleton
         variant="rounded"
