@@ -167,6 +167,29 @@ export async function saveKamProductMapping(payload) {
   return response.data?.data;
 }
 
+export async function fetchLeadPipelineOptions() {
+  const response = await api.get('/system/lead-pipeline-stages/options');
+  return response.data?.data ?? {
+    business_entities: [],
+  };
+}
+
+export async function fetchLeadPipelineStages(businessEntityId) {
+  const response = await api.get('/system/lead-pipeline-stages', {
+    params: { business_entity_id: businessEntityId },
+  });
+
+  return response.data?.data ?? {
+    business_entity_id: businessEntityId,
+    stages: [],
+  };
+}
+
+export async function saveLeadPipelineStages(payload) {
+  const response = await api.post('/system/lead-pipeline-stages', payload);
+  return response.data?.data;
+}
+
 
 // cloumn mapping
 export async function fetchColumnMappings() {

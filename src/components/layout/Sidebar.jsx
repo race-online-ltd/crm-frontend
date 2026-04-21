@@ -36,6 +36,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import DomainAddIcon from "@mui/icons-material/DomainAdd";
 import SellOutlinedIcon from "@mui/icons-material/SellOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -78,6 +79,7 @@ export default function Sidebar({ open, handleToggle }) {
   const [leadMappingOpen, setLeadMappingOpen] = useState(
     location.pathname === "/settings/backoffice-management"
     || location.pathname === "/settings/kam-mapping"
+    || location.pathname === "/settings/lead-pipeline"
   );
 
   const drawerContent = (
@@ -281,7 +283,7 @@ export default function Sidebar({ open, handleToggle }) {
                 <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
                   <DomainAddIcon sx={{ fontSize: '1.2rem' }} />
                 </ListItemIcon>
-                <ListItemText primary="Lead Mapping" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+                <ListItemText primary="Lead" primaryTypographyProps={{ fontSize: '0.85rem' }} />
                 {leadMappingOpen ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
 
@@ -310,7 +312,20 @@ export default function Sidebar({ open, handleToggle }) {
                     <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
                       <DomainAddIcon sx={{ fontSize: '1.1rem' }} />
                     </ListItemIcon>
-                    <ListItemText primary="Backoffice Management" primaryTypographyProps={{ fontSize: '0.82rem' }} />
+                    <ListItemText primary="Back Office" primaryTypographyProps={{ fontSize: '0.82rem' }} />
+                  </ListItemButton>
+
+                  <ListItemButton
+                    component={Link}
+                    to="/settings/lead-pipeline"
+                    selected={location.pathname === "/settings/lead-pipeline"}
+                    onClick={isMobile ? handleToggle : undefined}
+                    sx={{ pl: 10 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                      <AccountTreeOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Lead Pipeline" primaryTypographyProps={{ fontSize: '0.82rem' }} />
                   </ListItemButton>
                 </List>
               </Collapse>

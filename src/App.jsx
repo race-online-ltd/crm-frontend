@@ -30,6 +30,7 @@ const RoleMappingPage = React.lazy(() => import("./features/settings/pages/RoleM
 const SocialSettingsPage = React.lazy(() => import("./features/settings/pages/SocialSettingsPage"));
 const BackofficeManagementPage = React.lazy(() => import("./features/settings/pages/BackofficeManagementPage"));
 const KamMappingPage = React.lazy(() => import("./features/settings/pages/KamMappingPage"));
+const LeadPipelinePage = React.lazy(() => import("./features/settings/pages/LeadPipelinePage"));
 const BusinessEntityPage = React.lazy(() => import("./features/settings/pages/BusinessEntityPage"));
 const TeamPage = React.lazy(() => import("./features/settings/pages/TeamPage"));
 const GroupPage = React.lazy(() => import("./features/settings/pages/GroupPage"));
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="/settings/social" element={<SocialSettingsPage />} />
             <Route path="/settings/backoffice-management" element={<BackofficeManagementPage />} />
             <Route path="/settings/kam-mapping" element={<KamMappingPage />} />
+            <Route path="/settings/lead-pipeline" element={<LeadPipelinePage />} />
             <Route path="/settings/business-entities" element={<BusinessEntityPage />} />
             <Route path="/settings/team" element={<TeamPage />} />
             <Route path="/settings/group" element={<GroupPage />} />
