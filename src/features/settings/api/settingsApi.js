@@ -238,3 +238,9 @@ export async function updateUserViewPermissions(payload) {
   const response = await api.put('/user-view-permissions', payload);
   return response.data?.data ?? response.data ?? [];
 }
+
+
+export async function syncPermissions() {
+  const response = await api.post('/system/permissions/sync');
+  return response.data?.data ?? response.data ?? [];
+}

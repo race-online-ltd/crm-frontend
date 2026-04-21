@@ -37,6 +37,8 @@ import {
   fetchRoles,
   updateRolePermissionsPost,
 } from '../api/settingsApi';
+import SyncIcon from '@mui/icons-material/Sync';
+import { syncPermissions } from '../api/settingsApi';
 
 /* ══════════════════════════════════════════════════════════════════════════
    THEME COLOR
@@ -699,6 +701,7 @@ export default function RoleMappingPage() {
   const [saveError, setSaveError]           = useState('');
   const [rolesLoading, setRolesLoading]     = useState(true);
   const [pageLoading, setPageLoading]       = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   /* ── Load roles ── */
   useEffect(() => {
@@ -813,6 +816,17 @@ export default function RoleMappingPage() {
     }
   }
 
+  async function handleSyncPermissions() {
+  try {
+    setSyncLoading(true);
+    await syncPermissions();
+    alert('Permissions synced successfully ✅');
+  } catch (e) {
+    alert(e?.message || 'Sync failed');
+  } finally {
+    setSyncLoading(false);
+  }
+}
   /* ══════════════════════════════════════════════════════════════════════
      RENDER
   ══════════════════════════════════════════════════════════════════════ */
@@ -893,6 +907,25 @@ export default function RoleMappingPage() {
                 }}
               />
             )}
+            <Button
+  variant="outlined"
+  startIcon={
+    syncLoading ? <CircularProgress size={16} /> : <SyncIcon />
+  }
+  onClick={handleSyncPermissions}
+  disabled={syncLoading}
+  sx={{
+    minHeight: 42,
+    borderRadius: '8px',
+    textTransform: 'none',
+    fontWeight: 600,
+    borderColor: PRIMARY_BORDER,
+    color: PRIMARY,
+    '&:hover': { borderColor: PRIMARY, bgcolor: PRIMARY_LIGHT },
+  }}
+>
+  Sync Permissions
+</Button>
             <Button
               variant="contained"
               onClick={() => setAddRoleOpen(true)}

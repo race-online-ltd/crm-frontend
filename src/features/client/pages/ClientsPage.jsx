@@ -26,6 +26,11 @@ import { deleteClient, fetchAreas, fetchBusinessEntities, fetchClient, fetchClie
 import AddClientButton from '../../../components/shared/AddClientButton';
 import FilterButton from '../../../components/shared/FilterButton';
 import ClientFilterDrawer from '../components/ClientFilterDrawer';
+import { useUserProfile } from '../../settings/context/UserProfileContext';
+
+
+
+
 
 const DEFAULT_FILTERS = {
   business_entity_id: '',
@@ -57,6 +62,7 @@ function mapClientToRow(client) {
 }
 
 export default function ClientsPage() {
+  const { can } = useUserProfile();
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -353,11 +359,12 @@ export default function ClientsPage() {
             </Box>
           </Stack>
         </Box>
-
+       {can('clients.create') && 
         <AddClientButton
           onClick={() => navigate('/clients/new', { state: { returnTo: '/clients' } })}
           sx={{ alignSelf: { xs: 'stretch', sm: 'auto' } }}
-        />
+        />}
+
       </Stack>
 
       <Stack

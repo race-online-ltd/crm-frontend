@@ -87,6 +87,7 @@ export function UserProfileProvider({ children }) {
   const [profile, setProfile] = useState(defaultProfile);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [permissions, setPermissions] = useState({});
 
   const syncAuthState = useCallback((nextToken, nextProfile) => {
     setToken(nextToken || '');
@@ -104,30 +105,61 @@ export function UserProfileProvider({ children }) {
     }
   }, []);
 
+  // const bootstrapAuth = useCallback(() => {
+  //   const storedToken = tokenService.getAccessToken() || '';
+  //   const closePendingExpired = tokenService.isClosePendingExpired();
+  //   const hasExpired = storedToken ? isJwtExpired(storedToken) : false;
+
+  //   if (!storedToken || hasExpired || closePendingExpired) {
+  //     tokenService.clearAuth();
+  //     setAuthHeaders('');
+  //     setToken('');
+  //     setProfile(defaultProfile);
+  //     setIsAuthenticated(false);
+  //     return;
+  //   }
+
+  //   const storedUser = tokenService.getUser();
+  //   const nextProfile = storedUser ? readStoredUser() : defaultProfile;
+
+  //   tokenService.setAccessToken(storedToken);
+  //   tokenService.clearClosePending();
+  //   setAuthHeaders(storedToken);
+  //   setToken(storedToken);
+  //   setProfile(nextProfile);
+  //   setIsAuthenticated(true);
+  // }, []);
+
+
   const bootstrapAuth = useCallback(() => {
-    const storedToken = tokenService.getAccessToken() || '';
-    const closePendingExpired = tokenService.isClosePendingExpired();
-    const hasExpired = storedToken ? isJwtExpired(storedToken) : false;
+  const storedToken = tokenService.getAccessToken() || '';
+  const closePendingExpired = tokenService.isClosePendingExpired();
+  const hasExpired = storedToken ? isJwtExpired(storedToken) : false;
 
-    if (!storedToken || hasExpired || closePendingExpired) {
-      tokenService.clearAuth();
-      setAuthHeaders('');
-      setToken('');
-      setProfile(defaultProfile);
-      setIsAuthenticated(false);
-      return;
-    }
+  if (!storedToken || hasExpired || closePendingExpired) {
+    tokenService.clearAuth();
+    setAuthHeaders('');
+    setToken('');
+    setProfile(defaultProfile);
+    setPermissions({}); // ✅ ADD
+    setIsAuthenticated(false);
+    return;
+  }
 
-    const storedUser = tokenService.getUser();
-    const nextProfile = storedUser ? readStoredUser() : defaultProfile;
+  const storedUser = tokenService.getUser();
+  const nextProfile = storedUser ? readStoredUser() : defaultProfile;
 
-    tokenService.setAccessToken(storedToken);
-    tokenService.clearClosePending();
-    setAuthHeaders(storedToken);
-    setToken(storedToken);
-    setProfile(nextProfile);
-    setIsAuthenticated(true);
-  }, []);
+  // ✅ restore permissions
+  const storedPermissions = tokenService.getPermissions();
+
+  tokenService.setAccessToken(storedToken);
+  tokenService.clearClosePending();
+  setAuthHeaders(storedToken);
+  setToken(storedToken);
+  setProfile(nextProfile);
+  setPermissions(storedPermissions); // ✅ ADD
+  setIsAuthenticated(true);
+}, []);
 
   const applyProfileUpdate = useCallback((updates = {}) => {
     setProfile((prev) => {
@@ -146,12 +178,28 @@ export function UserProfileProvider({ children }) {
     });
   }, []);
 
+  // const login = useCallback(async ({ login: loginValue, password }) => {
+  //   const response = await loginApi({ login: loginValue, password });
+  //   const nextProfile = normalizeProfile(response?.user || {});
+  //   syncAuthState(response?.token || '', nextProfile);
+  //   return nextProfile;
+  // }, [syncAuthState]);
+
   const login = useCallback(async ({ login: loginValue, password }) => {
-    const response = await loginApi({ login: loginValue, password });
-    const nextProfile = normalizeProfile(response?.user || {});
-    syncAuthState(response?.token || '', nextProfile);
-    return nextProfile;
-  }, [syncAuthState]);
+  const response = await loginApi({ login: loginValue, password });
+
+  const nextProfile = normalizeProfile(response?.user || {});
+  const nextPermissions = response?.permissions || {};
+
+  // ✅ auth sync
+  syncAuthState(response?.token || '', nextProfile);
+
+  // ✅ store permissions (STATE + STORAGE)
+  setPermissions(nextPermissions);
+  tokenService.setPermissions(nextPermissions);
+
+  return nextProfile;
+}, [syncAuthState]);
 
   const logout = useCallback(async () => {
     try {
@@ -159,6 +207,8 @@ export function UserProfileProvider({ children }) {
         await logoutApi();
       }
     } finally {
+      tokenService.removePermissions(); // ✅ ADD
+    setPermissions({});    
       syncAuthState('', defaultProfile);
     }
   }, [syncAuthState, token]);
@@ -259,12 +309,24 @@ export function UserProfileProvider({ children }) {
     };
   }, []);
 
+
+  const can = useCallback((permissionKey) => {
+  if (!permissionKey) return false;
+
+  const [module, ...rest] = permissionKey.split('.');
+  const action = rest.join('.');
+
+  return permissions?.[module]?.includes(action);
+}, [permissions]);
+
   const value = useMemo(() => ({
     profile,
     token,
     isAuthenticated,
     authReady,
     login,
+    permissions,
+    can, 
     logout,
     initAuth,
     bootstrapAuth,

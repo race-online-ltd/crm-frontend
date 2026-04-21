@@ -5,6 +5,7 @@ const ACTIVE_TABS_KEY = "auth_active_tabs";
 const LAST_ACTIVITY_KEY = "auth_last_activity";
 const AUTH_CLOSE_PENDING_KEY = "auth_close_pending_at";
 const BROWSER_CLOSE_GRACE_MS = 3000;
+const PERMISSIONS_KEY = "auth_permissions";
 
 function getStorage() {
   if (typeof window === "undefined") {
@@ -129,6 +130,7 @@ export const tokenService = {
     clearAuthStorage(storage);
     storage?.removeItem(ACTIVE_TABS_KEY);
     storage?.removeItem(LAST_ACTIVITY_KEY);
+     storage?.removeItem(PERMISSIONS_KEY);
   },
 
   getTabId() {
@@ -237,4 +239,30 @@ export const tokenService = {
   getBrowserCloseGraceMs() {
     return BROWSER_CLOSE_GRACE_MS;
   },
+
+
+
+  /// Permissions handling
+  getPermissions() {
+  const storage = getStorage();
+  const raw = storage?.getItem(PERMISSIONS_KEY);
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+},
+
+setPermissions(permissions) {
+  const storage = getStorage();
+  storage?.setItem(PERMISSIONS_KEY, JSON.stringify(permissions || {}));
+},
+
+removePermissions() {
+  const storage = getStorage();
+  storage?.removeItem(PERMISSIONS_KEY);
+},
+
 };
