@@ -1,5 +1,5 @@
 // src/features/target/components/SetTarget.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -10,11 +10,8 @@ import {
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import { useNavigate } from 'react-router-dom';
 
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
-import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
 import { CustomPeriodPicker } from '../../../components/shared/date-picker';
 import {
   fetchBackoffices,
@@ -42,6 +39,7 @@ const quarterlySchema = periodSchema.shape({
 const setTargetSchema = Yup.object({
   businessEntityId: Yup.string().required('Business entity is required'),
   kamId: Yup.string().required('KAM is required'),
+  productId: Yup.string().required('Product is required'),
   targetMode: Yup.string().oneOf(['monthly', 'quarterly']).required('Target mode is required'),
   targetMonth: monthlySchema.nullable().when('targetMode', {
     is: 'monthly',
@@ -53,24 +51,63 @@ const setTargetSchema = Yup.object({
     then: (schema) => schema.required('Quarter target is required'),
     otherwise: (schema) => schema.nullable().notRequired(),
   }),
-  products: Yup.array().min(1, 'Select at least one product'),
   revenueTarget: Yup.number()
     .typeError('Must be a number')
     .positive('Must be greater than 0')
     .required('Revenue target is required'),
-  reward: Yup.string(),
 });
 
 const INITIAL_VALUES = {
   businessEntityId: '',
   kamId: '',
+  productId: '',
   targetMode: 'monthly',
   targetMonth: null,
   targetQuarter: null,
-  products: [],
   revenueTarget: '',
-  reward: '',
 };
+
+function toInitialValues(target) {
+  if (!target) {
+    return { ...INITIAL_VALUES };
+  }
+
+  const businessEntityId = String(target.business_entity_id ?? target.businessEntity?.id ?? '');
+  const kamId = String(target.kam_id ?? target.kam?.id ?? '');
+  const productId = String(target.product_id ?? target.product?.id ?? '');
+  const targetMode = target.target_mode === 'quarterly' ? 'quarterly' : 'monthly';
+  const targetYear = Number(target.target_year);
+  const targetValue = Number(target.target_value);
+
+  return {
+    businessEntityId,
+    kamId,
+    productId,
+    targetMode,
+    targetMonth: targetMode === 'monthly' && Number.isFinite(targetYear) && Number.isFinite(targetValue)
+      ? { year: targetYear, month: Math.max(targetValue - 1, 0) }
+      : null,
+    targetQuarter: targetMode === 'quarterly' && Number.isFinite(targetYear) && Number.isFinite(targetValue)
+      ? { year: targetYear, quarter: targetValue }
+      : null,
+    revenueTarget: String(target.revenue_target ?? ''),
+  };
+}
+
+function buildPayload(values) {
+  const isMonthly = values.targetMode === 'monthly';
+  const period = isMonthly ? values.targetMonth : values.targetQuarter;
+
+  return {
+    business_entity_id: Number(values.businessEntityId),
+    kam_id: Number(values.kamId),
+    product_id: Number(values.productId),
+    target_mode: values.targetMode,
+    target_value: isMonthly ? Number(period?.month) + 1 : Number(period?.quarter),
+    target_year: Number(period?.year),
+    revenue_target: Number(values.revenueTarget),
+  };
+}
 
 function toOptionList(items = [], labelKey = 'label') {
   return items
@@ -104,14 +141,20 @@ function buildKamOptions(backoffices = [], businessEntityId = '') {
   ).sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export default function SetTarget({ onCancel, onSubmit }) {
-  const navigate = useNavigate();
+export default function SetTarget({
+  onCancel,
+  onSubmit,
+  onSuccess,
+  initialTarget = null,
+  submitLabel = 'Set Target',
+}) {
   const [businessEntities, setBusinessEntities] = useState([]);
   const [backoffices, setBackoffices] = useState([]);
   const [products, setProducts] = useState([]);
   const [loadingBusinessEntities, setLoadingBusinessEntities] = useState(false);
   const [loadingBackoffices, setLoadingBackoffices] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const initialBusinessEntityIdRef = useRef(String(initialTarget?.business_entity_id ?? initialTarget?.businessEntity?.id ?? ''));
 
   useEffect(() => {
     let active = true;
@@ -152,20 +195,22 @@ export default function SetTarget({ onCancel, onSubmit }) {
     };
   }, []);
 
+  useEffect(() => {
+    initialBusinessEntityIdRef.current = String(
+      initialTarget?.business_entity_id ?? initialTarget?.businessEntity?.id ?? ''
+    );
+  }, [initialTarget]);
+
   const formik = useFormik({
-    initialValues: INITIAL_VALUES,
+    initialValues: toInitialValues(initialTarget),
+    enableReinitialize: true,
     validationSchema: setTargetSchema,
     onSubmit: async (values, { setSubmitting }) => {
-      const payload = {
-        ...values,
-        targetType: 'revenue',
-        targetMonth: values.targetMode === 'monthly' ? values.targetMonth : null,
-        targetQuarter: values.targetMode === 'quarterly' ? values.targetQuarter : null,
-      };
+      const payload = buildPayload(values);
 
       try {
-        await onSubmit?.(payload);
-        navigate('/target');
+        await onSubmit?.(payload, values);
+        onSuccess?.(payload, values);
       } finally {
         setSubmitting(false);
       }
@@ -239,10 +284,16 @@ export default function SetTarget({ onCancel, onSubmit }) {
   }, [values.businessEntityId]);
 
   useEffect(() => {
+    if (initialBusinessEntityIdRef.current === values.businessEntityId) {
+      return;
+    }
+
+    initialBusinessEntityIdRef.current = values.businessEntityId;
     setFieldValue('kamId', '');
-    setFieldValue('products', []);
+    setFieldValue('productId', '');
     setFieldValue('targetMonth', null);
     setFieldValue('targetQuarter', null);
+    setProducts([]);
   }, [values.businessEntityId, setFieldValue]);
 
   const targetPeriodError = submitCount > 0 || touched.targetMonth || touched.targetQuarter
@@ -256,16 +307,13 @@ export default function SetTarget({ onCancel, onSubmit }) {
     : '';
 
   const targetModeError = touched.targetMode && errors.targetMode ? errors.targetMode : ' ';
-  const productDisabled = !values.businessEntityId || !values.kamId;
-  const productHelperText = !values.businessEntityId ? 'Select a business entity first' : ' ';
+  const productDisabled = !values.businessEntityId;
+  const productFetcher = useCallback(async () => products, [products]);
 
   const handleCancel = () => {
     if (onCancel) {
       onCancel();
-      return;
     }
-
-    navigate('/target');
   };
 
   return (
@@ -303,8 +351,23 @@ export default function SetTarget({ onCancel, onSubmit }) {
               onBlur={handleBlur}
               disabled={!values.businessEntityId}
               error={Boolean(touched.kamId && errors.kamId)}
-              helperText={touched.kamId && errors.kamId ? errors.kamId : productDisabled ? 'Select a business entity first' : ' '}
+              helperText={touched.kamId && errors.kamId ? errors.kamId : ' '}
               loading={loadingBackoffices}
+            />
+          </Box>
+
+          <Box>
+            <SelectDropdownSingle
+              name="productId"
+              label="Select Product *"
+              fetchOptions={productFetcher}
+              value={values.productId}
+              onChange={(id) => setFieldValue('productId', id)}
+              onBlur={handleBlur}
+              disabled={productDisabled}
+              error={Boolean(touched.productId && errors.productId)}
+              helperText={touched.productId && errors.productId ? errors.productId : ' '}
+              loading={loadingProducts}
             />
           </Box>
 
@@ -325,37 +388,6 @@ export default function SetTarget({ onCancel, onSubmit }) {
             />
           </Box>
 
-          <Box>
-            {values.targetMode === 'monthly' ? (
-              <CustomPeriodPicker
-                mode="monthly"
-                label="Month-Year *"
-                value={values.targetMonth}
-                onChange={(val) => {
-                  setFieldValue('targetMonth', val);
-                  setFieldValue('targetQuarter', null);
-                }}
-                placeholder="Select month"
-                error={Boolean(targetPeriodError)}
-                helperText={targetPeriodError || ' '}
-              />
-            ) : (
-              <CustomPeriodPicker
-                mode="quarterly"
-                label="Quarter-Year *"
-                value={values.targetQuarter}
-                onChange={(val) => {
-                  setFieldValue('targetQuarter', val);
-                  setFieldValue('targetMonth', null);
-                }}
-                placeholder="Select quarter"
-                error={Boolean(targetPeriodError)}
-                helperText={targetPeriodError || ' '}
-                tooltipText="Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec"
-              />
-            )}
-          </Box>
-
           <Box
             sx={{
               gridColumn: '1 / -1',
@@ -365,109 +397,73 @@ export default function SetTarget({ onCancel, onSubmit }) {
               alignItems: 'start',
             }}
           >
-            <SelectDropdownMultiple
-              name="products"
-              label="Select Product *"
-              options={products}
-              value={values.products}
-              onChange={(ids) => setFieldValue('products', ids)}
-              onBlur={handleBlur}
-              disabled={!values.businessEntityId}
-              loading={loadingProducts}
-              error={Boolean(touched.products && errors.products)}
-              helperText={touched.products && errors.products ? errors.products : productHelperText}
-            />
+            <Box>
+              {values.targetMode === 'monthly' ? (
+                <CustomPeriodPicker
+                  mode="monthly"
+                  label="Month-Year *"
+                  value={values.targetMonth}
+                  onChange={(val) => {
+                    setFieldValue('targetMonth', val);
+                    setFieldValue('targetQuarter', null);
+                  }}
+                  placeholder="Select month"
+                  error={Boolean(targetPeriodError)}
+                  helperText={targetPeriodError || ' '}
+                />
+              ) : (
+                <CustomPeriodPicker
+                  mode="quarterly"
+                  label="Quarter-Year *"
+                  value={values.targetQuarter}
+                  onChange={(val) => {
+                    setFieldValue('targetQuarter', val);
+                    setFieldValue('targetMonth', null);
+                  }}
+                  placeholder="Select quarter"
+                  error={Boolean(targetPeriodError)}
+                  helperText={targetPeriodError || ' '}
+                  tooltipText="Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec"
+                />
+              )}
+            </Box>
 
-            <TextField
-              fullWidth
-              name="revenueTarget"
-              label="Revenue Target *"
-              value={values.revenueTarget}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              error={Boolean(touched.revenueTarget && errors.revenueTarget)}
-              helperText={touched.revenueTarget && errors.revenueTarget ? errors.revenueTarget : ' '}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Typography component="span" sx={{ fontSize: 18, color: '#94a3b8', fontWeight: 700, lineHeight: 1 }}>
-                      ৳
-                    </Typography>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  minHeight: '45px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#e2e8f0' },
-                  '&:hover fieldset': { borderColor: '#94a3b8' },
-                  '&.Mui-focused fieldset': { borderColor: '#2563eb' },
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: '0.8125rem',
-                  padding: '4px 0 !important',
-                },
-              }}
-            />
-          </Box>
-
-          <Box sx={{ gridColumn: '1 / -1' }}>
-            <Typography
-              variant="caption"
-              fontWeight={600}
-              color="#475569"
-              display="block"
-              mb={0.5}
-              ml={0.25}
-            >
-              Reward{' '}
-              <Typography component="span" variant="caption" color="text.disabled">
-                (optional)
-              </Typography>
-            </Typography>
-            <TextField
-              fullWidth
-              name="reward"
-              placeholder="e.g. iPhone 15, Cash ৳10,000, Trip to Cox's Bazar…"
-              value={values.reward}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmojiEventsIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  minHeight: '45px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '4px 10px !important',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  '& fieldset': { borderColor: '#e2e8f0' },
-                  '&:hover fieldset': { borderColor: '#94a3b8' },
-                  '&.Mui-focused fieldset': { borderColor: '#2563eb' },
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: '0.8125rem',
-                  padding: '4px 0 !important',
-                },
-                '& .MuiInputLabel-root': {
-                  fontSize: '0.8125rem',
-                  transform: 'translate(14px, 12.857px) scale(1)',
-                },
-                '& .MuiInputLabel-shrink': {
-                  transform: 'translate(14px, -6px) scale(0.75)',
-                },
-              }}
-              helperText=" "
-            />
+            <Box>
+              <TextField
+                fullWidth
+                name="revenueTarget"
+                label="Revenue Target *"
+                value={values.revenueTarget}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={Boolean(touched.revenueTarget && errors.revenueTarget)}
+                helperText={touched.revenueTarget && errors.revenueTarget ? errors.revenueTarget : ' '}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography component="span" sx={{ fontSize: 18, color: '#94a3b8', fontWeight: 700, lineHeight: 1 }}>
+                        ৳
+                      </Typography>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    minHeight: '45px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: '8px',
+                    '& fieldset': { borderColor: '#e2e8f0' },
+                    '&:hover fieldset': { borderColor: '#94a3b8' },
+                    '&.Mui-focused fieldset': { borderColor: '#2563eb' },
+                  },
+                  '& .MuiInputBase-input': {
+                    fontSize: '0.8125rem',
+                    padding: '4px 0 !important',
+                  },
+                }}
+              />
+            </Box>
           </Box>
         </Box>
 
@@ -502,7 +498,7 @@ export default function SetTarget({ onCancel, onSubmit }) {
               '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
             }}
           >
-            Set Target
+            {submitLabel}
           </Button>
         </Box>
       </form>

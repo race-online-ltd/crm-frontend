@@ -1,7 +1,6 @@
 // src/features/target/components/KAMTargetTable.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Box,
   Chip,
   IconButton,
   InputAdornment,
@@ -22,61 +21,8 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterButton from '../../../components/shared/FilterButton';
 import OrbitLoader from '../../../components/shared/OrbitLoader';
-import useInitialTableLoading from '../../../components/shared/useInitialTableLoading';
 import KAMTargetFilterDrawer from './KAMTargetFilterDrawer';
-
-const KAM_TARGETS = [
-  {
-    periodMode: 'monthly',
-    period: { year: 2026, month: 3, label: 'Apr 2026' },
-    businessEntity: 'Alpha Trading',
-    kam: 'Arif Rahman',
-    products: ['Rice', 'Oil'],
-    targetAmount: 1000000,
-    createdAt: '2026-04-01',
-    achieved: 920000,
-  },
-  {
-    periodMode: 'quarterly',
-    period: { year: 2026, quarter: 1, label: 'Q1 2026' },
-    businessEntity: 'Green Valley Ltd.',
-    kam: 'Priya Sharma',
-    products: ['Soap', 'Detergent'],
-    targetAmount: 2500000,
-    createdAt: '2026-03-18',
-    achieved: 1820000,
-  },
-  {
-    periodMode: 'monthly',
-    period: { year: 2026, month: 3, label: 'Apr 2026' },
-    businessEntity: 'Nova Foods',
-    kam: 'Tanvir Hossain',
-    products: ['Biscuits', 'Tea'],
-    targetAmount: 750000,
-    createdAt: '2026-04-08',
-    achieved: 610000,
-  },
-  {
-    periodMode: 'quarterly',
-    period: { year: 2026, quarter: 2, label: 'Q2 2026' },
-    businessEntity: 'Skyline Retail',
-    kam: 'Nadia Islam',
-    products: ['Sugar', 'Salt'],
-    targetAmount: 3200000,
-    createdAt: '2026-02-25',
-    achieved: 2100000,
-  },
-  {
-    periodMode: 'monthly',
-    period: { year: 2026, month: 3, label: 'Apr 2026' },
-    businessEntity: 'Prime Logistics',
-    kam: 'Rakib Ahmed',
-    products: ['Packaging', 'Tape'],
-    targetAmount: 1500000,
-    createdAt: '2026-04-12',
-    achieved: 1150000,
-  },
-];
+import { fetchGroups, fetchTeams } from '../../settings/api/settingsApi';
 
 const ROWS_PER_PAGE_OPTIONS = [5, 10, 25];
 
@@ -85,7 +31,7 @@ function formatCurrency(value) {
     style: 'currency',
     currency: 'BDT',
     maximumFractionDigits: 0,
-  }).format(value).replace('BDT', '৳');
+  }).format(Number(value || 0)).replace('BDT', '৳');
 }
 
 function formatDate(value) {
@@ -101,15 +47,6 @@ function formatDate(value) {
   }).format(date);
 }
 
-function getAchievementLabel(achieved, targetAmount) {
-  if (!targetAmount) {
-    return 'N/A';
-  }
-
-  const percentage = Math.min(Math.round((achieved / targetAmount) * 100), 100);
-  return `${percentage}%`;
-}
-
 function toMonthIndex(period) {
   if (!period || typeof period.year !== 'number' || typeof period.month !== 'number') {
     return null;
@@ -118,12 +55,29 @@ function toMonthIndex(period) {
   return period.year * 12 + period.month;
 }
 
-export default function KAMTargetTable({ sx = {} }) {
-  const isLoading = useInitialTableLoading();
+function normalizeLabel(value) {
+  if (!value) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  return value.label || value.full_name || value.user_name || value.product_name || value.name || '';
+}
+
+export default function KAMTargetTable({
+  rows = [],
+  loading = false,
+  onEdit,
+}) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [teamOptions, setTeamOptions] = useState([]);
+  const [groupOptions, setGroupOptions] = useState([]);
   const [draftFilters, setDraftFilters] = useState({
     viewMode: 'all',
     fromMonth: null,
@@ -132,6 +86,8 @@ export default function KAMTargetTable({ sx = {} }) {
     quarters: [1, 2, 3, 4],
     kam: '',
     products: [],
+    team: '',
+    group: '',
   });
   const [appliedFilters, setAppliedFilters] = useState({
     viewMode: 'all',
@@ -141,38 +97,95 @@ export default function KAMTargetTable({ sx = {} }) {
     quarters: [1, 2, 3, 4],
     kam: '',
     products: [],
+    team: '',
+    group: '',
   });
 
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      try {
+        const [teams, groups] = await Promise.all([
+          fetchTeams(),
+          fetchGroups(),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setTeamOptions(
+          (Array.isArray(teams) ? teams : [])
+            .map((item) => ({
+              id: String(item.id),
+              label: item.label || item.team_name || item.name || `Team ${item.id}`,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        );
+
+        setGroupOptions(
+          (Array.isArray(groups) ? groups : [])
+            .map((item) => ({
+              id: String(item.id),
+              label: item.label || item.group_name || item.name || `Group ${item.id}`,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        );
+      } catch {
+        if (active) {
+          setTeamOptions([]);
+          setGroupOptions([]);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const kamOptions = useMemo(() => (
-    [...new Set(KAM_TARGETS.map((item) => item.kam))]
+    [...new Set(rows.map((item) => normalizeLabel(item.kam)).filter(Boolean))]
       .map((name) => ({ id: name, label: name }))
       .sort((a, b) => a.label.localeCompare(b.label))
-  ), []);
+  ), [rows]);
 
   const productOptions = useMemo(() => (
-    [...new Set(KAM_TARGETS.flatMap((item) => item.products))]
+    [...new Set(rows.flatMap((item) => item.products || []))]
       .map((name) => ({ id: name, label: name }))
       .sort((a, b) => a.label.localeCompare(b.label))
-  ), []);
+  ), [rows]);
 
   const filteredRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const fromIndex = toMonthIndex(appliedFilters.fromMonth);
     const toIndex = toMonthIndex(appliedFilters.toMonth);
 
-    return KAM_TARGETS.filter((row) => {
+    return rows.filter((row) => {
+      const periodLabel = row.period?.label || '';
+      const businessEntity = normalizeLabel(row.businessEntity);
+      const kam = normalizeLabel(row.kam);
+      const products = Array.isArray(row.products) ? row.products : [];
+
       const matchesSearch = !query
-        || row.period.label.toLowerCase().includes(query)
-        || row.businessEntity.toLowerCase().includes(query)
-        || row.kam.toLowerCase().includes(query)
-        || row.products.some((product) => product.toLowerCase().includes(query));
+        || periodLabel.toLowerCase().includes(query)
+        || businessEntity.toLowerCase().includes(query)
+        || kam.toLowerCase().includes(query)
+        || products.some((product) => String(product).toLowerCase().includes(query));
 
       const matchesViewMode = appliedFilters.viewMode === 'all'
         || !appliedFilters.viewMode
         || row.periodMode === appliedFilters.viewMode;
-      const matchesKam = !appliedFilters.kam || row.kam === appliedFilters.kam;
+      const matchesKam = !appliedFilters.kam || kam === appliedFilters.kam;
       const matchesProducts = !appliedFilters.products.length
-        || appliedFilters.products.every((product) => row.products.includes(product));
+        || appliedFilters.products.every((product) => products.includes(product));
+      const matchesTeam = !appliedFilters.team
+        || (Array.isArray(row.teamIds) && row.teamIds.includes(String(appliedFilters.team)));
+      const matchesGroup = !appliedFilters.group
+        || (Array.isArray(row.groupIds) && row.groupIds.includes(String(appliedFilters.group)));
       const matchesMonthlyRange = appliedFilters.viewMode !== 'monthly'
         || fromIndex === null
         || toIndex === null
@@ -186,18 +199,20 @@ export default function KAMTargetTable({ sx = {} }) {
       const matchesQuarterlySelection = appliedFilters.viewMode !== 'quarterly'
         || (
           row.periodMode === 'quarterly'
-          && row.period.year === appliedFilters.quarterYear
-          && appliedFilters.quarters.includes(row.period.quarter)
+          && row.period?.year === appliedFilters.quarterYear
+          && appliedFilters.quarters.includes(row.period?.quarter)
         );
 
       return matchesSearch
         && matchesViewMode
         && matchesKam
         && matchesProducts
+        && matchesTeam
+        && matchesGroup
         && matchesMonthlyRange
         && matchesQuarterlySelection;
     });
-  }, [appliedFilters, searchQuery]);
+  }, [appliedFilters, rows, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   const safePage = Math.min(page, totalPages - 1);
@@ -233,6 +248,8 @@ export default function KAMTargetTable({ sx = {} }) {
       quarters: [1, 2, 3, 4],
       kam: '',
       products: [],
+      team: '',
+      group: '',
     };
 
     setDraftFilters(emptyFilters);
@@ -251,7 +268,6 @@ export default function KAMTargetTable({ sx = {} }) {
           bgcolor: '#fff',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           overflow: 'hidden',
-          ...sx,
         }}
       >
         <Stack
@@ -326,7 +342,7 @@ export default function KAMTargetTable({ sx = {} }) {
           </Stack>
         </Stack>
 
-        {isLoading ? (
+        {loading ? (
           <OrbitLoader
             title="Loading KAM targets"
             subtitle="Fetching target records."
@@ -341,7 +357,7 @@ export default function KAMTargetTable({ sx = {} }) {
                 WebkitOverflowScrolling: 'touch',
               }}
             >
-              <Table stickyHeader aria-label="KAM target table" sx={{ minWidth: 1400 }}>
+                <Table stickyHeader aria-label="KAM target table" sx={{ minWidth: 1400 }}>
                 <TableHead>
                   <TableRow>
                     {[
@@ -349,9 +365,9 @@ export default function KAMTargetTable({ sx = {} }) {
                       ['Target Mode', 150],
                       ['Business Entity', 190],
                       ['KAM', 180],
+                      ['Product', 170],
                       ['Target Amount', 180],
                       ['Created At', 160],
-                      ['Achieve', 120],
                       ['Action', 90],
                     ].map(([label, minWidth], index) => (
                       <TableCell
@@ -384,16 +400,16 @@ export default function KAMTargetTable({ sx = {} }) {
                   {visibleRows.length ? (
                     visibleRows.map((row, index) => (
                       <TableRow
-                        key={`${row.businessEntity}-${row.createdAt}`}
+                        key={row.id}
                         hover
                         sx={{
                           bgcolor: index % 2 === 0 ? '#fff' : '#fafcff',
                           '&:hover': { bgcolor: '#f4f8ff' },
                         }}
                       >
-                      <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6, pl: 2.5 }}>
+                        <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6, pl: 2.5 }}>
                           <Typography variant="body2" fontWeight={700} color="#0f172a">
-                            {row.period.label}
+                            {row.period?.label || 'N/A'}
                           </Typography>
                         </TableCell>
 
@@ -412,13 +428,19 @@ export default function KAMTargetTable({ sx = {} }) {
 
                         <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6 }}>
                           <Typography variant="body2" color="#0f172a" fontWeight={600}>
-                            {row.businessEntity}
+                            {normalizeLabel(row.businessEntity) || 'N/A'}
                           </Typography>
                         </TableCell>
 
                         <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6 }}>
                           <Typography variant="body2" color="#0f172a" fontWeight={600}>
-                            {row.kam}
+                            {normalizeLabel(row.kam) || 'N/A'}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6 }}>
+                          <Typography variant="body2" color="#0f172a" fontWeight={600}>
+                            {Array.isArray(row.products) && row.products.length ? row.products[0] : 'N/A'}
                           </Typography>
                         </TableCell>
 
@@ -434,25 +456,16 @@ export default function KAMTargetTable({ sx = {} }) {
                           </Typography>
                         </TableCell>
 
-                        <TableCell sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6 }}>
-                          <Typography
-                            variant="body2"
-                            fontWeight={700}
-                            color={row.achieved >= row.targetAmount ? '#16a34a' : '#0f172a'}
-                          >
-                            {getAchievementLabel(row.achieved, row.targetAmount)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatCurrency(row.achieved)}
-                          </Typography>
-                        </TableCell>
-
                         <TableCell
                           align="center"
                           sx={{ verticalAlign: 'middle', borderBottom: '1px solid #eef2f7', py: 1.6, pr: 2.5 }}
                         >
                           <Tooltip title="Edit target">
-                            <IconButton size="small" sx={{ color: '#94a3b8', '&:hover': { color: '#475569' } }}>
+                            <IconButton
+                              size="small"
+                              sx={{ color: '#94a3b8', '&:hover': { color: '#475569' } }}
+                              onClick={() => onEdit?.(row)}
+                            >
                               <EditOutlinedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -507,7 +520,7 @@ export default function KAMTargetTable({ sx = {} }) {
         )}
       </Paper>
 
-    <KAMTargetFilterDrawer
+      <KAMTargetFilterDrawer
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
         filters={draftFilters}
@@ -516,7 +529,9 @@ export default function KAMTargetTable({ sx = {} }) {
         onReset={handleResetFilters}
         kamOptions={kamOptions}
         productOptions={productOptions}
+        teamOptions={teamOptions}
+        groupOptions={groupOptions}
       />
-  </>
+    </>
   );
 }

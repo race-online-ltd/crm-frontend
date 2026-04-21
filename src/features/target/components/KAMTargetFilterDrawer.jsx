@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -24,6 +24,8 @@ export default function KAMTargetFilterDrawer({
   onReset,
   kamOptions = [],
   productOptions = [],
+  teamOptions = [],
+  groupOptions = [],
 }) {
   const values = useMemo(() => ({
     viewMode: 'monthly',
@@ -31,8 +33,14 @@ export default function KAMTargetFilterDrawer({
     toMonth: null,
     kam: '',
     products: [],
+    team: '',
+    group: '',
     ...(filters || {}),
   }), [filters]);
+
+  const kamFetcher = useCallback(async () => kamOptions, [kamOptions]);
+  const teamFetcher = useCallback(async () => teamOptions, [teamOptions]);
+  const groupFetcher = useCallback(async () => groupOptions, [groupOptions]);
 
   return (
     <AppDrawer
@@ -145,7 +153,7 @@ export default function KAMTargetFilterDrawer({
           <SelectDropdownSingle
             name="kam"
             label="Select KAM"
-            options={kamOptions}
+            fetchOptions={kamFetcher}
             value={values.kam || ''}
             onChange={(value) => onChange?.('kam', value)}
             placeholder="Select KAM"
@@ -161,6 +169,28 @@ export default function KAMTargetFilterDrawer({
             onChange={(value) => onChange?.('products', value)}
             placeholder="Select Product"
             limitTags={2}
+          />
+        </Box>
+
+        <Box>
+          <SelectDropdownSingle
+            name="team"
+            label="Select Team"
+            fetchOptions={teamFetcher}
+            value={values.team || ''}
+            onChange={(value) => onChange?.('team', value)}
+            placeholder="Select Team"
+          />
+        </Box>
+
+        <Box>
+          <SelectDropdownSingle
+            name="group"
+            label="Select Group"
+            fetchOptions={groupFetcher}
+            value={values.group || ''}
+            onChange={(value) => onChange?.('group', value)}
+            placeholder="Select Group"
           />
         </Box>
 
