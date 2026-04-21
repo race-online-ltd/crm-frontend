@@ -50,18 +50,6 @@ export default function TargetList() {
         </Box>
 
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <IconButton
-            size="small"
-            sx={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              p: 0.75,
-              color: '#64748b',
-              '&:hover': { bgcolor: '#f8fafc' },
-            }}
-          >
-            <FilterListIcon fontSize="small" />
-          </IconButton>
 
           <Button
             variant="contained"

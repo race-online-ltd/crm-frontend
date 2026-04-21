@@ -21,6 +21,7 @@ const AppDrawer = ({
   width = 400, 
   footerActions,
   paperProps = {},
+  contentSx = {},
 }) => {
   const { sx: paperSx, ...restPaperProps } = paperProps;
 
@@ -67,8 +68,9 @@ const AppDrawer = ({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        overflowY: 'auto', 
-        p: 3 
+        overflowY: 'auto',
+        p: 3,
+        ...contentSx,
       }}>
         {children}
       </Box>
@@ -96,6 +98,7 @@ AppDrawer.propTypes = {
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   footerActions: PropTypes.node,
   paperProps: PropTypes.object,
+  contentSx: PropTypes.object,
 };
 
 export default AppDrawer;

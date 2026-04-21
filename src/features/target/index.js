@@ -4,6 +4,7 @@
 export { default as KAMTargetTable } from './components/KAMTargetTable';
 export { default as SetTarget }      from './components/SetTarget';
 export { default as MonthPickerField } from './components/MonthPickerField';
+export { default as PeriodPickerField } from '../../components/shared/date-picker/PeriodPickerField';
 export { default as TargetList }     from './pages/TargetList';
 export { default as SetTargetPage }  from './pages/SetTargetPage';
 
