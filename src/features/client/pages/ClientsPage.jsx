@@ -323,7 +323,7 @@ export default function ClientsPage() {
         .some((value) => String(value).toLowerCase().includes(query));
     });
   }, [clients, searchQuery]);
-
+console.log("can create?", can('clients.create'));
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
       <Stack
