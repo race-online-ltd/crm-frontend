@@ -26,7 +26,7 @@ import { deleteClient, fetchAreas, fetchBusinessEntities, fetchClient, fetchClie
 import AddClientButton from '../../../components/shared/AddClientButton';
 import FilterButton from '../../../components/shared/FilterButton';
 import ClientFilterDrawer from '../components/ClientFilterDrawer';
-
+import {useUserProfile} from "../../settings/context/UserProfileContext";
 const DEFAULT_FILTERS = {
   business_entity_id: '',
   client_name: '',
@@ -58,6 +58,7 @@ function mapClientToRow(client) {
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const {can} = useUserProfile();
   const [clients, setClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -265,7 +266,8 @@ export default function ClientsPage() {
               )}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Edit">
+          {can('clients.update') && (
+            <Tooltip title="Edit">
             <IconButton
               size="small"
               onClick={() => handleEditClient(client)}
@@ -274,7 +276,9 @@ export default function ClientsPage() {
               <EditOutlinedIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
+          )}
+          
+          {can('clients.delete') && (<Tooltip title="Delete">
             <IconButton
               size="small"
               onClick={() => handleDeleteClient(client)}
@@ -282,7 +286,7 @@ export default function ClientsPage() {
             >
               <DeleteOutlineIcon sx={{ fontSize: 18 }} />
             </IconButton>
-          </Tooltip>
+          </Tooltip>)}
         </Stack>
       ),
     },
@@ -353,13 +357,16 @@ console.log("can create?", can('clients.create'));
             </Box>
           </Stack>
         </Box>
-        <AddClientButton
+        {can('clients.create') && (
+           <AddClientButton
           onClick={() => navigate('/clients/new', { state: { returnTo: '/clients' } })}
           sx={{
             alignSelf: { xs: 'stretch', sm: 'auto' },
             width: { xs: '100%', sm: 'auto' },
           }}
-        />
+        />)
+          }
+       
 
       </Stack>
 

@@ -15,16 +15,38 @@ const PROPOSAL_CLIENTS = [
         id: 'support-maintenance',
         label: '1. Support & Maintenance',
         services: [
-          { serviceId: 'GGC Note Sharing', currentPrice: 1800, currentVolume: 10 },
-          { serviceId: 'Khulna_IX', currentPrice: 2450, currentVolume: 8 },
+          {
+            id: 'ggc-note-sharing',
+            serviceId: 'GGC Note Sharing',
+            existingInvoices: [
+              { currentPrice: 1800, currentVolume: 10 },
+            ],
+          },
+          {
+            id: 'khulna-ix',
+            serviceId: 'Khulna_IX',
+            existingInvoices: [
+              { currentPrice: 2450, currentVolume: 8 },
+            ],
+          },
         ],
       },
       {
         id: 'internet-link',
         label: '2. Internet Link',
         services: [
-          { serviceId: 'Primary Internet', currentPrice: 4200, currentVolume: 4 },
-          { serviceId: 'Backup Link', currentPrice: 2600, currentVolume: 3 },
+          {
+            id: 'primary-internet',
+            serviceId: 'Primary Internet',
+            existingInvoices: [
+              { currentPrice: 4200, currentVolume: 4 },
+            ],
+          },
+          {
+            id: 'backup-link',
+            serviceId: 'Backup Link',
+            existingInvoices: [],
+          },
         ],
       },
     ],
@@ -38,8 +60,20 @@ const PROPOSAL_CLIENTS = [
         id: 'mix-support',
         label: '1. Support & Maintenance',
         services: [
-          { serviceId: 'GGC Note Sharing', currentPrice: 1500, currentVolume: 12 },
-          { serviceId: 'Peering Support', currentPrice: 1900, currentVolume: 6 },
+          {
+            id: 'ggc-note-sharing',
+            serviceId: 'GGC Note Sharing',
+            existingInvoices: [
+              { currentPrice: 1500, currentVolume: 12 },
+            ],
+          },
+          {
+            id: 'peering-support',
+            serviceId: 'Peering Support',
+            existingInvoices: [
+              { currentPrice: 1900, currentVolume: 6 },
+            ],
+          },
         ],
       },
     ],
@@ -53,8 +87,18 @@ const PROPOSAL_CLIENTS = [
         id: 'enterprise-connectivity',
         label: '1. Enterprise Connectivity',
         services: [
-          { serviceId: 'Metro Fiber', currentPrice: 5000, currentVolume: 5 },
-          { serviceId: 'Last Mile', currentPrice: 3200, currentVolume: 7 },
+          {
+            id: 'metro-fiber',
+            serviceId: 'Metro Fiber',
+            existingInvoices: [
+              { currentPrice: 5000, currentVolume: 5 },
+            ],
+          },
+          {
+            id: 'last-mile',
+            serviceId: 'Last Mile',
+            existingInvoices: [],
+          },
         ],
       },
     ],
@@ -68,39 +112,25 @@ const PROPOSAL_CLIENTS = [
         id: 'shared-support',
         label: '1. Shared Support Package',
         services: [
-          { serviceId: 'Helpdesk Bundle', currentPrice: 2800, currentVolume: 15 },
-          { serviceId: 'Monitoring Service', currentPrice: 2100, currentVolume: 9 },
+          {
+            id: 'helpdesk-bundle',
+            serviceId: 'Helpdesk Bundle',
+            existingInvoices: [
+              { currentPrice: 2800, currentVolume: 15 },
+            ],
+          },
+          {
+            id: 'monitoring-service',
+            serviceId: 'Monitoring Service',
+            existingInvoices: [
+              { currentPrice: 2100, currentVolume: 9 },
+            ],
+          },
         ],
       },
     ],
   },
 ];
-
-const UNIT_OPTIONS = ['MB', 'Unit', 'GB', 'Month'];
-
-function buildEmptyRows(client, productIds = []) {
-  if (!client || !productIds.length) return [];
-
-  return productIds.flatMap((productId) => {
-    const product = client.products.find((item) => item.id === productId);
-    if (!product) return [];
-
-    return product.services.map((service) => ({
-      id: `${client.id}-${product.id}-${service.serviceId}`,
-      clientId: client.id,
-      clientLabel: client.label,
-      productId: product.id,
-      productLabel: product.label,
-      serviceId: service.serviceId,
-      currentPrice: service.currentPrice,
-      currentVolume: service.currentVolume,
-      proposePrice: 0,
-      priceUnit: UNIT_OPTIONS[0],
-      proposeVolume: 0,
-      effectiveDate: null,
-    })).map(enrichRow);
-  });
-}
 
 function enrichRow(row) {
   const proposePrice = Number(row.proposePrice || 0);
@@ -125,11 +155,57 @@ function enrichRow(row) {
   };
 }
 
+function buildExistingRows(client, product, service) {
+  if (!client || !product || !service) return [];
+
+  return (service.existingInvoices || []).map((invoice, index) => enrichRow({
+    id: `existing-${client.id}-${product.id}-${service.id}-${index}`,
+    clientId: client.id,
+    clientLabel: client.label,
+    productId: product.id,
+    productLabel: product.label,
+    serviceKey: service.id,
+    serviceId: service.serviceId,
+    currentPrice: invoice.currentPrice,
+    currentVolume: invoice.currentVolume,
+    proposePrice: 0,
+    proposeVolume: 0,
+    effectiveDate: null,
+  }));
+}
+
+function buildExistingRowsForServices(client, product, services = []) {
+  return services.flatMap((service) => buildExistingRows(client, product, service));
+}
+
+function buildProposalRow(client, product, service, existingRows = [], suffix = Date.now()) {
+  const baseRow = service
+    ? existingRows.find((row) => row.serviceKey === service.id)
+    : null;
+
+  return enrichRow({
+    id: `proposal-${client.id}-${product.id}-${service?.id || 'no-service'}-${suffix}`,
+    clientId: client.id,
+    clientLabel: client.label,
+    productId: product.id,
+    productLabel: product.label,
+    serviceKey: service?.id || '',
+    serviceId: service?.serviceId || '—',
+    currentPrice: baseRow?.currentPrice || 0,
+    currentVolume: baseRow?.currentVolume || 0,
+    proposePrice: '',
+    proposeVolume: '',
+    effectiveDate: null,
+  });
+}
+
 export default function PriceProposalPage() {
   const [scope, setScope] = useState('active');
   const [clientId, setClientId] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [rows, setRows] = useState([]);
+  const [productId, setProductId] = useState('');
+  const [serviceKeys, setServiceKeys] = useState([]);
+  const [existingRows, setExistingRows] = useState([]);
+  const [proposalRows, setProposalRows] = useState([]);
 
   const filteredClients = useMemo(
     () => PROPOSAL_CLIENTS.filter((client) => client.scope === scope),
@@ -145,31 +221,100 @@ export default function PriceProposalPage() {
     [clientId, filteredClients]
   );
 
-  const productOptions = useMemo(
-    () => (selectedClient ? selectedClient.products.map((product) => ({ id: product.id, label: product.label })) : []),
-    [selectedClient]
+  const productFetchOptions = useCallback(async () => (
+    (selectedClient?.products || []).map((product) => ({ id: product.id, label: product.label }))
+  ), [selectedClient]);
+
+  const selectedProduct = useMemo(
+    () => selectedClient?.products.find((product) => product.id === productId) || null,
+    [selectedClient, productId]
   );
 
-  const handleClientChange = (nextClientId) => {
-    setClientId(nextClientId);
-    setSelectedProducts([]);
-    setRows([]);
-  };
+  const serviceOptions = useMemo(
+    () => (selectedProduct?.services || []).map((service) => ({ id: service.id, label: service.serviceId })),
+    [selectedProduct]
+  );
+
+  const selectedServices = useMemo(
+    () => (selectedProduct?.services || []).filter((service) => serviceKeys.includes(service.id)),
+    [selectedProduct, serviceKeys]
+  );
+
+  const comparisonRows = useMemo(
+    () => proposalRows.map((row) => enrichRow(row)),
+    [proposalRows]
+  );
 
   const handleScopeChange = (nextScope) => {
     setScope(nextScope);
     setClientId('');
-    setSelectedProducts([]);
-    setRows([]);
+    setProductId('');
+    setServiceKeys([]);
+    setExistingRows([]);
+    setProposalRows([]);
   };
 
-  const handleProductsChange = (nextProductIds) => {
-    setSelectedProducts(nextProductIds);
-    setRows(buildEmptyRows(selectedClient, nextProductIds));
+  const handleClientChange = (nextClientId) => {
+    setClientId(nextClientId);
+    setProductId('');
+    setServiceKeys([]);
+    setExistingRows([]);
+    setProposalRows([]);
+  };
+
+  const handleProductChange = (nextProductId) => {
+    setProductId(nextProductId);
+    setServiceKeys([]);
+    setExistingRows([]);
+    setProposalRows([]);
+  };
+
+  const handleServiceChange = (nextServiceKeys) => {
+    setServiceKeys(nextServiceKeys);
+
+    const nextServices = (selectedProduct?.services || []).filter((service) => nextServiceKeys.includes(service.id));
+    if (!selectedClient || !selectedProduct || !nextServices.length) {
+      setExistingRows([]);
+      setProposalRows([]);
+      return;
+    }
+
+    const nextExistingRows = buildExistingRowsForServices(selectedClient, selectedProduct, nextServices);
+    setExistingRows(nextExistingRows);
+
+    const nextProposalRows = nextServices
+      .filter((service) => nextExistingRows.some((row) => row.serviceKey === service.id))
+      .map((service, index) => buildProposalRow(selectedClient, selectedProduct, service, nextExistingRows, `${Date.now()}-${index}`));
+
+    setProposalRows(nextProposalRows);
+  };
+
+  const handleCreateNew = () => {
+    if (!selectedClient || !selectedProduct) return;
+
+    if (!selectedServices.length) {
+      setProposalRows((prev) => [
+        ...prev,
+        buildProposalRow(selectedClient, selectedProduct, null, existingRows, `${Date.now()}-${prev.length}`),
+      ]);
+      return;
+    }
+
+    const selectedServiceIds = new Set(selectedServices.map((service) => service.id));
+    const pendingService = selectedServices.find((service) => (
+      !proposalRows.some((row) => row.serviceKey === service.id)
+    ));
+    const targetService = pendingService || selectedServices.find((service) => selectedServiceIds.has(service.id)) || null;
+    if (!targetService) return;
+
+    setProposalRows((prev) => [
+      ...prev,
+      buildProposalRow(selectedClient, selectedProduct, targetService, existingRows, `${Date.now()}-${prev.length}`),
+    ]);
   };
 
   const handleRowChange = (rowId, key, value) => {
-    setRows((prev) => prev.map((row) => (
+    setProposalRows((prev) => prev.map((row) => (
       row.id === rowId
         ? enrichRow({ ...row, [key]: value })
         : row
@@ -177,23 +322,19 @@ export default function PriceProposalPage() {
   };
 
   const handleDeleteRow = (rowId) => {
-    const nextRows = rows.filter((row) => row.id !== rowId);
-    setRows(nextRows);
-
-    const remainingProductIds = Array.from(new Set(nextRows.map((row) => row.productId)));
-    setSelectedProducts(remainingProductIds);
+    setProposalRows((prev) => prev.filter((row) => row.id !== rowId));
   };
 
-  const isSubmitDisabled = rows.length === 0 || rows.some((row) => {
+  const isSubmitDisabled = proposalRows.length === 0 || proposalRows.some((row) => {
     const proposePrice = Number(row.proposePrice);
     const proposeVolume = Number(row.proposeVolume);
-    return !proposePrice || !proposeVolume;
+    return !proposePrice || !proposeVolume || !row.effectiveDate;
   });
 
-  const submitLabel = `Submit for Approval${rows.length ? ` (${rows.length})` : ''}`;
+  const submitLabel = `Submit for Approval${proposalRows.length ? ` (${proposalRows.length})` : ''}`;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', px: { xs: 1.5, sm: 3 }, py: { xs: 2.5, sm: 3 } }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 1.5, sm: 3 }, py: { xs: 2.5, sm: 3 } }}>
       <Box sx={{ width: '100%', mx: 'auto' }}>
         <Stack
           direction="row"
@@ -224,11 +365,10 @@ export default function PriceProposalPage() {
                 Price Proposal
               </Typography>
               <Typography variant="body2" color="#64748b" sx={{ mt: 0.4 }}>
-                Auto-build pricing rows from client and product selection.
+                Build proposals from client, product, and service selections with side-by-side invoice comparison.
               </Typography>
             </Box>
           </Stack>
-
         </Stack>
 
         <PriceProposalHeader
@@ -237,15 +377,23 @@ export default function PriceProposalPage() {
           clientFetchOptions={clientFetchOptions}
           clientValue={clientId}
           onClientChange={handleClientChange}
-          productOptions={productOptions}
-          selectedProducts={selectedProducts}
-          onProductsChange={handleProductsChange}
+          productFetchOptions={productFetchOptions}
+          productValue={productId}
+          onProductChange={handleProductChange}
+          serviceOptions={serviceOptions}
+          serviceValue={serviceKeys}
+          onServiceChange={handleServiceChange}
           clientLoading={false}
           productsLoading={false}
+          serviceLoading={false}
         />
 
         <ProposalTable
-          rows={rows}
+          existingRows={existingRows}
+          proposalRows={proposalRows}
+          comparisonRows={comparisonRows}
+          canCreateNew={Boolean(selectedClient && selectedProduct)}
+          onCreateNew={handleCreateNew}
           onChangeRow={handleRowChange}
           onDeleteRow={handleDeleteRow}
         />

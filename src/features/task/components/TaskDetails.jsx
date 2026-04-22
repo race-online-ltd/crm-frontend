@@ -10,6 +10,7 @@ import PinDropIcon            from '@mui/icons-material/PinDrop';
 import AccessTimeIcon         from '@mui/icons-material/AccessTime';
 import PhoneIcon              from '@mui/icons-material/Phone';
 import VideocamOutlinedIcon   from '@mui/icons-material/VideocamOutlined';
+import FiberManualRecordIcon  from '@mui/icons-material/FiberManualRecord';
 import PeopleAltOutlinedIcon  from '@mui/icons-material/PeopleAltOutlined';
 import ReplayIcon             from '@mui/icons-material/Replay';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
@@ -145,12 +146,13 @@ function LocationDisplayField({ address }) {
 
 // ─── TASK DETAILS ─────────────────────────────────────────────────────────────
 export default function TaskDetails({
-  open, task, onClose, onEdit, onCancelTask, onMarkComplete, onCheckIn,
+  open, task, onClose, onEdit, onCancelTask, onMarkComplete, onCheckIn, onRecordMeeting,
 }) {
   if (!task) return null;
 
   const tc = TYPE_CONFIG[task.taskType] || TYPE_CONFIG.follow_up;
   const isPhysical  = task.taskType === 'physical_meeting';
+  const isVirtual   = task.taskType === 'virtual_meeting';
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
 
@@ -414,6 +416,23 @@ export default function TaskDetails({
             }}
           >
             Check In
+          </Button>
+        )}
+
+        {isVirtual && !isCompleted && !isCancelled && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<FiberManualRecordIcon sx={{ fontSize: '13px !important', color: '#dc2626' }} />}
+            onClick={() => { onClose(); onRecordMeeting?.(task); }}
+            sx={{
+              borderRadius: '8px',
+              fontSize: 12.5, fontWeight: 400,
+              borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
+              '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
+            }}
+          >
+            Record Meeting
           </Button>
         )}
 

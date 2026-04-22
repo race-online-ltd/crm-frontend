@@ -11,6 +11,7 @@ import PinDropIcon            from '@mui/icons-material/PinDrop';
 import AccessTimeIcon         from '@mui/icons-material/AccessTime';
 import PhoneIcon              from '@mui/icons-material/Phone';
 import VideocamOutlinedIcon   from '@mui/icons-material/VideocamOutlined';
+import FiberManualRecordIcon  from '@mui/icons-material/FiberManualRecord';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import MoreHorizIcon          from '@mui/icons-material/MoreHoriz';
 import AddIcon                from '@mui/icons-material/Add';
@@ -25,6 +26,7 @@ import TaskDetails, { TYPE_CONFIG, TypeChip, StatusChip } from './TaskDetails';
 import TaskCheckInDialog from './TaskCheckInDialog';
 import TaskCancelDialog from './TaskCancelDialog';
 import TaskCompleteDialog from './TaskCompleteDialog';
+import { getMeetingRecorderLaunchUrl } from '../api/meetingRecorderApi';
 
 const ROWS_PER_PAGE = 5;
 
@@ -123,10 +125,11 @@ function RowMenu({ task, onEdit, onMarkComplete, onCancelTask }) {
  *   5. Status chip
  *   6. Check In button (physical only) + ⋯ menu
  */
-function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRowClick, isLast }) {
+function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, isLast, onRowClick }) {
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
+  const isVirtual   = task.taskType === 'virtual_meeting';
 
   return (
     <Box
@@ -201,6 +204,26 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
             </Button>
           </Tooltip>
         )}
+        {isVirtual && !isCompleted && !isCancelled && (
+          <Tooltip title="Open meeting recorder">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={(e) => { e.stopPropagation(); onRecordMeeting(task); }}
+                startIcon={<FiberManualRecordIcon sx={{ fontSize: 11, color: '#dc2626' }} />}
+                sx={{
+                  fontSize: 11, fontWeight: 600, borderRadius: '6px', textTransform: 'none',
+                  borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
+                  '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
+                  height: 26, px: '8px', whiteSpace: 'nowrap',
+                }}
+              >
+                Record Meeting
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
       </Stack>
     </Box>
@@ -208,11 +231,12 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
 }
 
 // ─── MOBILE CARD ─────────────────────────────────────────────────────────────
-function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRowClick }) {
+function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, onRowClick }) {
   const isOverdue   = task.status === 'overdue';
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
+  const isVirtual   = task.taskType === 'virtual_meeting';
 
   return (
     <Box
@@ -280,6 +304,23 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
               }}
             >
               Check In
+            </Button>
+          </Box>
+        )}
+        {isVirtual && !isCompleted && !isCancelled && (
+          <Box mt={1} onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onRecordMeeting(task)}
+              startIcon={<FiberManualRecordIcon sx={{ fontSize: 11, color: '#dc2626' }} />}
+              sx={{
+                fontSize: 11, fontWeight: 600, borderRadius: '6px', textTransform: 'none',
+                borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
+                '&:hover': { bgcolor: '#ffe4e6' }, height: 27,
+              }}
+            >
+              Record Meeting
             </Button>
           </Box>
         )}
@@ -355,6 +396,13 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
     onTasksChange?.(tasks.map((t) => t.id === id ? { ...t, status: 'completed' } : t));
   };
 
+  const handleRecordMeeting = async (task) => {
+    const launchUrl = await getMeetingRecorderLaunchUrl(task);
+    if (launchUrl) {
+      window.open(launchUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   React.useEffect(() => { setPage(1); }, [searchQuery]);
 
   const COL_HEADERS = ['Task', 'Type', 'Lead', 'Scheduled', 'Status', ''];
@@ -410,6 +458,7 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
                 onMarkComplete={handleMarkComplete}
                 onCancelTask={(t) => setCancelTask(t)}
                 onCheckIn={(t) => setCheckInTask(t)}
+                onRecordMeeting={handleRecordMeeting}
                 onRowClick={(t) => setDetailTask(t)}
               />
             ) : (
@@ -421,6 +470,7 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
                 onMarkComplete={handleMarkComplete}
                 onCancelTask={(t) => setCancelTask(t)}
                 onCheckIn={(t) => setCheckInTask(t)}
+                onRecordMeeting={handleRecordMeeting}
                 onRowClick={(t) => setDetailTask(t)}
               />
             )
@@ -462,6 +512,7 @@ export default function TasksTable({ tasks = [], onEdit, onNewTask, onTasksChang
         onCancelTask={(t) => { setDetailTask(null); setCancelTask(t); }}
         onMarkComplete={handleMarkComplete}
         onCheckIn={(t) => { setDetailTask(null); setCheckInTask(t); }}
+        onRecordMeeting={(t) => { setDetailTask(null); handleRecordMeeting(t); }}
       />
 
       {/* ── Check-in dialog ── */}
