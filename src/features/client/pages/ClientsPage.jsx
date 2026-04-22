@@ -26,11 +26,6 @@ import { deleteClient, fetchAreas, fetchBusinessEntities, fetchClient, fetchClie
 import AddClientButton from '../../../components/shared/AddClientButton';
 import FilterButton from '../../../components/shared/FilterButton';
 import ClientFilterDrawer from '../components/ClientFilterDrawer';
-import { useUserProfile } from '../../settings/context/UserProfileContext';
-
-
-
-
 
 const DEFAULT_FILTERS = {
   business_entity_id: '',
@@ -62,7 +57,6 @@ function mapClientToRow(client) {
 }
 
 export default function ClientsPage() {
-  const { can } = useUserProfile();
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -333,8 +327,8 @@ console.log("can create?", can('clients.create'));
         sx={{ mb: 3 }}
         gap={2}
       >
-        <Box>
-          <Stack direction="row" alignItems="center" spacing={1.5} mb={0.75}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             <Box
               sx={{
                 width: 42,
@@ -359,11 +353,13 @@ console.log("can create?", can('clients.create'));
             </Box>
           </Stack>
         </Box>
-       {can('clients.create') && 
         <AddClientButton
           onClick={() => navigate('/clients/new', { state: { returnTo: '/clients' } })}
-          sx={{ alignSelf: { xs: 'stretch', sm: 'auto' } }}
-        />}
+          sx={{
+            alignSelf: { xs: 'stretch', sm: 'auto' },
+            width: { xs: '100%', sm: 'auto' },
+          }}
+        />
 
       </Stack>
 

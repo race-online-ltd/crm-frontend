@@ -9,16 +9,12 @@ import {
 import ArrowBackIcon    from '@mui/icons-material/ArrowBack';
 import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import { useNavigate }  from 'react-router-dom';
+import { toast } from 'react-toastify';
 import SetTarget        from '../components/SetTarget';
+import { createTarget } from '../api/targetApi';
 
 export default function SetTargetPage() {
   const navigate = useNavigate();
-
-  const handleSubmit = (values) => {
-    // TODO: dispatch to store / call API
-    console.log('New target:', values);
-    navigate('/target');
-  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
@@ -70,7 +66,19 @@ export default function SetTargetPage() {
       <Divider sx={{ mb: 3 }} />
 
       {/* ── Form ── */}
-      <SetTarget onSubmit={handleSubmit} />
+      <SetTarget
+        onCancel={() => navigate('/target')}
+        onSubmit={async (payload) => {
+          try {
+            return await createTarget(payload);
+          } catch (error) {
+            toast.error(error?.response?.data?.message || error?.message || 'Unable to save target.');
+            throw error;
+          }
+        }}
+        onSuccess={() => navigate('/target')}
+        submitLabel="Set Target"
+      />
     </Box>
   );
 }
