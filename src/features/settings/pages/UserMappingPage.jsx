@@ -1663,7 +1663,6 @@ import {
   IconButton,
   Divider,
   Alert,
-  CircularProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
@@ -2022,15 +2021,11 @@ export default function UserMappingPage() {
   
   // State for business entities
   const [businessEntities, setBusinessEntities] = useState([]);
-  const [loadingEntities, setLoadingEntities] = useState(true);
   
   // State for teams, groups, divisions
   const [teams, setTeams] = useState([]);
   const [groups, setGroups] = useState([]);
   const [divisions, setDivisions] = useState([]);
-  const [loadingTeams, setLoadingTeams] = useState(true);
-  const [loadingGroups, setLoadingGroups] = useState(true);
-  const [loadingDivisions, setLoadingDivisions] = useState(true);
   
   // State for alerts
   const [alert, setAlert] = useState({ type: '', message: '', open: false });
@@ -2039,15 +2034,12 @@ export default function UserMappingPage() {
   useEffect(() => {
     const loadBusinessEntities = async () => {
       try {
-        setLoadingEntities(true);
         const entities = await fetchBusinessEntities();
         setBusinessEntities(entities);
       } catch (error) {
         console.error('Failed to load business entities:', error);
         setBusinessEntities([]);
         showAlert('error', 'Failed to load business entities');
-      } finally {
-        setLoadingEntities(false);
       }
     };
 
@@ -2058,7 +2050,6 @@ export default function UserMappingPage() {
   useEffect(() => {
     const loadTeams = async () => {
       try {
-        setLoadingTeams(true);
         const teamsData = await fetchTeams();
         const formattedTeams = Array.isArray(teamsData) 
           ? teamsData.map(team => ({
@@ -2071,8 +2062,6 @@ export default function UserMappingPage() {
         console.error('Failed to load teams:', error);
         setTeams([]);
         showAlert('error', 'Failed to load teams');
-      } finally {
-        setLoadingTeams(false);
       }
     };
     loadTeams();
@@ -2082,7 +2071,6 @@ export default function UserMappingPage() {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        setLoadingGroups(true);
         const groupsData = await fetchGroups();
         const formattedGroups = Array.isArray(groupsData)
           ? groupsData.map(group => ({
@@ -2095,8 +2083,6 @@ export default function UserMappingPage() {
         console.error('Failed to load groups:', error);
         setGroups([]);
         showAlert('error', 'Failed to load groups');
-      } finally {
-        setLoadingGroups(false);
       }
     };
     loadGroups();
@@ -2106,7 +2092,6 @@ export default function UserMappingPage() {
   useEffect(() => {
     const loadDivisions = async () => {
       try {
-        setLoadingDivisions(true);
         const divisionsData = await fetchDivisions();
         const formattedDivisions = Array.isArray(divisionsData)
           ? divisionsData.map(division => ({
@@ -2119,8 +2104,6 @@ export default function UserMappingPage() {
         console.error('Failed to load divisions:', error);
         setDivisions([]);
         showAlert('error', 'Failed to load divisions');
-      } finally {
-        setLoadingDivisions(false);
       }
     };
     loadDivisions();
@@ -2329,16 +2312,6 @@ export default function UserMappingPage() {
     () => async () => defaultKamOptions,
     [defaultKamOptions],
   );
-
-  // Show loading while fetching data
-  if (loadingEntities || loadingTeams || loadingGroups || loadingDivisions) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading data...</Typography>
-      </Box>
-    );
-  }
 
   // ---- Card wrapper style ----
   const cardSx = {

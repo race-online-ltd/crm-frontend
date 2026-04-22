@@ -2,8 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
-import CircularProgress from '@mui/material/CircularProgress';
-import Skeleton from '@mui/material/Skeleton';
 
 const LIGHT_BORDER_COLOR = '#e3eaf2';
 const LIGHT_BORDER_HOVER = '#d3deea';
@@ -55,40 +53,23 @@ export default function SelectDropdownSingle({
   height      = 45,
   fullWidth   = true,
   width       = 240,
-  loading     = false,
   sx          = {},
 }) {
   const [options, setOptions] = useState([]);
-  const [internalLoading, setInternalLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      setInternalLoading(true);
       try {
         const data = await fetchOptions();
         if (mounted) setOptions(data || []);
       } catch {
         if (mounted) setOptions([]);
-      } finally {
-        if (mounted) setInternalLoading(false);
       }
     };
     load();
     return () => { mounted = false; };
   }, [fetchOptions]);
-
-  if (loading || internalLoading) {
-    return (
-      <Skeleton
-        variant="rounded"
-        animation="wave"
-        width={fullWidth ? '100%' : width}
-        height={height + 23}
-        sx={{ borderRadius: '4px', mb: '4px', ...sx }}
-      />
-    );
-  }
 
   const selectedOption = options.find((opt) => opt.id === value) || null;
 
@@ -113,15 +94,7 @@ export default function SelectDropdownSingle({
           fullWidth={fullWidth}
           error={error}
           helperText={helperText || undefined}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {loading && <CircularProgress color="inherit" size={18} />}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
+          InputProps={params.InputProps}
           sx={fieldSx(height)}
         />
       )}

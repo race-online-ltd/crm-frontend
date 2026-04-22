@@ -1,8 +1,6 @@
 import React from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
-import Skeleton from '@mui/material/Skeleton';
-import Box from '@mui/material/Box';
 import { fieldSx } from './SelectDropdownSingle';
 
 export default function SelectDropdownMultiple({
@@ -21,23 +19,9 @@ export default function SelectDropdownMultiple({
   height      = 45,
   fullWidth   = true,
   width       = 240,
-  loading     = false,
   fixedHeight = false,
   sx          = {},
 }) {
-  if (loading) {
-    return (
-      <Box sx={{ width: fullWidth ? '100%' : width, ...sx }}>
-        <Skeleton
-          variant="rounded"
-          animation="wave"
-          height={height}
-          sx={{ borderRadius: '4px', mb: '23px' }}
-        />
-      </Box>
-    );
-  }
-
   const selectedOptions = options.filter((opt) =>
     Array.isArray(value) ? value.includes(opt.id) : false
   );

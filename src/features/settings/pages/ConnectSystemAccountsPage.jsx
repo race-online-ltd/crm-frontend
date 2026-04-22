@@ -28,6 +28,86 @@ const EMPTY_CONNECTION_ROW = () => ({
   externalUserId: '',
 });
 
+function ConnectionRow({
+  row,
+  index,
+  totalRows,
+  onAdd,
+  onRemove,
+  onExternalSystemChange,
+  onExternalUserChange,
+}) {
+  const externalSystemFetcher = useCallback(
+    async () => fetchExternalSystemsForAccountConnection(),
+    [],
+  );
+
+  const externalUserFetcher = useCallback(
+    async () => {
+      if (!row.externalSystemId) {
+        return [];
+      }
+
+      return fetchExternalUsersForSystem(row.externalSystemId);
+    },
+    [row.externalSystemId],
+  );
+
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr) 72px' },
+        gap: 1.5,
+        alignItems: 'start',
+      }}
+    >
+      <SelectDropdownSingle
+        name={`connections[${index}].externalSystemId`}
+        label="External System"
+        fetchOptions={externalSystemFetcher}
+        value={row.externalSystemId}
+        onChange={(id) => onExternalSystemChange(index, id)}
+      />
+
+      <SelectDropdownSingle
+        name={`connections[${index}].externalUserId`}
+        label="External System User"
+        fetchOptions={externalUserFetcher}
+        value={row.externalUserId}
+        onChange={(id) => onExternalUserChange(index, id)}
+        disabled={!row.externalSystemId}
+      />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: '10px' }}>
+        {index === totalRows - 1 && (
+          <IconButton
+            onClick={onAdd}
+            size="small"
+            sx={{
+              color: '#2563eb',
+              '&:hover': { bgcolor: '#eff6ff' },
+            }}
+          >
+            <AddCircleOutlineIcon fontSize="small" />
+          </IconButton>
+        )}
+        <IconButton
+          onClick={() => onRemove(index)}
+          disabled={totalRows === 1}
+          size="small"
+          sx={{
+            color: totalRows === 1 ? '#cbd5e1' : '#ef4444',
+            '&:hover': { bgcolor: '#fef2f2' },
+          }}
+        >
+          <RemoveCircleOutlineIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+}
+
 export default function ConnectSystemAccountsPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,81 +319,18 @@ export default function ConnectSystemAccountsPage() {
           )}
 
           <Stack spacing={1.5}>
-            {isInitializing ? (
-              <SelectDropdownSingle
-                name="connections-loading"
-                label="External System"
-                fetchOptions={async () => []}
-                value=""
-                disabled
+            {formik.values.connections.map((row, index) => (
+              <ConnectionRow
+                key={row.id}
+                row={row}
+                index={index}
+                totalRows={formik.values.connections.length}
+                onAdd={handleAddRow}
+                onRemove={handleRemoveRow}
+                onExternalSystemChange={handleExternalSystemChange}
+                onExternalUserChange={handleExternalUserChange}
               />
-            ) : (
-              formik.values.connections.map((row, index) => {
-                const externalSystemFetcher = async () => fetchExternalSystemsForAccountConnection();
-                const externalUserFetcher = async () => {
-                  if (!row.externalSystemId) {
-                    return [];
-                  }
-
-                  return fetchExternalUsersForSystem(row.externalSystemId);
-                };
-
-                return (
-                  <Box
-                    key={row.id}
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr) 72px' },
-                      gap: 1.5,
-                      alignItems: 'start',
-                    }}
-                  >
-                    <SelectDropdownSingle
-                      name={`connections[${index}].externalSystemId`}
-                      label="External System"
-                      fetchOptions={externalSystemFetcher}
-                      value={row.externalSystemId}
-                      onChange={(id) => handleExternalSystemChange(index, id)}
-                    />
-
-                    <SelectDropdownSingle
-                      name={`connections[${index}].externalUserId`}
-                      label="External System User"
-                      fetchOptions={externalUserFetcher}
-                      value={row.externalUserId}
-                      onChange={(id) => handleExternalUserChange(index, id)}
-                      disabled={!row.externalSystemId}
-                    />
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: '10px' }}>
-                      {index === formik.values.connections.length - 1 && (
-                        <IconButton
-                          onClick={handleAddRow}
-                          size="small"
-                          sx={{
-                            color: '#2563eb',
-                            '&:hover': { bgcolor: '#eff6ff' },
-                          }}
-                        >
-                          <AddCircleOutlineIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      <IconButton
-                        onClick={() => handleRemoveRow(index)}
-                        disabled={formik.values.connections.length === 1}
-                        size="small"
-                        sx={{
-                          color: formik.values.connections.length === 1 ? '#cbd5e1' : '#ef4444',
-                          '&:hover': { bgcolor: '#fef2f2' },
-                        }}
-                      >
-                        <RemoveCircleOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                );
-              })
-            )}
+            ))}
           </Stack>
 
           <Divider sx={{ my: 2.5, borderColor: '#e2e8f0' }} />
