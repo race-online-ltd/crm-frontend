@@ -1,8 +1,9 @@
 // src/features/target/components/SetTarget.jsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
+  Autocomplete,
   TextField,
   Typography,
   InputAdornment,
@@ -11,7 +12,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
-import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
+import { fieldSx } from '../../../components/shared/SelectDropdownSingle';
 import { CustomPeriodPicker } from '../../../components/shared/date-picker';
 import {
   fetchBackoffices,
@@ -109,6 +110,22 @@ function buildPayload(values) {
   };
 }
 
+function resolveSelectedOptionId(value, options = []) {
+  const rawValue = String(value ?? '').trim();
+  if (!rawValue) {
+    return '';
+  }
+
+  const exactMatch = options.find((option) => String(option.id) === rawValue);
+  if (exactMatch) {
+    return String(exactMatch.id);
+  }
+
+  const normalizedValue = rawValue.toLowerCase();
+  const labelMatch = options.find((option) => String(option.label ?? '').trim().toLowerCase() === normalizedValue);
+  return labelMatch ? String(labelMatch.id) : rawValue;
+}
+
 function toOptionList(items = [], labelKey = 'label') {
   return items
     .map((item) => ({
@@ -116,6 +133,27 @@ function toOptionList(items = [], labelKey = 'label') {
       label: String(item[labelKey] ?? item.label ?? ''),
     }))
     .filter((item) => item.label);
+}
+
+function mergeUniqueOptions(primaryOptions, fallbackOption) {
+  if (!fallbackOption) {
+    return primaryOptions;
+  }
+
+  return Array.from(
+    new Map([fallbackOption, ...primaryOptions].map((option) => [option.id, option])).values()
+  );
+}
+
+function buildInitialOption(option, label) {
+  if (!option?.id || !label) {
+    return null;
+  }
+
+  return {
+    id: String(option.id),
+    label: String(label),
+  };
 }
 
 function buildKamOptions(backoffices = [], businessEntityId = '') {
@@ -141,6 +179,48 @@ function buildKamOptions(backoffices = [], businessEntityId = '') {
   ).sort((a, b) => a.label.localeCompare(b.label));
 }
 
+function StableSingleSelect({
+  name,
+  label,
+  value,
+  options,
+  onChange,
+  onBlur,
+  error = false,
+  helperText,
+  disabled = false,
+  fullWidth = true,
+  placeholder = '',
+}) {
+  const selectedOption = options.find((option) => option.id === value) || null;
+
+  return (
+    <Autocomplete
+      options={options}
+      disabled={disabled}
+      value={selectedOption}
+      isOptionEqualToValue={(option, currentValue) => option.id === currentValue?.id}
+      getOptionLabel={(option) => option.label || ''}
+      onChange={(_, nextValue) => onChange?.(nextValue ? nextValue.id : '')}
+      onBlur={onBlur}
+      sx={{ width: fullWidth ? '100%' : 240 }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          name={name}
+          label={label}
+          placeholder={placeholder}
+          size="small"
+          fullWidth={fullWidth}
+          error={error}
+          helperText={helperText || undefined}
+          sx={fieldSx(45)}
+        />
+      )}
+    />
+  );
+}
+
 export default function SetTarget({
   onCancel,
   onSubmit,
@@ -148,21 +228,24 @@ export default function SetTarget({
   initialTarget = null,
   submitLabel = 'Set Target',
 }) {
-  const [businessEntities, setBusinessEntities] = useState([]);
+  const [businessEntities, setBusinessEntities] = useState(() => {
+    const fallback = buildInitialOption(
+      initialTarget?.businessEntity || initialTarget?.business_entity,
+      initialTarget?.businessEntity?.name || initialTarget?.business_entity?.name
+    );
+    return fallback ? [fallback] : [];
+  });
   const [backoffices, setBackoffices] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loadingBusinessEntities, setLoadingBusinessEntities] = useState(false);
-  const [loadingBackoffices, setLoadingBackoffices] = useState(false);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [products, setProducts] = useState(() => {
+    const fallback = buildInitialOption(initialTarget?.product, initialTarget?.product?.product_name);
+    return fallback ? [fallback] : [];
+  });
   const initialBusinessEntityIdRef = useRef(String(initialTarget?.business_entity_id ?? initialTarget?.businessEntity?.id ?? ''));
 
   useEffect(() => {
     let active = true;
 
     const load = async () => {
-      setLoadingBusinessEntities(true);
-      setLoadingBackoffices(true);
-
       try {
         const [entities, backofficeRows] = await Promise.all([
           fetchBusinessEntities(),
@@ -173,17 +256,18 @@ export default function SetTarget({
           return;
         }
 
-        setBusinessEntities(toOptionList(entities, 'name'));
+        const fetchedBusinessEntities = toOptionList(entities, 'name');
+        const fallbackBusinessEntity = buildInitialOption(
+          initialTarget?.businessEntity || initialTarget?.business_entity,
+          initialTarget?.businessEntity?.name || initialTarget?.business_entity?.name
+        );
+
+        setBusinessEntities(mergeUniqueOptions(fetchedBusinessEntities, fallbackBusinessEntity));
         setBackoffices(Array.isArray(backofficeRows) ? backofficeRows : []);
       } catch {
         if (active) {
           setBusinessEntities([]);
           setBackoffices([]);
-        }
-      } finally {
-        if (active) {
-          setLoadingBusinessEntities(false);
-          setLoadingBackoffices(false);
         }
       }
     };
@@ -206,7 +290,12 @@ export default function SetTarget({
     enableReinitialize: true,
     validationSchema: setTargetSchema,
     onSubmit: async (values, { setSubmitting }) => {
-      const payload = buildPayload(values);
+      const payload = buildPayload({
+        ...values,
+        businessEntityId: resolveSelectedOptionId(values.businessEntityId, businessEntities),
+        kamId: resolveSelectedOptionId(values.kamId, kamOptions),
+        productId: resolveSelectedOptionId(values.productId, products),
+      });
 
       try {
         await onSubmit?.(payload, values);
@@ -230,13 +319,15 @@ export default function SetTarget({
   } = formik;
 
   const kamOptions = useMemo(
-    () => buildKamOptions(backoffices, values.businessEntityId),
+    () => mergeUniqueOptions(
+      buildKamOptions(backoffices, values.businessEntityId),
+      buildInitialOption(
+        initialTarget?.kam,
+        initialTarget?.kam?.full_name || initialTarget?.kam?.user_name
+      )
+    ),
     [backoffices, values.businessEntityId]
   );
-
-  const businessEntityFetcher = useCallback(async () => businessEntities, [businessEntities]);
-  const kamFetcher = useCallback(async () => kamOptions, [kamOptions]);
-  const targetModeFetcher = useCallback(async () => TARGET_MODES, []);
 
   useEffect(() => {
     let active = true;
@@ -244,11 +335,8 @@ export default function SetTarget({
     const loadProducts = async () => {
       if (!values.businessEntityId) {
         setProducts([]);
-        setLoadingProducts(false);
         return;
       }
-
-      setLoadingProducts(true);
 
       try {
         const entityProducts = await fetchProductsByBusinessEntity(values.businessEntityId);
@@ -262,16 +350,17 @@ export default function SetTarget({
             id: String(product.id),
             label: product.product_name || product.label || `Product ${product.id}`,
             business_entity_id: product.business_entity_id,
-          }))
+          }));
 
-        setProducts(filtered);
+        const fallbackProduct = buildInitialOption(
+          initialTarget?.product,
+          initialTarget?.product?.product_name
+        );
+
+        setProducts(mergeUniqueOptions(filtered, fallbackProduct));
       } catch {
         if (active) {
           setProducts([]);
-        }
-      } finally {
-        if (active) {
-          setLoadingProducts(false);
         }
       }
     };
@@ -308,7 +397,6 @@ export default function SetTarget({
 
   const targetModeError = touched.targetMode && errors.targetMode ? errors.targetMode : ' ';
   const productDisabled = !values.businessEntityId;
-  const productFetcher = useCallback(async () => products, [products]);
 
   const handleCancel = () => {
     if (onCancel) {
@@ -328,54 +416,50 @@ export default function SetTarget({
           }}
         >
           <Box>
-            <SelectDropdownSingle
+            <StableSingleSelect
               name="businessEntityId"
               label="Business Entity *"
-              fetchOptions={businessEntityFetcher}
               value={values.businessEntityId}
               onChange={(id) => setFieldValue('businessEntityId', id)}
               onBlur={handleBlur}
               error={Boolean(touched.businessEntityId && errors.businessEntityId)}
               helperText={touched.businessEntityId && errors.businessEntityId ? errors.businessEntityId : ' '}
-              loading={loadingBusinessEntities}
+              options={businessEntities}
             />
           </Box>
 
           <Box>
-            <SelectDropdownSingle
+            <StableSingleSelect
               name="kamId"
               label="Select KAM *"
-              fetchOptions={kamFetcher}
               value={values.kamId}
               onChange={(id) => setFieldValue('kamId', id)}
               onBlur={handleBlur}
               disabled={!values.businessEntityId}
               error={Boolean(touched.kamId && errors.kamId)}
               helperText={touched.kamId && errors.kamId ? errors.kamId : ' '}
-              loading={loadingBackoffices}
+              options={kamOptions}
             />
           </Box>
 
           <Box>
-            <SelectDropdownSingle
+            <StableSingleSelect
               name="productId"
               label="Select Product *"
-              fetchOptions={productFetcher}
               value={values.productId}
               onChange={(id) => setFieldValue('productId', id)}
               onBlur={handleBlur}
               disabled={productDisabled}
               error={Boolean(touched.productId && errors.productId)}
               helperText={touched.productId && errors.productId ? errors.productId : ' '}
-              loading={loadingProducts}
+              options={products}
             />
           </Box>
 
           <Box>
-            <SelectDropdownSingle
+            <StableSingleSelect
               name="targetMode"
               label="Target Mode *"
-              fetchOptions={targetModeFetcher}
               value={values.targetMode}
               onChange={(mode) => {
                 setFieldValue('targetMode', mode);
@@ -385,6 +469,7 @@ export default function SetTarget({
               onBlur={handleBlur}
               error={Boolean(touched.targetMode && errors.targetMode)}
               helperText={targetModeError}
+              options={TARGET_MODES}
             />
           </Box>
 
