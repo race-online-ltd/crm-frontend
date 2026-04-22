@@ -318,7 +318,7 @@ export function UserProfileProvider({ children }) {
 
   return permissions?.[module]?.includes(action);
 }, [permissions]);
-
+console.log("permissions:", permissions);
   const value = useMemo(() => ({
     profile,
     token,
