@@ -189,6 +189,24 @@ export async function fetchPageNavigationItems() {
 }
 
 
+
+// export async function fetchEntityWiseTableColumn() {
+//   const response = await api.get('/entity-column-mappings/table-column-mappings');
+//   return response.data?.data ?? response.data ?? [];
+// }
+
+
+export async function fetchEntityWiseTableColumn({ page_id, table_id }) {
+  const response = await api.get('/entity-column-mappings/table-column-mappings', {
+    params: {
+      page_id,
+      table_id,
+    },
+  });
+  return response.data?.data ?? response.data ?? [];
+}
+
+
 export async function fetchTableItems() {
   const response = await api.get('/entity-column-mappings/get-table-items');
   return response.data?.data ?? response.data ?? [];
@@ -244,3 +262,97 @@ export async function syncPermissions() {
   const response = await api.post('/system/permissions/sync');
   return response.data?.data ?? response.data ?? [];
 }
+
+export async function storeFeatureActionPermissions(payload) {
+  const response = await api.post('/feature-action-permissions/', payload);
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+export async function showFeatureActionPermissions(user_view_id) {
+  const response = await api.get(
+    `/feature-action-permissions/${user_view_id}`
+  );
+
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+export async function updateFeatureActionPermissions(user_view_id, payload) {
+  const response = await api.put(
+    `/feature-action-permissions/${user_view_id}`,
+    payload
+  );
+
+  return response.data?.data ?? response.data ?? [];
+}
+
+
+
+
+
+
+export async function fetchColumnMappingsFiltered(filters = {}) {
+  try {
+    const response = await api.get('/entity-column-mappings', { params: filters });
+    return response.data?.data ?? [];
+  } catch (error) {
+    console.error('Error fetching filtered column mappings:', error);
+    return [];
+  }
+}
+ 
+// /**
+//  * Store a single column mapping
+//  * @param {Object} payload - { entity_id, page_id, table_id, column_id }
+//  */
+// export async function storeColumnMapping(payload) {
+//   try {
+//     const response = await api.post('/entity-column-mappings', payload);
+//     return response.data?.data ?? response.data ?? [];
+//   } catch (error) {
+//     console.error('Error storing column mapping:', error);
+//     throw error;
+//   }
+// }
+ 
+// /**
+//  * Delete column mappings by criteria
+//  * @param {Object} criteria - { entity_id, page_id, table_id }
+//  */
+export async function deleteColumnMappingsByCriteria(criteria) {
+  try {
+    const response = await api.delete('/entity-column-mappings/delete-by-criteria', {
+      params: criteria
+    });
+    return response.data ?? [];
+  } catch (error) {
+    console.error('Error deleting column mappings by criteria:', error);
+    throw error;
+  }
+}
+
+
+
+export async function updateColumnMapping(payload) {
+  const response = await api.put('/entity-column-mappings', payload);
+  return response.data;
+}
+
+
+
+// export async function updateColumnMapping(id, mappingData) {
+//   const response = await api.put(
+//     `/entity-column-mappings/${id}`,
+//     {
+//       entity_id: mappingData.entity_id,
+//       page_id: mappingData.page_id,
+//       table_id: mappingData.table_id,
+//       column_id: mappingData.column_id,
+//     }
+//   );
+ 
+//   return response.data;
+// }
