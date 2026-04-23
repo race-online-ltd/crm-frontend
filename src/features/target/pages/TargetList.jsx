@@ -71,20 +71,31 @@ function mapTargetToRow(target) {
   };
 }
 
-function buildSummary(rows) {
-  const uniqueKams = new Set(rows.map((row) => row.kam).filter(Boolean)).size;
-  const totalAmount = rows.reduce((sum, row) => sum + Number(row.targetAmount || 0), 0);
+function getRowsForViewMode(rows, viewMode) {
+  if (viewMode === 'monthly' || viewMode === 'quarterly') {
+    return rows.filter((row) => row.periodMode === viewMode);
+  }
+
+  return rows;
+}
+
+function buildSummary(rows, viewMode) {
+  const scopedRows = getRowsForViewMode(rows, viewMode);
+  const uniqueKams = new Set(scopedRows.map((row) => row.kam).filter(Boolean)).size;
+  const totalAmount = scopedRows.reduce((sum, row) => sum + Number(row.targetAmount || 0), 0);
 
   return [
-    { label: 'Total KAMs', value: String(uniqueKams), sub: 'Active in targets' },
     {
-      label: 'Total Amount',
+      label: 'Total KAMs',
+      value: String(uniqueKams),
+    },
+    {
+      label: 'Total Target',
       value: new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'BDT',
         maximumFractionDigits: 0,
       }).format(totalAmount).replace('BDT', '৳'),
-      sub: 'Across all targets',
     },
   ];
 }
@@ -92,9 +103,10 @@ function buildSummary(rows) {
 export default function TargetList() {
   const navigate = useNavigate();
   const [targets, setTargets] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTarget, setEditingTarget] = useState(null);
+  const [viewMode, setViewMode] = useState('monthly');
 
   const loadTargets = useCallback(async () => {
     setLoading(true);
@@ -115,7 +127,7 @@ export default function TargetList() {
     loadTargets();
   }, [loadTargets]);
 
-  const summaryStats = useMemo(() => buildSummary(targets), [targets]);
+  const summaryStats = useMemo(() => buildSummary(targets, viewMode), [targets, viewMode]);
 
   const handleOpenEdit = (row) => {
     setEditingTarget(row?.raw || null);
@@ -208,23 +220,24 @@ export default function TargetList() {
               bgcolor: '#fff',
             }}
           >
-            <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" mb={0.5}>
-              {stat.label}
-            </Typography>
-            <Typography fontWeight={700} fontSize="1.3rem" color="#0f172a" lineHeight={1.2}>
-              {stat.value}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" mt={0.25} display="block">
-              {stat.sub}
-            </Typography>
+            <Stack spacing={0.9}>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block">
+                {stat.label}
+              </Typography>
+              <Typography fontWeight={700} fontSize="1.3rem" color="#0f172a" lineHeight={1.2}>
+                {stat.value}
+              </Typography>
+            </Stack>
           </Paper>
         ))}
       </Box>
 
       <KAMTargetTable
         rows={targets}
-        loading={loading}
+        loading={loading && targets.length === 0}
         onEdit={handleOpenEdit}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       <Dialog

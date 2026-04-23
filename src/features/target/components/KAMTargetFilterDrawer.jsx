@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Button,
@@ -37,10 +37,6 @@ export default function KAMTargetFilterDrawer({
     group: '',
     ...(filters || {}),
   }), [filters]);
-
-  const kamFetcher = useCallback(async () => kamOptions, [kamOptions]);
-  const teamFetcher = useCallback(async () => teamOptions, [teamOptions]);
-  const groupFetcher = useCallback(async () => groupOptions, [groupOptions]);
 
   return (
     <AppDrawer
@@ -153,7 +149,7 @@ export default function KAMTargetFilterDrawer({
           <SelectDropdownSingle
             name="kam"
             label="Select KAM"
-            fetchOptions={kamFetcher}
+            options={kamOptions}
             value={values.kam || ''}
             onChange={(value) => onChange?.('kam', value)}
             placeholder="Select KAM"
@@ -176,7 +172,7 @@ export default function KAMTargetFilterDrawer({
           <SelectDropdownSingle
             name="team"
             label="Select Team"
-            fetchOptions={teamFetcher}
+            options={teamOptions}
             value={values.team || ''}
             onChange={(value) => onChange?.('team', value)}
             placeholder="Select Team"
@@ -187,7 +183,7 @@ export default function KAMTargetFilterDrawer({
           <SelectDropdownSingle
             name="group"
             label="Select Group"
-            fetchOptions={groupFetcher}
+            options={groupOptions}
             value={values.group || ''}
             onChange={(value) => onChange?.('group', value)}
             placeholder="Select Group"

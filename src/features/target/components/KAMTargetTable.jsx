@@ -1,7 +1,9 @@
 // src/features/target/components/KAMTargetTable.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Box,
   Chip,
+  Button,
   IconButton,
   InputAdornment,
   Paper,
@@ -13,10 +15,12 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { visuallyHidden } from '@mui/utils';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterButton from '../../../components/shared/FilterButton';
@@ -25,6 +29,17 @@ import KAMTargetFilterDrawer from './KAMTargetFilterDrawer';
 import { fetchGroups, fetchTeams } from '../../settings/api/settingsApi';
 
 const ROWS_PER_PAGE_OPTIONS = [5, 10, 25];
+
+const TARGET_COLUMNS = [
+  { id: 'period', label: 'Period', minWidth: 160, sortable: true },
+  { id: 'targetMode', label: 'Target Mode', minWidth: 150, sortable: true },
+  { id: 'businessEntity', label: 'Business Entity', minWidth: 190, sortable: true },
+  { id: 'kam', label: 'KAM', minWidth: 180, sortable: true },
+  { id: 'product', label: 'Product', minWidth: 170, sortable: true },
+  { id: 'targetAmount', label: 'Target Amount', minWidth: 180, sortable: true },
+  { id: 'createdAt', label: 'Created At', minWidth: 160, sortable: true },
+  { id: 'action', label: 'Action', minWidth: 90, sortable: false },
+];
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
@@ -67,10 +82,51 @@ function normalizeLabel(value) {
   return value.label || value.full_name || value.user_name || value.product_name || value.name || '';
 }
 
+function getSortValue(row, orderBy) {
+  switch (orderBy) {
+    case 'period':
+      if (row.periodMode === 'quarterly') {
+        return Number(row.period?.year || 0) * 12 + ((Number(row.period?.quarter || 1) - 1) * 3);
+      }
+      return Number(row.period?.year || 0) * 12 + Number(row.period?.month || 0);
+    case 'targetMode':
+      return row.periodMode === 'monthly' ? 0 : 1;
+    case 'businessEntity':
+      return normalizeLabel(row.businessEntity).toLowerCase();
+    case 'kam':
+      return normalizeLabel(row.kam).toLowerCase();
+    case 'product':
+      return normalizeLabel(Array.isArray(row.products) ? row.products[0] : row.products).toLowerCase();
+    case 'targetAmount':
+      return Number(row.targetAmount || 0);
+    case 'createdAt':
+      return new Date(row.createdAt || 0).getTime();
+    default:
+      return normalizeLabel(row[orderBy]).toLowerCase();
+  }
+}
+
+function descendingComparator(a, b, orderBy) {
+  const left = getSortValue(a, orderBy);
+  const right = getSortValue(b, orderBy);
+
+  if (right < left) return -1;
+  if (right > left) return 1;
+  return 0;
+}
+
+function getComparator(order, orderBy) {
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
 export default function KAMTargetTable({
   rows = [],
   loading = false,
   onEdit,
+  viewMode = 'all',
+  onViewModeChange,
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -78,8 +134,10 @@ export default function KAMTargetTable({
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [teamOptions, setTeamOptions] = useState([]);
   const [groupOptions, setGroupOptions] = useState([]);
+  const [order, setOrder] = useState('desc');
+  const [orderBy, setOrderBy] = useState('createdAt');
   const [draftFilters, setDraftFilters] = useState({
-    viewMode: 'all',
+    viewMode,
     fromMonth: null,
     toMonth: null,
     quarterYear: new Date().getFullYear(),
@@ -90,7 +148,7 @@ export default function KAMTargetTable({
     group: '',
   });
   const [appliedFilters, setAppliedFilters] = useState({
-    viewMode: 'all',
+    viewMode,
     fromMonth: null,
     toMonth: null,
     quarterYear: new Date().getFullYear(),
@@ -100,6 +158,21 @@ export default function KAMTargetTable({
     team: '',
     group: '',
   });
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setAppliedFilters((prev) => ({
+        ...prev,
+        viewMode,
+      }));
+      setDraftFilters((prev) => ({
+        ...prev,
+        viewMode,
+      }));
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [viewMode]);
 
   useEffect(() => {
     let active = true;
@@ -146,6 +219,13 @@ export default function KAMTargetTable({
       active = false;
     };
   }, []);
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+    setPage(0);
+  };
 
   const kamOptions = useMemo(() => (
     [...new Set(rows.map((item) => normalizeLabel(item.kam)).filter(Boolean))]
@@ -214,9 +294,14 @@ export default function KAMTargetTable({
     });
   }, [appliedFilters, rows, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
+  const sortedRows = useMemo(
+    () => [...filteredRows].sort(getComparator(order, orderBy)),
+    [filteredRows, order, orderBy],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / rowsPerPage));
   const safePage = Math.min(page, totalPages - 1);
-  const visibleRows = filteredRows.slice(
+  const visibleRows = sortedRows.slice(
     safePage * rowsPerPage,
     safePage * rowsPerPage + rowsPerPage,
   );
@@ -235,6 +320,7 @@ export default function KAMTargetTable({
 
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
+    onViewModeChange?.(draftFilters.viewMode);
     setPage(0);
     setFilterDrawerOpen(false);
   };
@@ -254,8 +340,22 @@ export default function KAMTargetTable({
 
     setDraftFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
+    onViewModeChange?.('all');
     setPage(0);
     setFilterDrawerOpen(false);
+  };
+
+  const handleQuickViewModeChange = (mode) => {
+    setAppliedFilters((prev) => ({
+      ...prev,
+      viewMode: mode,
+    }));
+    setDraftFilters((prev) => ({
+      ...prev,
+      viewMode: mode,
+    }));
+    onViewModeChange?.(mode);
+    setPage(0);
   };
 
   return (
@@ -270,16 +370,18 @@ export default function KAMTargetTable({
           overflow: 'hidden',
         }}
       >
-        <Stack
-          direction={{ xs: 'column', lg: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', lg: 'center' }}
-          gap={1.5}
-          px={2.5}
-          py={1.75}
-          sx={{ borderBottom: '1px solid #e2e8f0' }}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '1fr auto 1fr' },
+            alignItems: 'center',
+            gap: 1.5,
+            px: 2.5,
+            py: 1.75,
+            borderBottom: '1px solid #e2e8f0',
+          }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Typography fontWeight={700} fontSize="0.9rem" color="#0f172a">
               KAM Targets
             </Typography>
@@ -296,10 +398,76 @@ export default function KAMTargetTable({
           </Stack>
 
           <Stack
+            direction="row"
+            spacing={1.25}
+            alignItems="center"
+            flexWrap="wrap"
+            sx={{ justifySelf: { xs: 'flex-start', lg: 'center' } }}
+          >
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{
+                p: 0.5,
+                bgcolor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '999px',
+              }}
+            >
+              <Button
+                type="button"
+                size="small"
+                onClick={() => handleQuickViewModeChange('monthly')}
+                sx={{
+                  minWidth: 76,
+                  height: 28,
+                  px: 1.5,
+                  borderRadius: '999px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: appliedFilters.viewMode === 'monthly' ? '#1d4ed8' : '#64748b',
+                  bgcolor: appliedFilters.viewMode === 'monthly' ? '#dbeafe' : 'transparent',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: appliedFilters.viewMode === 'monthly' ? '#bfdbfe' : 'rgba(37,99,235,0.06)',
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                Month
+              </Button>
+              <Button
+                type="button"
+                size="small"
+                onClick={() => handleQuickViewModeChange('quarterly')}
+                sx={{
+                  minWidth: 82,
+                  height: 28,
+                  px: 1.5,
+                  borderRadius: '999px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: appliedFilters.viewMode === 'quarterly' ? '#6d28d9' : '#64748b',
+                  bgcolor: appliedFilters.viewMode === 'quarterly' ? '#ede9fe' : 'transparent',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: appliedFilters.viewMode === 'quarterly' ? '#ddd6fe' : 'rgba(109,40,217,0.06)',
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                Quarter
+              </Button>
+            </Stack>
+          </Stack>
+
+          <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1.25}
             alignItems={{ xs: 'stretch', sm: 'center' }}
-            sx={{ width: { xs: '100%', lg: 'auto' } }}
+            sx={{ width: { xs: '100%', lg: 'auto' }, justifySelf: { lg: 'end' } }}
           >
             <TextField
               size="small"
@@ -340,13 +508,13 @@ export default function KAMTargetTable({
               }}
             />
           </Stack>
-        </Stack>
+        </Box>
 
         {loading ? (
           <OrbitLoader
             title="Loading KAM targets"
             subtitle="Fetching target records."
-            minHeight={260}
+            minHeight={160}
           />
         ) : (
           <>
@@ -360,20 +528,12 @@ export default function KAMTargetTable({
                 <Table stickyHeader aria-label="KAM target table" sx={{ minWidth: 1400 }}>
                 <TableHead>
                   <TableRow>
-                    {[
-                      ['Period', 160],
-                      ['Target Mode', 150],
-                      ['Business Entity', 190],
-                      ['KAM', 180],
-                      ['Product', 170],
-                      ['Target Amount', 180],
-                      ['Created At', 160],
-                      ['Action', 90],
-                    ].map(([label, minWidth], index) => (
+                    {TARGET_COLUMNS.map(({ id, label, minWidth, sortable }, index) => (
                       <TableCell
                         key={label}
                         component="th"
                         scope="col"
+                        sortDirection={sortable && orderBy === id ? order : false}
                         sx={{
                           bgcolor: '#f8fafc',
                           borderBottom: '1px solid #e2e8f0',
@@ -390,7 +550,30 @@ export default function KAMTargetTable({
                           pr: label === 'Action' ? 2.5 : 2,
                         }}
                       >
-                        {label}
+                        {sortable ? (
+                          <TableSortLabel
+                            active={orderBy === id}
+                            direction={orderBy === id ? order : 'asc'}
+                            onClick={() => handleRequestSort(id)}
+                            sx={{
+                              fontWeight: 800,
+                              color: '#334155',
+                              '&.Mui-active': { color: '#0f172a' },
+                              '& .MuiTableSortLabel-icon': {
+                                color: '#64748b !important',
+                              },
+                            }}
+                          >
+                            {label}
+                            {orderBy === id ? (
+                              <Box component="span" sx={visuallyHidden}>
+                                {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                              </Box>
+                            ) : null}
+                          </TableSortLabel>
+                        ) : (
+                          label
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>

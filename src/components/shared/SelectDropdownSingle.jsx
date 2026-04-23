@@ -43,6 +43,7 @@ export default function SelectDropdownSingle({
   label       = 'Select Item',
   placeholder = '',
   fetchOptions,
+  options: providedOptions,
   value       = '',
   onChange,
   onBlur,
@@ -55,9 +56,24 @@ export default function SelectDropdownSingle({
   width       = 240,
   sx          = {},
 }) {
-  const [options, setOptions] = useState([]);
+  const [options, setOptions] = useState(() => (Array.isArray(providedOptions) ? providedOptions : []));
 
   useEffect(() => {
+    if (Array.isArray(providedOptions)) {
+      setOptions(providedOptions);
+    }
+  }, [providedOptions]);
+
+  useEffect(() => {
+    if (Array.isArray(providedOptions)) {
+      return undefined;
+    }
+
+    if (typeof fetchOptions !== 'function') {
+      setOptions([]);
+      return undefined;
+    }
+
     let mounted = true;
     const load = async () => {
       try {
@@ -69,7 +85,7 @@ export default function SelectDropdownSingle({
     };
     load();
     return () => { mounted = false; };
-  }, [fetchOptions]);
+  }, [fetchOptions, providedOptions]);
 
   const selectedOption = options.find((opt) => opt.id === value) || null;
 

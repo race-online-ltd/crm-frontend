@@ -10,8 +10,10 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   Typography,
 } from '@mui/material';
+import { visuallyHidden } from '@mui/utils';
 import OrbitLoader from '@/components/shared/OrbitLoader';
 
 function isEmptyValue(value) {
@@ -76,6 +78,9 @@ export default function ClientsTable({
   columns = [],
   loading = false,
   pagination,
+  order = 'asc',
+  orderBy = '',
+  onRequestSort,
 }) {
   const rows = Array.isArray(data) ? data : [];
   const visibleRows = pagination?.paginatedData || rows;
@@ -125,6 +130,7 @@ export default function ClientsTable({
                       component="th"
                       scope="col"
                       aria-label={column.ariaLabel || column.header}
+                      sortDirection={orderBy === column.key ? order : false}
                       sx={{
                         bgcolor: '#f8fafc',
                         borderBottom: '1px solid #e2e8f0',
@@ -140,7 +146,30 @@ export default function ClientsTable({
                         py: 1.4,
                       }}
                     >
-                      {column.header}
+                      {column.sortable === false ? (
+                        column.header
+                      ) : (
+                        <TableSortLabel
+                          active={orderBy === column.key}
+                          direction={orderBy === column.key ? order : 'asc'}
+                          onClick={() => onRequestSort?.(column.key)}
+                          sx={{
+                            fontWeight: 800,
+                            color: '#334155',
+                            '&.Mui-active': { color: '#0f172a' },
+                            '& .MuiTableSortLabel-icon': {
+                              color: '#64748b !important',
+                            },
+                          }}
+                        >
+                          {column.header}
+                          {orderBy === column.key ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

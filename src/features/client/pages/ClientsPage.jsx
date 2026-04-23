@@ -80,6 +80,8 @@ export default function ClientsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [syncingClientId, setSyncingClientId] = useState(null);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   useEffect(() => {
     let mounted = true;
@@ -132,6 +134,8 @@ export default function ClientsPage() {
       const response = await fetchClients({
         page: page + 1,
         per_page: rowsPerPage,
+        sort_by: sortBy,
+        sort_direction: sortDirection,
         ...appliedFilters,
       });
 
@@ -151,7 +155,7 @@ export default function ClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [appliedFilters, page, rowsPerPage]);
+  }, [appliedFilters, page, rowsPerPage, sortBy, sortDirection]);
 
   useEffect(() => {
     loadClients();
@@ -249,6 +253,7 @@ export default function ClientsPage() {
       key: 'actions',
       header: 'Action',
       minWidth: 160,
+      sortable: false,
       wrap: false,
       render: (_, client) => (
         <Stack direction="row" spacing={0.5} alignItems="center">
@@ -290,7 +295,7 @@ export default function ClientsPage() {
         </Stack>
       ),
     },
-  ]), [handleDeleteClient, handleEditClient, handleSyncClient, syncingClientId]);
+  ]), [can, handleDeleteClient, handleEditClient, handleSyncClient, syncingClientId]);
 
   const visibleClients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -321,7 +326,37 @@ export default function ClientsPage() {
         .some((value) => String(value).toLowerCase().includes(query));
     });
   }, [clients, searchQuery]);
-console.log("can delete?", can('clients.delete'));
+
+  const handleRequestSort = useCallback((columnKey) => {
+    const serverSortMap = {
+      client_name: 'client_name',
+      business_entity_name: 'business_entity_name',
+      origin: 'origin',
+      origin_id: 'origin_id',
+      contact_person: 'contact_person',
+      contact_no: 'contact_no',
+      email: 'email',
+      address: 'address',
+      division_name: 'division_name',
+      district_name: 'district_name',
+      thana_name: 'thana_name',
+      licence: 'licence',
+      status: 'status',
+      created_at: 'created_at',
+    };
+
+    const nextSortBy = serverSortMap[columnKey];
+    if (!nextSortBy) {
+      return;
+    }
+
+    setSortDirection((currentDirection) => (
+      sortBy === nextSortBy && currentDirection === 'asc' ? 'desc' : 'asc'
+    ));
+    setSortBy(nextSortBy);
+    setPage(0);
+  }, [sortBy]);
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
       <Stack
@@ -464,6 +499,9 @@ console.log("can delete?", can('clients.delete'));
         data={visibleClients}
         columns={clientColumns}
         loading={isLoading}
+        order={sortDirection}
+        orderBy={sortBy}
+        onRequestSort={handleRequestSort}
         pagination={{
           count: pagination.total,
           page,
