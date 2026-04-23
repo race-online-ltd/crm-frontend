@@ -456,8 +456,24 @@ export default function TasksTable({
     <TableSortLabel
       active={sortBy === columnId}
       direction={sortBy === columnId ? sortOrder : 'asc'}
+      hideSortIcon={false}
       onClick={() => onRequestSort?.(columnId)}
-      sx={{ color: '#4b5563', '&.Mui-active': { color: '#1e293b' } }}
+      sx={{
+        color: '#4b5563',
+        '& .MuiTableSortLabel-icon': {
+          opacity: 0.22,
+          transition: 'opacity 0.15s ease, color 0.15s ease',
+        },
+        '&:hover .MuiTableSortLabel-icon': {
+          opacity: 0.45,
+        },
+        '&.Mui-active': {
+          color: '#1e293b',
+          '& .MuiTableSortLabel-icon': {
+            opacity: 0.7,
+          },
+        },
+      }}
     >
       {label}
     </TableSortLabel>
