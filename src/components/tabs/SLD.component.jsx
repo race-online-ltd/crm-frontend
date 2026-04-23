@@ -37,7 +37,7 @@ export const SLD = ({ data, live }) => {
   const dataCenterId = useSelector((state) => state.updatedDataCenter.dataCenter);
 
   const handleSave = () => {
-    console.log('Data saved!');
+   
     setIsModalOpen(false);
   };
 
@@ -71,13 +71,27 @@ export const SLD = ({ data, live }) => {
     const found = [];
 
     paths.forEach((path) => {
-      const d = path.getAttribute('d');
+      const d = path.getAttribute('d').trim();
       const id = path.getAttribute('id');
 
-      // const isCircleLike = /c 0,100\.239\d*/.test(d) && d.includes('181.5');
-    //   const isCircleLike =
-    // /^m\s[\d.]+,[\d.]+\s+c\s0,[\d.]+\s-?[\d.]+,[\d.]+\s-?[\d.]+,[\d.]+/i.test(d);
-    const isCircleLike = /-169\.5,169\.5/.test(d);
+      const circleDatacenterMapping = {
+  1: (d) => /-169\.5,169\.5/.test(d),
+  2: (d) => d !== null && /254\.5,254\.5/.test(d),
+   3: (d) =>
+    /254\.5,254\.5/.test(d || '') ||   // big circle
+    /10\.18,10\.18/.test(d || ''), 
+    4: (d) =>
+    /254\.5,254\.5/.test(d || '') ||   // big circle
+    /10\.18,10\.18/.test(d || ''), 
+};
+const detector = circleDatacenterMapping[dataCenterId];
+  const isCircleLike = detector ? detector(d) : false;
+    // const isCircleLike = /-169\.5,169\.5/.test(d);
+    // const isCircleLike = d !== null && /254\.5,254\.5/.test(d);
+    // const isCircleLike = svg => /d="([^"]254\.5,254\.5[^"])"/.test(d);
+
+    
+  console.log('Checking path:', { id, d, isCircleLike });
 
       if (isCircleLike && id) {
         found.push(id);
@@ -97,6 +111,7 @@ export const SLD = ({ data, live }) => {
         };
       }
     });
+
 
     circlePaths.current = found;
   }, [data?.svg_content]);
@@ -282,7 +297,7 @@ useEffect(() => {
   // Store formik in ref so it's accessible in useEffect
   formikRef.current = formik;
 
-
+console.log('circlePaths:', circlePaths);
 
 
   return (
