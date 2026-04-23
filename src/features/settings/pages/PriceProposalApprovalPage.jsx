@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -17,11 +16,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -29,26 +27,24 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
-import TextInputField from '../../../components/shared/TextInputField';
 import {
-  fetchLeadPipelineOptions,
-  fetchLeadPipelineStages,
-  saveLeadPipelineStages,
+  fetchApprovalPipelineOptions,
+  fetchApprovalPipelineSteps,
+  saveApprovalPipelineSteps,
 } from '../api/settingsApi';
 
 const EMPTY_MODAL = {
   id: null,
-  stage_name: '',
-  color: '#2563EB',
+  user_id: '',
 };
 
-function toStageRow(stage, index) {
+function toStepRow(step, index) {
   return {
-    id: stage.id ?? null,
-    clientKey: stage.id ? `persisted-${stage.id}` : `new-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-    stage_name: stage.stage_name || '',
-    color: (stage.color || '#2563EB').toUpperCase(),
-    sort_order: stage.sort_order ?? index + 1,
+    id: step.id ?? null,
+    clientKey: step.id ? `persisted-${step.id}` : `new-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    user_id: String(step.user_id ?? ''),
+    user_label: step.user_label || step.user_name || '',
+    level: step.level ?? index + 1,
   };
 }
 
@@ -59,26 +55,26 @@ function reorderRows(rows, fromIndex, toIndex) {
 
   return next.map((row, index) => ({
     ...row,
-    sort_order: index + 1,
+    level: index + 1,
   }));
 }
 
-export default function LeadPipelinePage() {
+export default function PriceProposalApprovalPage() {
   const [businessEntities, setBusinessEntities] = useState([]);
+  const [systemUsers, setSystemUsers] = useState([]);
   const [selectedBusinessEntityId, setSelectedBusinessEntityId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [rows, setRows] = useState([]);
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const [isStagesLoading, setIsStagesLoading] = useState(false);
+  const [isStepsLoading, setIsStepsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalValues, setModalValues] = useState(EMPTY_MODAL);
   const [modalError, setModalError] = useState('');
   const [draggedKey, setDraggedKey] = useState(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -87,22 +83,26 @@ export default function LeadPipelinePage() {
       try {
         setIsBootstrapping(true);
         setLoadError('');
-        const data = await fetchLeadPipelineOptions();
+        const data = await fetchApprovalPipelineOptions();
 
         if (!active) {
           return;
         }
 
-        const mappedBusinessEntities = (data.business_entities ?? []).map((entity) => ({
+        setBusinessEntities((data.business_entities ?? []).map((entity) => ({
           id: String(entity.id),
           label: entity.label || entity.name || `Business Entity ${entity.id}`,
-        }));
+        })));
 
-        setBusinessEntities(mappedBusinessEntities);
+        setSystemUsers((data.system_users ?? []).map((user) => ({
+          id: String(user.id),
+          label: user.label || user.full_name || user.user_name || `User ${user.id}`,
+        })));
       } catch (error) {
         if (active) {
-          setLoadError(error?.message || 'Unable to load lead pipeline options.');
+          setLoadError(error?.message || 'Unable to load approval workflow options.');
           setBusinessEntities([]);
+          setSystemUsers([]);
         }
       } finally {
         if (active) {
@@ -121,39 +121,41 @@ export default function LeadPipelinePage() {
   useEffect(() => {
     let active = true;
 
-    const loadStages = async () => {
+    const loadSteps = async () => {
       if (!selectedBusinessEntityId) {
         setRows([]);
         setSaveError('');
         setSuccessMessage('');
+        setSelectedUserId('');
         return;
       }
 
       try {
-        setIsStagesLoading(true);
+        setIsStepsLoading(true);
         setLoadError('');
         setSaveError('');
         setSuccessMessage('');
-        const data = await fetchLeadPipelineStages(selectedBusinessEntityId);
+        const data = await fetchApprovalPipelineSteps(selectedBusinessEntityId);
 
         if (!active) {
           return;
         }
 
-        setRows((data.stages ?? []).map((stage, index) => toStageRow(stage, index)));
+        setRows((data.steps ?? []).map((step, index) => toStepRow(step, index)));
+        setSelectedUserId('');
       } catch (error) {
         if (active) {
           setRows([]);
-          setLoadError(error?.message || 'Unable to load stages for the selected business entity.');
+          setLoadError(error?.message || 'Unable to load approval steps for the selected business entity.');
         }
       } finally {
         if (active) {
-          setIsStagesLoading(false);
+          setIsStepsLoading(false);
         }
       }
     };
 
-    loadStages();
+    loadSteps();
 
     return () => {
       active = false;
@@ -161,76 +163,81 @@ export default function LeadPipelinePage() {
   }, [selectedBusinessEntityId]);
 
   const businessEntityFetcher = useMemo(() => async () => businessEntities, [businessEntities]);
+  const systemUserFetcher = useMemo(() => async () => systemUsers, [systemUsers]);
 
-  const openCreateModal = () => {
-    setModalValues(EMPTY_MODAL);
-    setModalError('');
-    setModalOpen(true);
+  const duplicateUserExists = (userId, clientKey = null) => rows.some((row) => {
+    if (clientKey && row.clientKey === clientKey) {
+      return false;
+    }
+
+    return row.user_id === String(userId);
+  });
+
+  const addApprover = () => {
+    if (!selectedBusinessEntityId) {
+      setSaveError('Select a business entity first.');
+      return;
+    }
+
+    if (!selectedUserId) {
+      setSaveError('Select a system user first.');
+      return;
+    }
+
+    if (duplicateUserExists(selectedUserId)) {
+      setSaveError('This user is already part of the selected workflow.');
+      return;
+    }
+
+    setRows((prev) => [
+      ...prev,
+      toStepRow(
+        {
+          id: null,
+          user_id: selectedUserId,
+          user_label: systemUsers.find((user) => user.id === selectedUserId)?.label || '',
+          level: prev.length + 1,
+        },
+        prev.length,
+      ),
+    ]);
+    setSelectedUserId('');
+    setSaveError('');
+    setSuccessMessage('');
   };
 
   const openEditModal = (row) => {
     setModalValues({
       id: row.id,
       clientKey: row.clientKey,
-      stage_name: row.stage_name,
-      color: row.color,
+      user_id: row.user_id,
     });
     setModalError('');
     setModalOpen(true);
   };
 
   const handleModalSave = () => {
-    const stageName = modalValues.stage_name.trim();
-    const color = (modalValues.color || '').toUpperCase();
-    const duplicateExists = rows.some((row) => {
-      if (modalValues.clientKey && row.clientKey === modalValues.clientKey) {
-        return false;
-      }
+    const userId = String(modalValues.user_id || '');
 
-      return row.stage_name.trim().toLowerCase() === stageName.toLowerCase();
-    });
-
-    if (!stageName) {
-      setModalError('Stage name is required.');
+    if (!userId) {
+      setModalError('System user is required.');
       return;
     }
 
-    if (!/^#[A-F0-9]{6}$/.test(color)) {
-      setModalError('Choose a valid hex color.');
+    if (duplicateUserExists(userId, modalValues.clientKey)) {
+      setModalError('This user is already part of the selected workflow.');
       return;
     }
 
-    if (duplicateExists) {
-      setModalError('Stage name must be unique for this business entity.');
-      return;
-    }
-
-    setRows((prev) => {
-      if (modalValues.clientKey) {
-        return prev.map((row) => (
-          row.clientKey === modalValues.clientKey
-            ? {
-              ...row,
-              stage_name: stageName,
-              color,
-            }
-            : row
-        ));
-      }
-
-      return [
-        ...prev,
-        toStageRow(
-          {
-            id: null,
-            stage_name: stageName,
-            color,
-            sort_order: prev.length + 1,
-          },
-          prev.length,
-        ),
-      ];
-    });
+    setRows((prev) => prev.map((row) => (
+      row.clientKey === modalValues.clientKey
+        ? {
+          ...row,
+          user_id: userId,
+          user_label: systemUsers.find((user) => user.id === userId)?.label || row.user_label,
+        }
+        : row
+    )));
 
     setModalOpen(false);
     setModalValues(EMPTY_MODAL);
@@ -244,30 +251,10 @@ export default function LeadPipelinePage() {
       .filter((row) => row.clientKey !== clientKey)
       .map((row, index) => ({
         ...row,
-        sort_order: index + 1,
+        level: index + 1,
       })));
     setSaveError('');
     setSuccessMessage('');
-  };
-
-  const openDeleteConfirm = (row) => {
-    setDeleteTarget(row);
-    setDeleteConfirmOpen(true);
-  };
-
-  const closeDeleteConfirm = () => {
-    setDeleteConfirmOpen(false);
-    setDeleteTarget(null);
-  };
-
-  const confirmDeleteRow = () => {
-    if (!deleteTarget?.clientKey) {
-      closeDeleteConfirm();
-      return;
-    }
-
-    handleDeleteRow(deleteTarget.clientKey);
-    closeDeleteConfirm();
   };
 
   const handleMoveRow = (index, direction) => {
@@ -293,19 +280,19 @@ export default function LeadPipelinePage() {
       }
 
       setIsSaving(true);
-      const data = await saveLeadPipelineStages({
+      const data = await saveApprovalPipelineSteps({
         business_entity_id: Number(selectedBusinessEntityId),
-        stages: rows.map((row) => ({
+        steps: rows.map((row) => ({
           id: row.id ?? null,
-          stage_name: row.stage_name.trim(),
-          color: row.color,
+          user_id: Number(row.user_id),
+          level: row.level,
         })),
       });
 
-      setRows((data.stages ?? []).map((stage, index) => toStageRow(stage, index)));
-      setSuccessMessage('Lead pipeline saved successfully.');
+      setRows((data.steps ?? []).map((step, index) => toStepRow(step, index)));
+      setSuccessMessage('Approval workflow saved successfully.');
     } catch (error) {
-      setSaveError(error?.message || 'Unable to save lead pipeline stages.');
+      setSaveError(error?.message || 'Unable to save approval workflow.');
     } finally {
       setIsSaving(false);
     }
@@ -327,15 +314,15 @@ export default function LeadPipelinePage() {
             flexShrink: 0,
           }}
         >
-          <AccountTreeOutlinedIcon sx={{ fontSize: 22, color: '#2563eb' }} />
+          <RequestQuoteOutlinedIcon sx={{ fontSize: 22, color: '#2563eb' }} />
         </Box>
 
         <Box>
           <Typography variant="h5" fontWeight={800} color="#111827" letterSpacing="-0.3px">
-            Lead Pipeline
+            Approval Workflows
           </Typography>
           <Typography variant="body2" color="#64748b">
-            Configure stage names, colors, and order by business entity for future Kanban usage.
+            Define the approval hierarchy for price proposals by business entity.
           </Typography>
         </Box>
       </Stack>
@@ -367,17 +354,52 @@ export default function LeadPipelinePage() {
           </Alert>
         )}
 
-        <Box sx={{ maxWidth: 420, mb: 3 }}>
-          <SelectDropdownSingle
-            name="business_entity_id"
-            label="Business Entity"
-            placeholder={isBootstrapping ? 'Loading business entities...' : 'Select business entity'}
-            fetchOptions={businessEntityFetcher}
-            value={selectedBusinessEntityId}
-            onChange={(value) => setSelectedBusinessEntityId(value ? String(value) : '')}
-            disabled={isBootstrapping}
-          />
-        </Box>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', md: 'flex-end' }}
+          sx={{ mb: 2.5 }}
+        >
+          <Box sx={{ flex: 1.1, minWidth: 0 }}>
+            <SelectDropdownSingle
+              name="business_entity_id"
+              label="Business Entity"
+              placeholder={isBootstrapping ? 'Loading business entities...' : 'Select business entity'}
+              fetchOptions={businessEntityFetcher}
+              value={selectedBusinessEntityId}
+              onChange={(value) => setSelectedBusinessEntityId(value ? String(value) : '')}
+              disabled={isBootstrapping}
+            />
+          </Box>
+
+          <Box sx={{ flex: 1.1, minWidth: 0 }}>
+            <SelectDropdownSingle
+              name="user_id"
+              label="System User"
+              placeholder={isBootstrapping ? 'Loading users...' : 'Select user'}
+              fetchOptions={systemUserFetcher}
+              value={selectedUserId}
+              onChange={(value) => setSelectedUserId(value ? String(value) : '')}
+              disabled={!selectedBusinessEntityId || isBootstrapping}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={addApprover}
+            disabled={!selectedBusinessEntityId || !selectedUserId || isStepsLoading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              minWidth: { xs: '100%', md: 130 },
+              alignSelf: { xs: 'stretch', md: 'auto' },
+            }}
+          >
+            Add Approver
+          </Button>
+        </Stack>
 
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
@@ -388,27 +410,12 @@ export default function LeadPipelinePage() {
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={700} color="#0f172a">
-              Stages
+              Approval Steps
             </Typography>
             <Typography variant="body2" color="#64748b">
-              Add, edit, drag, or move stages up and down to define the exact order.
+              Add approvers, reorder them, and save one workflow per business entity.
             </Typography>
           </Box>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateModal}
-            disabled={!selectedBusinessEntityId}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 700,
-              alignSelf: { xs: 'stretch', sm: 'auto' },
-            }}
-          >
-            Add Stage
-          </Button>
         </Stack>
 
         <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '14px' }}>
@@ -417,8 +424,8 @@ export default function LeadPipelinePage() {
               <TableRow sx={{ bgcolor: '#f8fafc' }}>
                 <TableCell sx={{ fontWeight: 700, width: 70 }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 90 }}>Move</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Stage Name</TableCell>
-                <TableCell sx={{ fontWeight: 700, width: 180 }}>Color</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>System User</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 140 }}>Level</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, width: 140 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -426,19 +433,19 @@ export default function LeadPipelinePage() {
               {!selectedBusinessEntityId ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
-                    Select a business entity to configure its lead pipeline stages.
+                    Select a business entity to configure its approval workflow.
                   </TableCell>
                 </TableRow>
-              ) : isStagesLoading ? (
+              ) : isStepsLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
-                    Loading stages...
+                    Loading approval steps...
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
-                    No stages added yet. Use Add Stage to build the pipeline.
+                    No approvers added yet. Use Add Approver to build the workflow.
                   </TableCell>
                 </TableRow>
               ) : rows.map((row, index) => (
@@ -478,38 +485,16 @@ export default function LeadPipelinePage() {
                       </IconButton>
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.stage_name}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Box
-                        sx={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: '50%',
-                          bgcolor: row.color,
-                          border: '1px solid rgba(15, 23, 42, 0.12)',
-                        }}
-                      />
-                      <Chip
-                        label={row.color}
-                        size="small"
-                        sx={{
-                          bgcolor: `${row.color}20`,
-                          color: '#0f172a',
-                          borderRadius: '999px',
-                          fontWeight: 600,
-                        }}
-                      />
-                    </Stack>
-                  </TableCell>
+                  <TableCell>{row.user_label}</TableCell>
+                  <TableCell>{row.level}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit stage">
+                    <Tooltip title="Edit approver">
                       <IconButton size="small" onClick={() => openEditModal(row)}>
                         <EditOutlinedIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete stage">
-                      <IconButton size="small" color="error" onClick={() => openDeleteConfirm(row)}>
+                    <Tooltip title="Delete approver">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteRow(row.clientKey)}>
                         <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Tooltip>
@@ -524,7 +509,7 @@ export default function LeadPipelinePage() {
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={!selectedBusinessEntityId || isSaving || isStagesLoading}
+            disabled={!selectedBusinessEntityId || isSaving || isStepsLoading}
             sx={{
               borderRadius: 2,
               textTransform: 'none',
@@ -546,7 +531,7 @@ export default function LeadPipelinePage() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>{modalValues.clientKey ? 'Edit Stage' : 'Add Stage'}</DialogTitle>
+        <DialogTitle>Edit Approver</DialogTitle>
         <DialogContent sx={{ pt: '8px !important' }}>
           {modalError && (
             <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
@@ -554,106 +539,20 @@ export default function LeadPipelinePage() {
             </Alert>
           )}
 
-          <Stack spacing={2}>
-            <TextInputField
-              name="stage_name"
-              label="Stage Name"
-              value={modalValues.stage_name}
-              onChange={(event) => setModalValues((prev) => ({ ...prev, stage_name: event.target.value }))}
-            />
-
-            <Stack spacing={0.75}>
-              <Typography variant="body2" fontWeight={600} color="#0f172a">
-                Stage Color
-              </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                <TextField
-                  type="color"
-                  value={modalValues.color}
-                  onChange={(event) => setModalValues((prev) => ({ ...prev, color: event.target.value.toUpperCase() }))}
-                  sx={{
-                    width: { xs: '100%', sm: 90 },
-                    '& .MuiOutlinedInput-root': {
-                      p: 0.5,
-                      height: 48,
-                    },
-                    '& input': {
-                      p: 0,
-                      width: '100%',
-                      height: 36,
-                      border: 0,
-                      background: 'transparent',
-                      cursor: 'pointer',
-                    },
-                  }}
-                />
-
-                <TextInputField
-                  name="color"
-                  label="Hex Color"
-                  value={modalValues.color}
-                  onChange={(event) => setModalValues((prev) => ({ ...prev, color: event.target.value.toUpperCase() }))}
-                />
-              </Stack>
-            </Stack>
-          </Stack>
+          <SelectDropdownSingle
+            name="user_id"
+            label="System User"
+            fetchOptions={systemUserFetcher}
+            value={modalValues.user_id}
+            onChange={(value) => setModalValues((prev) => ({ ...prev, user_id: value ? String(value) : '' }))}
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setModalOpen(false)} sx={{ textTransform: 'none', fontWeight: 700 }}>
             Cancel
           </Button>
           <Button variant="contained" onClick={handleModalSave} sx={{ textTransform: 'none', fontWeight: 700 }}>
-            {modalValues.clientKey ? 'Save Changes' : 'Add Stage'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={closeDeleteConfirm}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            border: '1px solid',
-            borderColor: '#fecaca',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
-          },
-        }}
-      >
-        <DialogTitle sx={{ pb: 1.25 }}>
-          <Typography variant="h6" fontWeight={800} color="#7f1d1d">
-            Delete stage?
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pt: '0 !important' }}>
-          <Alert severity="warning" sx={{ borderRadius: '12px', mb: 2 }}>
-            Deleting this stage will remove all data and leads currently in that stage. This cannot be undone.
-          </Alert>
-          <Typography variant="body2" color="#334155">
-            Are you sure you want to delete
-            {' '}
-            <strong>{deleteTarget?.stage_name || 'this stage'}</strong>
-            ?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button
-            onClick={closeDeleteConfirm}
-            variant="outlined"
-            color="inherit"
-            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={confirmDeleteRow}
-            variant="contained"
-            color="error"
-            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
-          >
-            Yes, delete stage
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>

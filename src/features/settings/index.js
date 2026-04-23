@@ -11,3 +11,4 @@ export { default as BusinessEntityPage } from "./pages/BusinessEntityPage";
 export { default as TeamPage } from "./pages/TeamPage";
 export { default as GroupPage } from "./pages/GroupPage";
 export { default as UserProfile } from "./pages/UserProfile/UserProfile";
+export { default as PriceProposalApprovalPage } from "./pages/PriceProposalApprovalPage";

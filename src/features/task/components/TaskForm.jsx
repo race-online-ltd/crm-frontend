@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { subMinutes } from 'date-fns';
 
 import DateTimePickerField      from '../../../components/shared/DateTimePickerField';
 import SelectDropdownSingle     from '../../../components/shared/SelectDropdownSingle';
@@ -23,37 +24,13 @@ import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsAc
 import { buildMultipartFormData } from '../../../utils/formData';
 import { useUserProfile } from '../../settings/context/UserProfileContext';
 import { fetchSystemUsers } from '../../settings/api/settingsApi';
+import { fetchTaskFormOptions } from '../api/taskApi';
 
 const LIGHT_BORDER_COLOR = '#e3eaf2';
 const LIGHT_BORDER_HOVER = '#d3deea';
 
-// ─── MOCK DATA ─────────────────────────────
-const fetchLeads = async () => [
-  { id: 'l1', label: 'Alpha Corp – Product Alpha' },
-  { id: 'l2', label: 'Nexus Solutions – Product Beta' },
-  { id: 'l3', label: 'Global Systems – Product Gamma' },
-];
-
-const fetchClients = async () => [
-  { id: 'c1', label: 'Alpha Client' },
-  { id: 'c2', label: 'Beta Client' },
-  { id: 'c3', label: 'Gamma Client' },
-];
-
-const TASK_TYPE_OPTIONS = [
-  { id: 'call',             label: 'Call' },
-  { id: 'physical_meeting', label: 'Physical Meeting' },
-  { id: 'virtual_meeting',  label: 'Virtual Meeting' },
-  { id: 'follow_up',        label: 'Follow Up' },
-];
-
-const REMINDER_TIME_OPTIONS = [
-  { id: '15', label: '15 minutes before' },
-  { id: '30', label: '30 minutes before' },
-  { id: '60', label: '1 hour before' },
-  { id: '180', label: '3 hours before' },
-  { id: '1440', label: '1 day before' },
-];
+const PHYSICAL_MEETING_TASK_TYPE_ID = '1';
+const isPhysicalMeetingTaskType = (value) => String(value || '') === PHYSICAL_MEETING_TASK_TYPE_ID;
 
 // ─── VALIDATION ─────────────────────────────
 const taskSchema = (mode) =>
@@ -71,10 +48,22 @@ const taskSchema = (mode) =>
     taskType:    Yup.string().required('Task type is required'),
     title:       Yup.string().trim().required('Title is required'),
     scheduledAt: Yup.date().nullable().required('Scheduled time is required'),
-    location:    Yup.object().nullable(),
-    reminderOffsetMinutes: Yup.string().when('reminderEnabled', {
+    location:    Yup.object().nullable().when('taskType', {
+      is: (taskType) => isPhysicalMeetingTaskType(taskType),
+      then: (schema) => schema.required('Meeting location is required'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    reminderAt: Yup.date().nullable().when('reminderEnabled', {
       is: true,
-      then: (s) => s.required('Reminder time is required'),
+      then: (s) => s.required('Reminder time is required').test(
+        'before-scheduled',
+        'Reminder must be on or before the scheduled time',
+        function validateReminderAt(value) {
+          const scheduledAt = this.parent.scheduledAt;
+          if (!value || !scheduledAt) return true;
+          return new Date(value).getTime() <= new Date(scheduledAt).getTime();
+        },
+      ),
       otherwise: (s) => s.notRequired(),
     }),
   });
@@ -91,7 +80,7 @@ const DEFAULT_VALUES = {
   location:    null,
   attachment:  [],
   reminderEnabled: false,
-  reminderOffsetMinutes: '30',
+  reminderAt: null,
   reminderChannels: ['google_calendar', 'sms'],
 };
 
@@ -118,6 +107,7 @@ function LocationPicker({ value, onChange }) {
   const inputRef     = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]         = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   function placeMarker({ lat, lng }) {
     if (!mapInstance.current) return;
@@ -179,18 +169,80 @@ function LocationPicker({ value, onChange }) {
   }, [onChange]);
 
   function handleMyLocation() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      if (mapInstance.current) { mapInstance.current.panTo({ lat, lng }); mapInstance.current.setZoom(16); }
-      placeMarker({ lat, lng });
-      setLoading(true);
-      const address = await reverseGeocode(lat, lng);
-      setLoading(false);
-      setSearchQuery(address);
-      onChange({ address, latitude: lat, longitude: lng });
-    });
+    setLocationError('');
+
+    if (!navigator.geolocation) {
+      setLocationError('Your browser does not support GPS location.');
+      return;
+    }
+
+    setLoading(true);
+
+    const requestCurrentPosition = () => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          if (mapInstance.current) {
+            mapInstance.current.panTo({ lat, lng });
+            mapInstance.current.setZoom(16);
+          }
+
+          placeMarker({ lat, lng });
+
+          try {
+            const address = await reverseGeocode(lat, lng);
+            setSearchQuery(address);
+            onChange({ address, latitude: lat, longitude: lng });
+          } finally {
+            setLoading(false);
+          }
+        },
+        (error) => {
+          setLoading(false);
+
+          if (error?.code === error.PERMISSION_DENIED) {
+            setLocationError('Location access is blocked. Please enable browser permission for this site and try again.');
+            return;
+          }
+
+          if (error?.code === error.POSITION_UNAVAILABLE) {
+            setLocationError('Unable to determine your location right now.');
+            return;
+          }
+
+          if (error?.code === error.TIMEOUT) {
+            setLocationError('Location request timed out. Please try again.');
+            return;
+          }
+
+          setLocationError('Unable to fetch your location.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        },
+      );
+    };
+
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((permission) => {
+        if (permission.state === 'denied') {
+          setLoading(false);
+          setLocationError('Location access is blocked. Please enable browser permission for this site and try again.');
+          return;
+        }
+
+        requestCurrentPosition();
+      }).catch(() => {
+        requestCurrentPosition();
+      });
+      return;
+    }
+
+    requestCurrentPosition();
   }
 
   return (
@@ -219,10 +271,16 @@ function LocationPicker({ value, onChange }) {
         />
         <Button variant="outlined" size="small" onClick={handleMyLocation}
           startIcon={<MyLocationIcon fontSize="small" />}
+          disabled={loading}
           sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-          My Location
+          {loading ? 'Locating...' : 'My Location'}
         </Button>
       </Box>
+      {locationError && (
+        <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>
+          {locationError}
+        </Typography>
+      )}
       <Box ref={mapRef} sx={{ height: 350, width: '100%', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} />
       {value?.address && (
         <Box sx={{ mt: 1.5, px: 1.5, py: 1, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -239,12 +297,19 @@ function LocationPicker({ value, onChange }) {
 // ─── MAIN COMPONENT ─────────────────────────
 export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAssociation = null }) {
   const { profile } = useUserProfile();
+  const isEditMode = Boolean(initialValues);
   const startMode = lockedAssociation?.mode ?? (initialValues?.client ? 'client' : 'lead');
   const [mode, setMode]               = useState(startMode);
   const [locationOpen, setLocationOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
   const [userOptions, setUserOptions] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [optionData, setOptionData] = useState({
+    leads: [],
+    clients: [],
+    task_types: [],
+  });
+  const [optionsLoading, setOptionsLoading] = useState(true);
   const isAssociationLocked = Boolean(lockedAssociation?.mode && lockedAssociation?.option);
   const effectiveMode = isAssociationLocked ? lockedAssociation.mode : mode;
   const isKamUser = String(profile?.role || '').trim().toLowerCase() === 'kam';
@@ -285,94 +350,135 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadOptions = async () => {
+      try {
+        setOptionsLoading(true);
+        const data = await fetchTaskFormOptions();
+        if (!active) {
+          return;
+        }
+
+        setOptionData({
+          leads: data.leads || [],
+          clients: data.clients || [],
+          task_types: data.task_types || [],
+        });
+      } catch {
+        if (active) {
+          setOptionData({
+            leads: [],
+            clients: [],
+            task_types: [],
+          });
+        }
+      } finally {
+        if (active) {
+          setOptionsLoading(false);
+        }
+      }
+    };
+
+    loadOptions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const formik = useFormik({
     initialValues: { ...DEFAULT_VALUES, ...(initialValues || {}) },
     validationSchema: taskSchema(effectiveMode),
     enableReinitialize: true,
 
-    onSubmit: (values, { setSubmitting }) => {
-      const associationId = isAssociationLocked
-        ? lockedAssociation.option.id
-        : (effectiveMode === 'lead' ? values.lead : values.client);
-      const associationLabel = isAssociationLocked
-        ? lockedAssociation.option.label
-        : (effectiveMode === 'lead'
-          ? fetchLeads().then((options) => options.find((option) => option.id === values.lead)?.label || '')
-          : fetchClients().then((options) => options.find((option) => option.id === values.client)?.label || ''));
-      const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
-      if (totalAttachmentSize > 25 * 1024 * 1024) {
-        setSubmitting(false);
-        return;
-      }
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const associationId = isAssociationLocked
+          ? lockedAssociation.option.id
+          : (effectiveMode === 'lead' ? values.lead : values.client);
+        const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
+        if (totalAttachmentSize > 25 * 1024 * 1024) {
+          return;
+        }
 
-      Promise.resolve(associationLabel)
-        .then((resolvedAssociationLabel) => {
-          const reminderChannels = values.reminderEnabled ? ['google_calendar', 'sms'] : [];
-          const selectedUser = userOptions.find((option) => option.id === values.assignToUserId) || null;
-          const currentUser = {
-            id: profile?.id ?? null,
-            fullName: profile?.fullName || profile?.userName || 'Current User',
-            role: profile?.role || '',
-          };
-          const assignedUser = selectedUser || currentUser;
-          const isSelfAssignment = !selectedUser || String(assignedUser.id) === String(currentUser.id);
-          const payload = {
-            ...(effectiveMode === 'lead'
-              ? { leadId: associationId, leadName: resolvedAssociationLabel }
-              : { clientId: associationId, clientName: resolvedAssociationLabel }),
-            assignedToUserId: assignedUser?.id || null,
-            assignedToUserName: assignedUser?.fullName || null,
-            assignedToUserRole: assignedUser?.role || null,
-            assignedToKamId: assignedUser?.id || null,
-            assignedToKamName: assignedUser?.fullName || null,
-            assignmentMode: isSelfAssignment ? 'self' : 'manual',
-            createdByUserId: currentUser.id,
-            createdByUserName: currentUser.fullName,
-            createdByUserRole: currentUser.role,
-            taskType:    values.taskType,
-            title:       values.title.trim(),
-            details:     values.details.trim(),
-            scheduledAt: values.scheduledAt?.toISOString(),
-            location: values.location
-              ? { address: values.location.address, latitude: values.location.latitude, longitude: values.location.longitude }
-              : null,
-            attachment: values.attachment,
-            reminderEnabled: values.reminderEnabled,
-            reminderOffsetMinutes: values.reminderEnabled ? Number(values.reminderOffsetMinutes) : null,
-            reminderChannels,
-            reminder: {
-              enabled: values.reminderEnabled,
-              offsetMinutes: values.reminderEnabled ? Number(values.reminderOffsetMinutes) : null,
-              channels: reminderChannels,
-            },
-          };
-          const formData = buildMultipartFormData(payload);
-          onSubmit?.(payload, formData);
-        })
-        .finally(() => {
-          setSubmitting(false);
-        });
+        const reminderChannels = values.reminderEnabled ? ['google_calendar', 'sms'] : [];
+        const selectedUser = userOptions.find((option) => option.id === values.assignToUserId) || null;
+        const currentUser = {
+          id: profile?.id ?? null,
+          fullName: profile?.fullName || profile?.userName || 'Current User',
+          role: profile?.role || '',
+        };
+        const assignedUser = selectedUser || currentUser;
+        const isSelfAssignment = !selectedUser || String(assignedUser.id) === String(currentUser.id);
+        const payload = {
+          ...(effectiveMode === 'lead'
+            ? { lead_id: associationId }
+            : { client_id: associationId }),
+          assigned_to_user_id: assignedUser?.id || null,
+          assignment_mode: isSelfAssignment ? 'self' : 'manual',
+          task_type_id: values.taskType,
+          title: values.title.trim(),
+          details: values.details.trim(),
+          scheduled_at: values.scheduledAt?.toISOString(),
+          location: isPhysicalMeetingTaskType(values.taskType) && values.location
+            ? { address: values.location.address, latitude: values.location.latitude, longitude: values.location.longitude }
+            : null,
+          attachment: values.attachment,
+          reminder_enabled: values.reminderEnabled,
+          reminder_at: values.reminderEnabled && values.reminderAt ? values.reminderAt.toISOString() : null,
+          reminder_offset_minutes: null,
+          reminder_channels: reminderChannels,
+        };
+
+        const formData = buildMultipartFormData(payload);
+        await Promise.resolve(onSubmit?.(payload, formData));
+      } catch (error) {
+        console.error('Unable to save task:', error);
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
   const { values, errors, touched, setFieldValue, handleChange, handleSubmit, isSubmitting } = formik;
   const assignToFetchOptions = useMemo(() => async () => userOptions, [userOptions]);
-  const taskTypeFetchOptions = useMemo(() => async () => TASK_TYPE_OPTIONS, []);
-  const reminderFetchOptions = useMemo(() => async () => REMINDER_TIME_OPTIONS, []);
+  const taskTypeFetchOptions = useMemo(() => async () => optionData.task_types, [optionData.task_types]);
+  const leadFetchOptions = useMemo(() => async () => optionData.leads, [optionData.leads]);
+  const clientFetchOptions = useMemo(() => async () => optionData.clients, [optionData.clients]);
+  const lockedAssociationFetchOptions = useMemo(
+    () => async () => (lockedAssociation?.option ? [lockedAssociation.option] : []),
+    [lockedAssociation?.option],
+  );
 
   const entity = {
-    lead:   { name: 'lead',   label: 'Lead *',   fetch: fetchLeads },
-    client: { name: 'client', label: 'Client *', fetch: fetchClients },
+    lead:   { name: 'lead',   label: 'Lead *',   fetch: leadFetchOptions },
+    client: { name: 'client', label: 'Client *', fetch: clientFetchOptions },
   }[effectiveMode];
 
   const entityFetchOptions = isAssociationLocked
-    ? async () => [lockedAssociation.option]
+    ? lockedAssociationFetchOptions
     : entity.fetch;
 
-  function handleOpenLocationDialog() { setTempLocation(values.location); setLocationOpen(true); }
-  function handleConfirmLocation()    { setFieldValue('location', tempLocation); setLocationOpen(false); }
-  function handleCancelLocation()     { setTempLocation(null); setLocationOpen(false); }
-  function handleClearLocation()      { setFieldValue('location', null); }
+  function handleOpenLocationDialog() {
+    if (isEditMode) return;
+    setTempLocation(values.location);
+    setLocationOpen(true);
+  }
+  function handleConfirmLocation() {
+    if (isEditMode) return;
+    setFieldValue('location', tempLocation);
+    setLocationOpen(false);
+  }
+  function handleCancelLocation() {
+    setTempLocation(null);
+    setLocationOpen(false);
+  }
+  function handleClearLocation() {
+    if (isEditMode) return;
+    setFieldValue('location', null);
+  }
 
   useEffect(() => {
     if (!userOptions.length) return;
@@ -385,6 +491,14 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       setFieldValue('assignToUserId', currentUserId, false);
     }
   }, [isKamUser, profile?.id, setFieldValue, userOptions, values.assignToUserId]);
+
+  useEffect(() => {
+    if (!values.reminderEnabled || !values.scheduledAt) return;
+
+    if (!values.reminderAt || values.reminderAt > values.scheduledAt) {
+      setFieldValue('reminderAt', subMinutes(values.scheduledAt, 30), false);
+    }
+  }, [setFieldValue, values.reminderAt, values.reminderEnabled, values.scheduledAt]);
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
@@ -421,7 +535,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         </Box>
       )}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1.5 }}>
 
         {/* ENTITY */}
         <SelectDropdownSingle
@@ -434,6 +548,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           helperText={touched[entity.name] && errors[entity.name]}
           disabled={isAssociationLocked}
           searchable={!isAssociationLocked}
+          loading={optionsLoading}
         />
 
         {/* TASK TYPE */}
@@ -444,7 +559,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           value={values.taskType}
           onChange={(id) => {
             setFieldValue('taskType', id);
-            if (id === 'physical_meeting') {
+            if (isPhysicalMeetingTaskType(id) && !isEditMode) {
               handleOpenLocationDialog();
             } else {
               setFieldValue('location', null);
@@ -452,6 +567,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           }}
           error={touched.taskType && Boolean(errors.taskType)}
           helperText={touched.taskType && errors.taskType}
+          loading={optionsLoading}
         />
 
         <Box sx={{ minWidth: 0 }}>
@@ -467,12 +583,12 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           />
         </Box>
 
-        <Box
+          <Box
           sx={{
             gridColumn: '1 / -1',
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 1,
+            gap: 1.25,
           }}
         >
           {/* TITLE */}
@@ -510,18 +626,82 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           />
         </Box>
 
+        {/* LOCATION (physical meeting only) */}
+        {isPhysicalMeetingTaskType(values.taskType) && (
+          <Box sx={{ gridColumn: '1 / -1', mt: 0.5, mb: 0.5 }}>
+            <TextField
+              fullWidth
+              label="Meeting Location"
+              value={values.location?.address || ''}
+              placeholder="No location selected — click to pick on map"
+              size="small"
+              disabled={isEditMode}
+              error={Boolean(errors.location)}
+              helperText={typeof errors.location === 'string' ? errors.location : ' '}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PinDropIcon fontSize="small" color={values.location ? 'primary' : 'disabled'} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  !isEditMode ? (
+                    <InputAdornment position="end">
+                      <Stack direction="row" spacing={0.5}>
+                        <Button size="small" onClick={handleOpenLocationDialog} sx={{ fontSize: 12 }}>
+                          {values.location ? 'Change' : 'Pick'}
+                        </Button>
+                        {values.location && (
+                          <IconButton size="small" onClick={handleClearLocation}>
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </InputAdornment>
+                  ) : null
+                ),
+              }}
+              sx={{
+                '& .MuiInputBase-input': { cursor: 'pointer' },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_COLOR,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_HOVER,
+                  },
+                  '&.Mui-disabled': {
+                    bgcolor: '#f8fafc',
+                    color: '#334155',
+                    '& fieldset': {
+                      borderColor: LIGHT_BORDER_COLOR,
+                    },
+                  },
+                },
+              }}
+              onClick={handleOpenLocationDialog}
+            />
+            {isEditMode && (
+              <Typography fontSize={12} color="text.secondary" mt={0.75}>
+                Location is locked for existing tasks.
+              </Typography>
+            )}
+          </Box>
+        )}
+
         <Box
           sx={{
             gridColumn: '1 / -1',
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 1,
-            alignItems: 'start',
+            gap: 1.25,
+            alignItems: 'center',
           }}
         >
-          <Box>
+          <Box sx={{ alignSelf: 'stretch' }}>
             <AttachmentField
-              label="Attachment"
+              label=""
               value={values.attachment}
               onChange={(files) => setFieldValue('attachment', files)}
             />
@@ -529,8 +709,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
 
           <Box
             sx={{
-              alignSelf: { xs: 'stretch', md: 'center' },
-              mt: { xs: 0, md: 1.5 },
+              alignSelf: 'center',
             }}
           >
             <Stack
@@ -564,86 +743,45 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
                   onChange={(event) => {
                     const checked = event.target.checked;
                     setFieldValue('reminderEnabled', checked);
-
-                    if (!checked) {
-                      setFieldValue('reminderOffsetMinutes', DEFAULT_VALUES.reminderOffsetMinutes);
-                    }
+                    setFieldValue('reminderAt', checked && values.scheduledAt ? subMinutes(values.scheduledAt, 30) : null);
                   }}
                   label={values.reminderEnabled ? 'On' : 'Off'}
                 />
               </Stack>
 
-              {values.reminderEnabled && (
+              <Box
+                sx={{
+                  width: { xs: '100%', md: 280 },
+                  minWidth: { xs: '100%', md: 280 },
+                  minHeight: 88,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                }}
+              >
                 <Box
                   sx={{
-                    width: { xs: '100%', md: 190 },
-                    minWidth: { xs: '100%', md: 190 },
-                    ml: { xs: 0, md: 0.5 },
-                    mt: { xs: 0, md: 0.75 },
+                    width: '100%',
+                    visibility: values.reminderEnabled ? 'visible' : 'hidden',
                   }}
                 >
-                  <SelectDropdownSingle
-                    name="reminderOffsetMinutes"
-                    label="Remind Before"
-                    fetchOptions={reminderFetchOptions}
-                    value={values.reminderOffsetMinutes}
-                    onChange={(id) => setFieldValue('reminderOffsetMinutes', id)}
-                    error={touched.reminderOffsetMinutes && Boolean(errors.reminderOffsetMinutes)}
-                    helperText={touched.reminderOffsetMinutes ? errors.reminderOffsetMinutes : ' '}
+                  <DateTimePickerField
+                    name="reminderAt"
+                    label="Reminder Date & Time"
+                    value={values.reminderAt}
+                    onChange={(v) => setFieldValue('reminderAt', v)}
+                    error={touched.reminderAt && Boolean(errors.reminderAt)}
+                    helperText={touched.reminderAt ? errors.reminderAt : (values.scheduledAt ? 'Must be on or before the scheduled time.' : 'Choose a scheduled time first.')}
+                    disablePast
+                    maxDateTime={values.scheduledAt || null}
+                    disabled={!values.scheduledAt}
                     fullWidth
                   />
                 </Box>
-              )}
+              </Box>
             </Stack>
           </Box>
         </Box>
-
-        {/* LOCATION (physical meeting only) */}
-        {values.taskType === 'physical_meeting' && (
-          <Box sx={{ gridColumn: '1 / -1' }}>
-            <TextField
-              fullWidth
-              label="Meeting Location"
-              value={values.location?.address || ''}
-              placeholder="No location selected — click to pick on map"
-              size="small"
-              InputProps={{
-                readOnly: true,
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PinDropIcon fontSize="small" color={values.location ? 'primary' : 'disabled'} />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Stack direction="row" spacing={0.5}>
-                      <Button size="small" onClick={handleOpenLocationDialog} sx={{ fontSize: 12 }}>
-                        {values.location ? 'Change' : 'Pick'}
-                      </Button>
-                      {values.location && (
-                        <IconButton size="small" onClick={handleClearLocation}>
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Stack>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiInputBase-input': { cursor: 'pointer' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_COLOR,
-                  },
-                  '&:hover fieldset': {
-                    borderColor: values.location ? 'primary.main' : LIGHT_BORDER_HOVER,
-                  },
-                },
-              }}
-              onClick={handleOpenLocationDialog}
-            />
-          </Box>
-        )}
       </Box>
 
       {/* LOCATION DIALOG */}

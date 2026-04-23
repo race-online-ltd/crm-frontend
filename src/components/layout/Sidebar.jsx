@@ -327,8 +327,22 @@ export default function Sidebar({ open, handleToggle }) {
                     </ListItemIcon>
                     <ListItemText primary="Lead Pipeline" primaryTypographyProps={{ fontSize: '0.82rem' }} />
                   </ListItemButton>
+
                 </List>
               </Collapse>
+
+              <ListItemButton
+                component={Link}
+                to="/settings/price-proposal-approval"
+                selected={location.pathname === "/settings/price-proposal-approval"}
+                onClick={isMobile ? handleToggle : undefined}
+                sx={{ pl: 7 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>
+                  <RequestQuoteOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                </ListItemIcon>
+                <ListItemText primary="Approval Workflows" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+              </ListItemButton>
 
               <ListItemButton
                 component={Link}

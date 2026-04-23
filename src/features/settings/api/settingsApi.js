@@ -190,6 +190,30 @@ export async function saveLeadPipelineStages(payload) {
   return response.data?.data;
 }
 
+export async function fetchApprovalPipelineOptions() {
+  const response = await api.get('/system/approval-pipeline-steps/options');
+  return response.data?.data ?? {
+    business_entities: [],
+    system_users: [],
+  };
+}
+
+export async function fetchApprovalPipelineSteps(businessEntityId) {
+  const response = await api.get('/system/approval-pipeline-steps', {
+    params: { business_entity_id: businessEntityId },
+  });
+
+  return response.data?.data ?? {
+    business_entity_id: businessEntityId,
+    steps: [],
+  };
+}
+
+export async function saveApprovalPipelineSteps(payload) {
+  const response = await api.post('/system/approval-pipeline-steps', payload);
+  return response.data?.data;
+}
+
 
 // cloumn mapping
 export async function fetchColumnMappings() {
