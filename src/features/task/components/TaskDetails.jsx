@@ -1,7 +1,7 @@
 // src/features/tasks/components/TaskDetails.jsx
 import React from 'react';
 import {
-  Box, Typography, Stack, Button, IconButton,
+  Box, Typography, Stack, Button, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import EditOutlinedIcon       from '@mui/icons-material/EditOutlined';
@@ -153,6 +153,7 @@ export default function TaskDetails({
   const tc = TYPE_CONFIG[task.taskType] || TYPE_CONFIG.follow_up;
   const isPhysical  = task.taskType === 'physical_meeting';
   const isVirtual   = task.taskType === 'virtual_meeting';
+  const isMeeting   = isPhysical || isVirtual;
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
 
@@ -419,21 +420,24 @@ export default function TaskDetails({
           </Button>
         )}
 
-        {isVirtual && !isCompleted && !isCancelled && (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<FiberManualRecordIcon sx={{ fontSize: '13px !important', color: '#dc2626' }} />}
-            onClick={() => { onClose(); onRecordMeeting?.(task); }}
-            sx={{
-              borderRadius: '8px',
-              fontSize: 12.5, fontWeight: 400,
-              borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
-              '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
-            }}
-          >
-            Record Meeting
-          </Button>
+        {isMeeting && !isCompleted && !isCancelled && (
+          <Tooltip title="Open meeting recorder">
+            <IconButton
+              size="small"
+              aria-label="Record meeting"
+              onClick={() => { onClose(); onRecordMeeting?.(task); }}
+              sx={{
+                borderRadius: '8px',
+                width: 32,
+                height: 32,
+                border: '1px solid #fbcfe8',
+                borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
+                '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
+              }}
+            >
+              <FiberManualRecordIcon sx={{ fontSize: 16, color: '#dc2626' }} />
+            </IconButton>
+          </Tooltip>
         )}
 
         {!isCompleted && !isCancelled && (

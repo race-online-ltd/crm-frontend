@@ -7,7 +7,8 @@ export default function TextAreaInputField({
   value,
   onChange,
   onBlur,
-  rows = 4, // default rows
+  rows,
+  minRows,
   maxRows,
   disabled = false,
   fullWidth = true,
@@ -15,6 +16,7 @@ export default function TextAreaInputField({
   helperText = '',
   size = 'small',   
   sx = {},
+  resizable = true, // new prop — can disable per call site if needed
   ...rest
 }) {
   return (
@@ -25,8 +27,9 @@ export default function TextAreaInputField({
       onChange={onChange}
       onBlur={onBlur}
       multiline
-      rows={rows}       // initial height
-      maxRows={maxRows} // optional max height
+      rows={rows}
+      minRows={minRows}
+      maxRows={maxRows}
       disabled={disabled}
       fullWidth={fullWidth}
       error={error}
@@ -34,19 +37,24 @@ export default function TextAreaInputField({
       variant="outlined"
       size={size} 
       sx={{
-        width: fullWidth ? '100%' : '240px', // Default width if not fullWidth
+        width: fullWidth ? '100%' : '240px',
         '& .MuiInputBase-input': {
-          fontSize: '0.8125rem', // Slightly smaller font (13px)
-          padding: '10px 10px',   // Extra tight vertical padding
+          fontSize: '0.8125rem',
+          padding: '8px 10px',
+          ...(resizable && !disabled && {
+            resize: 'vertical',  // allows vertical drag resize
+            overflow: 'auto',    // required for resize to work
+            minHeight: `${Math.max(minRows || rows || 2, 1) * 12}px`,   // prevents collapsing too small
+          }),
         },
         '& .MuiInputLabel-root': {
-          fontSize: '0.8125rem', // Match label size
-          transform: 'translate(14px, 10px) scale(1)', // Center label in smaller box
+          fontSize: '0.8125rem',
+          transform: 'translate(14px, 10px) scale(1)',
         },
         '& .MuiInputLabel-shrink': {
-          transform: 'translate(14px, -6px) scale(.75)', // Fix shrink position
+          transform: 'translate(14px, -6px) scale(.75)',
         },
-        ...sx // Merge with any styles passed at the call site
+        ...sx
       }}
       {...rest}
     />

@@ -84,8 +84,8 @@ export default function SelectDropdownSingle({
         variant="rounded"
         animation="wave"
         width={fullWidth ? '100%' : width}
-        height={height + 23}
-        sx={{ borderRadius: '4px', mb: '4px', ...sx }}
+        height={height}
+        sx={{ borderRadius: '8px', mb: 0, ...sx }}
       />
     );
   }
