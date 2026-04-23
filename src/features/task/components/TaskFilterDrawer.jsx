@@ -94,17 +94,15 @@ export default function TaskFilterDrawer({
         </Box>
 
         <Box>
-          <Typography variant="body2" fontWeight={700} color="#0f172a" sx={{ mb: 1 }}>
-            Scheduled Date
-          </Typography>
+       
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
             <DatePickerField
-              label="From"
+              label="Scheduled From"
               value={filters.dateFrom}
               onChange={(value) => onChange('dateFrom', value ? new Date(value).toISOString() : null)}
             />
             <DatePickerField
-              label="To"
+              label="Scheduled To"
               value={filters.dateTo}
               onChange={(value) => onChange('dateTo', value ? new Date(value).toISOString() : null)}
             />

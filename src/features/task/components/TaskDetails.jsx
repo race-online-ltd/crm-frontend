@@ -32,7 +32,6 @@ import { format } from 'date-fns';
 
 import AppDrawer from '../../../components/shared/AppDrawer';
 import AttachmentField from '../../../components/shared/AttachmentField';
-import TextInputField from '@/components/shared/TextInputField';
 import TextAreaInputField from '@/components/shared/TextAreaInputField';
 import api from '@/api/config/axiosInstance';
 import { buildMultipartFormData } from '../../../utils/formData';
@@ -129,16 +128,28 @@ async function fetchAttachmentBlob(file) {
   };
 }
 
-function formatFileSize(size = 0) {
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
-}
-
 function safeText(value) {
   return value || '—';
+}
+
+function getAttachmentTypeLabel(file) {
+  const sourceName = String(file?.file_name || file?.name || '').trim();
+  const extMatch = sourceName.match(/\.([a-z0-9]+)$/i);
+  const mimeType = String(file?.mime_type || '').toLowerCase();
+
+  if (extMatch?.[1]) {
+    return extMatch[1].toUpperCase();
+  }
+
+  if (mimeType.includes('pdf')) return 'PDF';
+  if (mimeType.includes('wordprocessingml')) return 'DOCX';
+  if (mimeType.includes('msword')) return 'DOC';
+  if (mimeType.includes('spreadsheetml')) return 'XLSX';
+  if (mimeType.includes('excel')) return 'XLS';
+  if (mimeType.includes('csv')) return 'CSV';
+  if (mimeType.startsWith('image/')) return 'IMG';
+
+  return 'FILE';
 }
 
 // ─── FIELD LABEL + VALUE ──────────────────────────────────────────────────────
@@ -165,56 +176,26 @@ function LabelText({ label, value, icon }) {
   );
 }
 
-// ─── FLOATING LABEL READ-ONLY LOCATION ────────────────────────────────────────
+// ─── READ-ONLY LOCATION ──────────────────────────────────────────────────────
 function LocationDisplayField({ address }) {
   return (
-    <Box sx={{ position: 'relative' }}>
+    <Box>
       <Typography
-        component="label"
-        sx={{
-          position: 'absolute',
-          top: '-9px',
-          left: '10px',
-          px: '4px',
-          fontSize: '0.609375rem',
-          fontWeight: 400,
-          color: 'text.secondary',
-          bgcolor: 'background.paper',
-          lineHeight: 1,
-          zIndex: 1,
-          pointerEvents: 'none',
-          letterSpacing: '0.01em',
-        }}
+        fontSize={10.5}
+        fontWeight={500}
+        color="text.disabled"
+        textTransform="uppercase"
+        letterSpacing="0.5px"
+        mb={0.625}
       >
         Meeting location
       </Typography>
-
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 1.5,
-          py: 1.125,
-          border: '1px solid #e3eaf2',
-          borderRadius: '8px',
-          bgcolor: 'background.paper',
-          minHeight: 45,
-        }}
-      >
-        {address ? (
-          <>
-            <PinDropIcon sx={{ fontSize: 15, color: 'primary.main', flexShrink: 0 }} />
-            <Typography fontSize={13} color="text.primary" lineHeight={1.5}>
-              {address}
-            </Typography>
-          </>
-        ) : (
-          <Typography fontSize={13} color="text.disabled" fontStyle="italic">
-            No location set
-          </Typography>
-        )}
-      </Box>
+      <Stack direction="row" alignItems="flex-start" gap={0.75}>
+        <PinDropIcon sx={{ fontSize: 13, color: 'primary.main', flexShrink: 0, mt: '1px' }} />
+        <Typography fontSize={13} color={address ? 'text.primary' : 'text.disabled'} lineHeight={1.45}>
+          {address || 'No location set'}
+        </Typography>
+      </Stack>
     </Box>
   );
 }
@@ -226,50 +207,58 @@ function NoteCard({ note, formatTime, onOpenAttachment, loadingAttachmentId }) {
     <Paper
       variant="outlined"
       sx={{
-        p: 1.5,
-        borderRadius: '14px',
+        p: 1.1,
+        borderRadius: '12px',
         borderColor: '#e2e8f0',
         bgcolor: '#fff',
       }}
     >
-      <Stack direction="row" spacing={1.25} alignItems="flex-start">
-        <Avatar sx={{ width: 34, height: 34, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 700 }}>
+      <Stack direction="row" spacing={0.9} alignItems="flex-start">
+        <Avatar sx={{ width: 28, height: 28, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 700, fontSize: 12 }}>
           {(note.author || 'U').slice(0, 1)}
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Typography variant="body2" fontWeight={700} color="#0f172a">
+          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+            <Typography variant="body2" fontWeight={600} color="#0f172a" fontSize={12.5} noWrap>
               {note.author || 'System User'}
             </Typography>
-            <Typography variant="caption" color="#94a3b8">
+            <Typography variant="caption" color="#94a3b8" sx={{ flexShrink: 0, whiteSpace: 'nowrap', fontSize: 11 }}>
               {formatTime(note.createdAt)}
             </Typography>
           </Stack>
-          <Typography variant="body2" color="#334155" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+          <Typography variant="body2" color="#334155" sx={{ mt: 0.35, whiteSpace: 'pre-wrap', fontSize: 12.5, lineHeight: 1.45 }}>
             {note.content}
           </Typography>
 
           {attachments.length > 0 ? (
-            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ mt: 0.75 }}>
               {attachments.map((file, index) => (
-                <Button
+                <Chip
                   key={file.id ?? `${file.file_name || file.name}-${index}`}
                   onClick={() => onOpenAttachment?.(file)}
-                  startIcon={<AttachFileOutlinedIcon sx={{ fontSize: 14 }} />}
-                  size="small"
-                  variant="outlined"
                   disabled={!file.download_url || loadingAttachmentId === file.id}
+                  size="small"
+                  icon={<AttachFileOutlinedIcon sx={{ fontSize: 11 }} />}
+                  label={getAttachmentTypeLabel(file)}
                   sx={{
+                    height: 24,
                     borderRadius: '999px',
                     bgcolor: '#eff6ff',
                     border: '1px solid #dbeafe',
                     color: '#1d4ed8',
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    px: 1.2,
-                    py: 0.55,
-                    minHeight: 0,
-                    lineHeight: 1.2,
+                    fontWeight: 800,
+                    fontSize: 10,
+                    letterSpacing: '0.08em',
+                    minWidth: 0,
+                    px: 0.5,
+                    '& .MuiChip-icon': {
+                      color: '#1d4ed8',
+                      marginLeft: '5px',
+                      marginRight: '-1px',
+                    },
+                    '& .MuiChip-label': {
+                      px: 0.5,
+                    },
                     '&:hover': {
                       bgcolor: '#dbeafe',
                       borderColor: '#93c5fd',
@@ -280,10 +269,7 @@ function NoteCard({ note, formatTime, onOpenAttachment, loadingAttachmentId }) {
                       color: '#94a3b8',
                     },
                   }}
-                >
-                  {file.file_name || file.name}
-                  {file.file_size ? ` · ${formatFileSize(file.file_size)}` : ''}
-                </Button>
+                />
               ))}
             </Stack>
           ) : null}
@@ -593,7 +579,7 @@ export default function TaskDetails({
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               }}
             >
-              <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1.5}>
+              <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1.5} sx={{ mb: 2.25 }}>
                 <Stack direction="row" alignItems="center" gap={1.5} minWidth={0}>
                   <Box
                     sx={{
@@ -645,18 +631,8 @@ export default function TaskDetails({
                   <CloseIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Stack>
-            </Paper>
 
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.25,
-                borderRadius: '18px',
-                borderColor: '#dbe4ee',
-                bgcolor: '#fff',
-              }}
-            >
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.25 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
                 <LabelText
                   label="Association"
                   value={activeTask.assocType === 'lead' ? 'Lead-based' : activeTask.assocType === 'client' ? 'Client-based' : '—'}
@@ -670,7 +646,7 @@ export default function TaskDetails({
                     color="text.disabled"
                     textTransform="uppercase"
                     letterSpacing="0.5px"
-                    mb={0.75}
+                    mb={0.625}
                   >
                     Task type
                   </Typography>
@@ -695,7 +671,7 @@ export default function TaskDetails({
                     color="text.disabled"
                     textTransform="uppercase"
                     letterSpacing="0.5px"
-                    mb={0.75}
+                    mb={0.625}
                   >
                     Scheduled
                   </Typography>
@@ -714,7 +690,7 @@ export default function TaskDetails({
                     color="text.disabled"
                     textTransform="uppercase"
                     letterSpacing="0.5px"
-                    mb={0.75}
+                    mb={0.625}
                   >
                     Status
                   </Typography>
@@ -735,15 +711,6 @@ export default function TaskDetails({
                     />
                   </>
                 )}
-
-                <Box sx={{ gridColumn: '1 / -1' }}>
-                  <TextInputField
-                    label="Title"
-                    value={activeTask.title}
-                    disabled
-                    InputProps={{ readOnly: true }}
-                  />
-                </Box>
 
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <TextAreaInputField
@@ -807,7 +774,7 @@ export default function TaskDetails({
               </Box>
             </Paper>
 
-              <Paper
+            <Paper
                 variant="outlined"
                 sx={{
                   display: 'flex',
@@ -815,15 +782,15 @@ export default function TaskDetails({
                   borderRadius: '18px',
                   borderColor: '#dbe4ee',
                   bgcolor: '#fff',
-                  minHeight: { xs: 360, sm: 420 },
-                  maxHeight: { xs: 380, sm: 460 },
+                  minHeight: { xs: 340, sm: 400 },
+                  maxHeight: { xs: 360, sm: 430 },
                   overflow: 'hidden',
                 }}
               >
                 <Box
                   sx={{
                     px: 2,
-                    py: 1.5,
+                    py: 1.25,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -831,12 +798,12 @@ export default function TaskDetails({
                   }}
                 >
                   <Stack direction="row" alignItems="center" spacing={1} minWidth={0}>
-                    <DescriptionOutlinedIcon sx={{ fontSize: 18, color: '#2563eb' }} />
+                    <DescriptionOutlinedIcon sx={{ fontSize: 17, color: '#2563eb' }} />
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography fontSize={13.5} fontWeight={700} color="#0f172a" lineHeight={1.2}>
+                      <Typography fontSize={13} fontWeight={700} color="#0f172a" lineHeight={1.2}>
                         Task Notes
                       </Typography>
-                      <Typography fontSize={12} color="#64748b">
+                      <Typography fontSize={11.5} color="#64748b">
                         {notes.length} note{notes.length === 1 ? '' : 's'}
                       </Typography>
                     </Box>
@@ -867,28 +834,27 @@ export default function TaskDetails({
                 <Divider />
 
                 {isAddingNote ? (
-                  <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#f8fbff' }}>
-                    <Stack spacing={1.5}>
+                  <Box sx={{ p: 1.25, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#f8fbff' }}>
+                    <Stack spacing={1.1}>
                       <TextField
                         multiline
-                        minRows={3}
-                        maxRows={6}
+                        minRows={2}
+                        maxRows={5}
                         autoFocus
                         value={noteText}
                         onChange={(event) => setNoteText(event.target.value)}
                         placeholder="Add a note for follow-up, context, or next steps..."
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            borderRadius: '12px',
+                            borderRadius: '10px',
                             bgcolor: '#fff',
                           },
                         }}
                       />
                       <AttachmentField
-                        label="Attachments"
-                        helperText="Optional. Attach documents, screenshots, or any supporting file for this task note."
                         value={attachments}
                         onChange={setAttachments}
+                        label=""
                       />
                       {noteError ? (
                         <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -930,14 +896,14 @@ export default function TaskDetails({
                     flex: 1,
                     minHeight: 0,
                     overflowY: 'auto',
-                    p: 1.5,
+                    p: 1.25,
                     bgcolor: '#f8fafc',
                     '&::-webkit-scrollbar': { width: 6 },
                     '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 999 },
                   }}
                 >
                   {notes.length ? (
-                    <Stack spacing={1.25}>
+                    <Stack spacing={1}>
                       {notes.map((note) => (
                         <NoteCard
                           key={note.id}

@@ -20,9 +20,9 @@ import PinDropIcon from '@mui/icons-material/PinDrop';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PhoneIcon from '@mui/icons-material/Phone';
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined';
-import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BlockIcon from '@mui/icons-material/Block';
@@ -90,7 +90,7 @@ function ScheduledCell({ scheduledAt, status }) {
   );
 }
 
-function RowMenu({ task, onEdit, onMarkComplete, onCancelTask }) {
+function RowMenu({ task, onView, onEdit, onMarkComplete, onCancelTask }) {
   const [anchor, setAnchor] = useState(null);
   const isDone = task.status === 'completed' || task.status === 'cancelled';
 
@@ -112,6 +112,9 @@ function RowMenu({ task, onEdit, onMarkComplete, onCancelTask }) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <MenuItem onClick={(e) => { e.stopPropagation(); onView(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13 }}>
+          <VisibilityOutlinedIcon fontSize="small" sx={{ color: '#64748b' }} />View
+        </MenuItem>
         <MenuItem onClick={(e) => { e.stopPropagation(); onEdit(task); }} sx={{ gap: 1.5, py: 0.875, fontSize: 13 }}>
           <EditOutlinedIcon fontSize="small" sx={{ color: '#64748b' }} />Edit
         </MenuItem>
@@ -130,7 +133,7 @@ function RowMenu({ task, onEdit, onMarkComplete, onCancelTask }) {
   );
 }
 
-function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, isLast, onRowClick }) {
+function DesktopRow({ task, onView, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, isLast, onRowClick }) {
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
   const isPhysical = task.taskType === 'physical_meeting';
@@ -143,7 +146,7 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
       onClick={() => onRowClick(task)}
       sx={{
         display: 'grid',
-        gridTemplateColumns: '2fr 148px 1.6fr 130px 110px 148px',
+        gridTemplateColumns: '1.8fr 138px 1.45fr 124px 106px 170px',
         alignItems: 'center',
         gap: 1.5,
         px: 2.5,
@@ -191,25 +194,30 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
         onClick={(e) => e.stopPropagation()}
         sx={{ minWidth: 0 }}
       >
-        <Box sx={{ width: 30, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ width: 68, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
           {isMeeting && !isCompleted && !isCancelled ? (
           <Tooltip title="Open meeting recorder">
-            <IconButton
+            <Button
               size="small"
               aria-label="Record meeting"
               onClick={(e) => { e.stopPropagation(); onRecordMeeting(task); }}
+              variant="outlined"
               sx={{
-                width: 28,
-                height: 28,
+                minWidth: 62,
+                height: 26,
                 borderRadius: '8px',
                 border: '1px solid #fbcfe8',
-                color: '#be123c',
                 bgcolor: '#fff1f2',
+                color: '#be123c',
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'none',
+                px: 1,
                 '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
               }}
             >
-              <CampaignOutlinedIcon sx={{ fontSize: 14, color: '#dc2626' }} />
-            </IconButton>
+              Record
+            </Button>
           </Tooltip>
           ) : null}
         </Box>
@@ -240,13 +248,13 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
             </Tooltip>
           ) : null}
         </Box>
-        <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
+        <RowMenu task={task} onView={onView} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
       </Stack>
     </Box>
   );
 }
 
-function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, onRowClick }) {
+function MobileCard({ task, onView, onEdit, onMarkComplete, onCancelTask, onCheckIn, onRecordMeeting, onRowClick }) {
   const isOverdue = task.status === 'overdue';
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
@@ -288,7 +296,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
           </Box>
         </Stack>
         <Box onClick={(e) => e.stopPropagation()}>
-          <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
+          <RowMenu task={task} onView={onView} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
         </Box>
       </Stack>
 
@@ -318,25 +326,30 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
             mt={1}
             onClick={(e) => e.stopPropagation()}
           >
-            <Box sx={{ width: 30, height: 30, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ width: 68, height: 30, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isMeeting && !isCompleted && !isCancelled ? (
                 <Tooltip title="Open meeting recorder">
-                  <IconButton
+                  <Button
                     size="small"
                     aria-label="Record meeting"
                     onClick={() => onRecordMeeting(task)}
+                    variant="outlined"
                     sx={{
-                      width: 30,
+                      minWidth: 62,
                       height: 30,
                       borderRadius: '8px',
                       border: '1px solid #fbcfe8',
-                      color: '#be123c',
                       bgcolor: '#fff1f2',
-                      '&:hover': { bgcolor: '#ffe4e6' },
+                      color: '#be123c',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      px: 1,
+                      '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
                     }}
                   >
-                    <CampaignOutlinedIcon sx={{ fontSize: 15, color: '#dc2626' }} />
-                  </IconButton>
+                    Record
+                  </Button>
                 </Tooltip>
               ) : null}
             </Box>
@@ -485,7 +498,7 @@ export default function TasksTable({
         {!isMobile && (
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: '2fr 148px 1.6fr 130px 110px 148px',
+            gridTemplateColumns: '1.8fr 138px 1.45fr 124px 106px 170px',
             gap: 1.5,
             px: 2.5,
             py: 1.375,
@@ -533,6 +546,7 @@ export default function TasksTable({
               <MobileCard
                 key={task.id}
                 task={task}
+                onView={(row) => setDetailTask(row)}
                 onEdit={onEdit || (() => {})}
                 onMarkComplete={handleMarkComplete}
                 onCancelTask={handleCancelTask}
@@ -545,6 +559,7 @@ export default function TasksTable({
                 key={task.id}
                 task={task}
                 isLast={index === tasks.length - 1}
+                onView={(row) => setDetailTask(row)}
                 onEdit={onEdit || (() => {})}
                 onMarkComplete={handleMarkComplete}
                 onCancelTask={handleCancelTask}
