@@ -34,7 +34,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
   // Map a task record back to formik shape
   const formikInitial = initialValues
     ? {
-        assignToKamId: initialValues.assignedToKamId || '',
+        assignToUserId: initialValues.assignedToUserId || initialValues.assignedToKamId || '',
         lead:        initialValues.leadId    || initialValues.lead || '',
         client:      initialValues.clientId  || initialValues.client || '',
         taskType:    initialValues.taskType  || '',
@@ -56,10 +56,10 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
     : undefined; // TaskForm will use its own INITIAL_VALUES
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 1.5, sm: 2 } }}>
 
       {/* ── Header ── */}
-      <Box mb={3}>
+      <Box mb={2}>
         {/* <Breadcrumbs
           separator={<NavigateNextIcon sx={{ fontSize: 14, color: '#94a3b8' }} />}
           sx={{ mb: 1.5 }}
@@ -119,7 +119,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
         </Stack>
       </Box>
 
-      <Divider sx={{ mb: 3 }} />
+      <Divider sx={{ mb: 2 }} />
 
       <TaskForm
         initialValues={formikInitial}

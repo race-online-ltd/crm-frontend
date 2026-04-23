@@ -130,6 +130,7 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
   const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
   const isVirtual   = task.taskType === 'virtual_meeting';
+  const isMeeting   = isPhysical || isVirtual;
 
   return (
     <Box
@@ -204,24 +205,24 @@ function DesktopRow({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
             </Button>
           </Tooltip>
         )}
-        {isVirtual && !isCompleted && !isCancelled && (
+        {isMeeting && !isCompleted && !isCancelled && (
           <Tooltip title="Open meeting recorder">
-            <span>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={(e) => { e.stopPropagation(); onRecordMeeting(task); }}
-                startIcon={<FiberManualRecordIcon sx={{ fontSize: 11, color: '#dc2626' }} />}
-                sx={{
-                  fontSize: 11, fontWeight: 600, borderRadius: '6px', textTransform: 'none',
-                  borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
-                  '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
-                  height: 26, px: '8px', whiteSpace: 'nowrap',
-                }}
-              >
-                Record Meeting
-              </Button>
-            </span>
+            <IconButton
+              size="small"
+              aria-label="Record meeting"
+              onClick={(e) => { e.stopPropagation(); onRecordMeeting(task); }}
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '8px',
+                border: '1px solid #fbcfe8',
+                color: '#be123c',
+                bgcolor: '#fff1f2',
+                '&:hover': { bgcolor: '#ffe4e6', borderColor: '#fda4af' },
+              }}
+            >
+              <FiberManualRecordIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+            </IconButton>
           </Tooltip>
         )}
         <RowMenu task={task} onEdit={onEdit} onMarkComplete={onMarkComplete} onCancelTask={onCancelTask} />
@@ -237,6 +238,7 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
   const isCancelled = task.status === 'cancelled';
   const isPhysical  = task.taskType === 'physical_meeting';
   const isVirtual   = task.taskType === 'virtual_meeting';
+  const isMeeting   = isPhysical || isVirtual;
 
   return (
     <Box
@@ -307,21 +309,25 @@ function MobileCard({ task, onEdit, onMarkComplete, onCancelTask, onCheckIn, onR
             </Button>
           </Box>
         )}
-        {isVirtual && !isCompleted && !isCancelled && (
+        {isMeeting && !isCompleted && !isCancelled && (
           <Box mt={1} onClick={(e) => e.stopPropagation()}>
-            <Button
+            <Tooltip title="Open meeting recorder">
+              <IconButton
               size="small"
-              variant="outlined"
+              aria-label="Record meeting"
               onClick={() => onRecordMeeting(task)}
-              startIcon={<FiberManualRecordIcon sx={{ fontSize: 11, color: '#dc2626' }} />}
               sx={{
-                fontSize: 11, fontWeight: 600, borderRadius: '6px', textTransform: 'none',
+                width: 30,
+                height: 30,
+                borderRadius: '8px',
+                border: '1px solid #fbcfe8',
                 borderColor: '#fbcfe8', color: '#be123c', bgcolor: '#fff1f2',
-                '&:hover': { bgcolor: '#ffe4e6' }, height: 27,
+                '&:hover': { bgcolor: '#ffe4e6' },
               }}
             >
-              Record Meeting
-            </Button>
+              <FiberManualRecordIcon sx={{ fontSize: 15, color: '#dc2626' }} />
+            </IconButton>
+            </Tooltip>
           </Box>
         )}
       </Box>

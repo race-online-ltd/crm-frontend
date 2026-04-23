@@ -1,6 +1,6 @@
 // src/features/tasks/components/TaskForm.jsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box, Button, Typography, Stack, Dialog, DialogTitle, DialogContent,
   DialogActions, InputAdornment, TextField, IconButton,
@@ -11,6 +11,7 @@ import * as Yup from 'yup';
 import DateTimePickerField      from '../../../components/shared/DateTimePickerField';
 import SelectDropdownSingle     from '../../../components/shared/SelectDropdownSingle';
 import TextInputField           from '../../../components/shared/TextInputField';
+import TextAreaInputField       from '../../../components/shared/TextAreaInputField';
 import AttachmentField          from '../../../components/shared/AttachmentField';
 import CustomToggle             from '../../../components/shared/CustomToggle';
 import CheckCircleOutlineIcon   from '@mui/icons-material/CheckCircleOutline';
@@ -21,11 +22,7 @@ import MyLocationIcon           from '@mui/icons-material/MyLocation';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import { buildMultipartFormData } from '../../../utils/formData';
 import { useUserProfile } from '../../settings/context/UserProfileContext';
-import {
-  buildTaskAssignment,
-  getAssignableKamOptions,
-  isSupervisorRole,
-} from '../utils/taskAssignment';
+import { fetchSystemUsers } from '../../settings/api/settingsApi';
 
 const LIGHT_BORDER_COLOR = '#e3eaf2';
 const LIGHT_BORDER_HOVER = '#d3deea';
@@ -73,7 +70,6 @@ const taskSchema = (mode) =>
     }),
     taskType:    Yup.string().required('Task type is required'),
     title:       Yup.string().trim().required('Title is required'),
-    details:     Yup.string().trim().required('Details is required'),
     scheduledAt: Yup.date().nullable().required('Scheduled time is required'),
     location:    Yup.object().nullable(),
     reminderOffsetMinutes: Yup.string().when('reminderEnabled', {
@@ -85,7 +81,7 @@ const taskSchema = (mode) =>
 
 // ─── DEFAULT INITIAL VALUES ─────────────────
 const DEFAULT_VALUES = {
-  assignToKamId: '',
+  assignToUserId: '',
   lead:        '',
   client:      '',
   taskType:    '',
@@ -247,20 +243,47 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
   const [mode, setMode]               = useState(startMode);
   const [locationOpen, setLocationOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
+  const [userOptions, setUserOptions] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const isAssociationLocked = Boolean(lockedAssociation?.mode && lockedAssociation?.option);
   const effectiveMode = isAssociationLocked ? lockedAssociation.mode : mode;
-  const canAssignKam = isSupervisorRole(profile?.role);
-  const existingAssignment = {
-    assignedToUserId: initialValues?.assignedToUserId || null,
-    assignedToUserName: initialValues?.assignedToUserName || null,
-    assignedToUserRole: initialValues?.assignedToUserRole || null,
-    assignedToKamId: initialValues?.assignedToKamId || null,
-    assignedToKamName: initialValues?.assignedToKamName || null,
-    assignmentMode: initialValues?.assignmentMode || null,
-    createdByUserId: initialValues?.createdByUserId || null,
-    createdByUserName: initialValues?.createdByUserName || null,
-    createdByUserRole: initialValues?.createdByUserRole || null,
-  };
+  const isKamUser = String(profile?.role || '').trim().toLowerCase() === 'kam';
+
+  useEffect(() => {
+    let active = true;
+
+    const loadUsers = async () => {
+      try {
+        setUsersLoading(true);
+        const response = await fetchSystemUsers();
+        if (!active) {
+          return;
+        }
+
+        setUserOptions((response.data || []).map((user) => ({
+          id: String(user.id),
+          label: `${user.full_name}${user.role_name ? ` (${user.role_name})` : ''}`,
+          role: user.role_name || '',
+          userName: user.user_name || '',
+          fullName: user.full_name || '',
+        })));
+      } catch {
+        if (active) {
+          setUserOptions([]);
+        }
+      } finally {
+        if (active) {
+          setUsersLoading(false);
+        }
+      }
+    };
+
+    loadUsers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const formik = useFormik({
     initialValues: { ...DEFAULT_VALUES, ...(initialValues || {}) },
@@ -284,18 +307,28 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
 
       Promise.resolve(associationLabel)
         .then((resolvedAssociationLabel) => {
-          const assignmentPayload = canAssignKam
-            ? buildTaskAssignment({ profile, selectedKamId: values.assignToKamId })
-            : {
-                ...buildTaskAssignment({ profile }),
-                ...Object.fromEntries(Object.entries(existingAssignment).filter(([, value]) => value !== null)),
-              };
           const reminderChannels = values.reminderEnabled ? ['google_calendar', 'sms'] : [];
+          const selectedUser = userOptions.find((option) => option.id === values.assignToUserId) || null;
+          const currentUser = {
+            id: profile?.id ?? null,
+            fullName: profile?.fullName || profile?.userName || 'Current User',
+            role: profile?.role || '',
+          };
+          const assignedUser = selectedUser || currentUser;
+          const isSelfAssignment = !selectedUser || String(assignedUser.id) === String(currentUser.id);
           const payload = {
             ...(effectiveMode === 'lead'
               ? { leadId: associationId, leadName: resolvedAssociationLabel }
               : { clientId: associationId, clientName: resolvedAssociationLabel }),
-            ...assignmentPayload,
+            assignedToUserId: assignedUser?.id || null,
+            assignedToUserName: assignedUser?.fullName || null,
+            assignedToUserRole: assignedUser?.role || null,
+            assignedToKamId: assignedUser?.id || null,
+            assignedToKamName: assignedUser?.fullName || null,
+            assignmentMode: isSelfAssignment ? 'self' : 'manual',
+            createdByUserId: currentUser.id,
+            createdByUserName: currentUser.fullName,
+            createdByUserRole: currentUser.role,
             taskType:    values.taskType,
             title:       values.title.trim(),
             details:     values.details.trim(),
@@ -323,6 +356,9 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
   });
 
   const { values, errors, touched, setFieldValue, handleChange, handleSubmit, isSubmitting } = formik;
+  const assignToFetchOptions = useMemo(() => async () => userOptions, [userOptions]);
+  const taskTypeFetchOptions = useMemo(() => async () => TASK_TYPE_OPTIONS, []);
+  const reminderFetchOptions = useMemo(() => async () => REMINDER_TIME_OPTIONS, []);
 
   const entity = {
     lead:   { name: 'lead',   label: 'Lead *',   fetch: fetchLeads },
@@ -338,26 +374,24 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
   function handleCancelLocation()     { setTempLocation(null); setLocationOpen(false); }
   function handleClearLocation()      { setFieldValue('location', null); }
 
+  useEffect(() => {
+    if (!userOptions.length) return;
+    if (values.assignToUserId) return;
+    if (!isKamUser || !profile?.id) return;
+
+    const currentUserId = String(profile.id);
+    const hasCurrentUser = userOptions.some((option) => option.id === currentUserId);
+    if (hasCurrentUser) {
+      setFieldValue('assignToUserId', currentUserId, false);
+    }
+  }, [isKamUser, profile?.id, setFieldValue, userOptions, values.assignToUserId]);
+
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
 
-      {canAssignKam && (
-        <Box sx={{ mb: 2 }}>
-          <SelectDropdownSingle
-            name="assignToKamId"
-            label="Assign to KAM"
-            placeholder="Leave empty to create for yourself"
-            fetchOptions={getAssignableKamOptions}
-            value={values.assignToKamId}
-            onChange={(id) => setFieldValue('assignToKamId', id)}
-            helperText="Optional. If left blank, this task stays assigned to you."
-          />
-        </Box>
-      )}
-
       {/* ── Tab Switcher ── */}
       {!isAssociationLocked && (
-        <Box sx={{ display: 'inline-flex', bgcolor: '#f1f5f9', borderRadius: '12px', p: '4px', mb: 2 }}>
+        <Box sx={{ display: 'inline-flex', bgcolor: '#f1f5f9', borderRadius: '12px', p: '4px', mb: 1.5 }}>
           {['Lead Based', 'Client Based'].map((label, i) => {
             const tabValue = i === 0 ? 'lead' : 'client';
             return (
@@ -387,7 +421,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         </Box>
       )}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1 }}>
 
         {/* ENTITY */}
         <SelectDropdownSingle
@@ -406,7 +440,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         <SelectDropdownSingle
           name="taskType"
           label="Task Type *"
-          fetchOptions={async () => TASK_TYPE_OPTIONS}
+          fetchOptions={taskTypeFetchOptions}
           value={values.taskType}
           onChange={(id) => {
             setFieldValue('taskType', id);
@@ -420,44 +454,148 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
           helperText={touched.taskType && errors.taskType}
         />
 
-        {/* TITLE */}
-        <Box>
-          <TextInputField
-            name="title" label="Title *"
-            value={values.title} onChange={handleChange}
-            error={touched.title && Boolean(errors.title)}
-            helperText={touched.title && errors.title}
+        <Box sx={{ minWidth: 0 }}>
+          <SelectDropdownSingle
+            name="assignToUserId"
+            label="Assign to"
+            placeholder="Search user"
+            fetchOptions={assignToFetchOptions}
+            value={values.assignToUserId}
+            onChange={(id) => setFieldValue('assignToUserId', id)}
+            loading={usersLoading}
+            fullWidth
           />
         </Box>
 
-        {/* DATE */}
-        <Box>
-          <DateTimePickerField
-            label="Scheduled Time *"
-            value={values.scheduledAt}
-            onChange={(v) => setFieldValue('scheduledAt', v)}
-            error={touched.scheduledAt && Boolean(errors.scheduledAt)}
-            helperText={touched.scheduledAt && errors.scheduledAt}
-          />
+        <Box
+          sx={{
+            gridColumn: '1 / -1',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 1,
+          }}
+        >
+          {/* TITLE */}
+          <Box>
+            <TextInputField
+              name="title" label="Title *"
+              value={values.title} onChange={handleChange}
+              error={touched.title && Boolean(errors.title)}
+              helperText={touched.title && errors.title}
+            />
+          </Box>
+
+          {/* DATE */}
+          <Box>
+            <DateTimePickerField
+              label="Scheduled Time *"
+              value={values.scheduledAt}
+              onChange={(v) => setFieldValue('scheduledAt', v)}
+              error={touched.scheduledAt && Boolean(errors.scheduledAt)}
+              helperText={touched.scheduledAt && errors.scheduledAt}
+            />
+          </Box>
         </Box>
 
         {/* DETAILS */}
         <Box sx={{ gridColumn: '1 / -1' }}>
-          <TextInputField
-            name="details" label="Details *"
+          <TextAreaInputField
+            name="details" label="Details"
             value={values.details} onChange={handleChange}
-            multiline rows={4}
+            minRows={2}
+            maxRows={8}
+            resize="vertical"
             error={touched.details && Boolean(errors.details)}
             helperText={touched.details && errors.details}
           />
         </Box>
 
-        <Box sx={{ gridColumn: '1 / -1' }}>
-          <AttachmentField
-            label="Attachment"
-            value={values.attachment}
-            onChange={(files) => setFieldValue('attachment', files)}
-          />
+        <Box
+          sx={{
+            gridColumn: '1 / -1',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 1,
+            alignItems: 'start',
+          }}
+        >
+          <Box>
+            <AttachmentField
+              label="Attachment"
+              value={values.attachment}
+              onChange={(files) => setFieldValue('attachment', files)}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              alignSelf: { xs: 'stretch', md: 'center' },
+              mt: { xs: 0, md: 1.5 },
+            }}
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1.25}
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              sx={{ width: '100%' }}
+            >
+              <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
+                <Box
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '10px',
+                    bgcolor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <NotificationsActiveOutlinedIcon sx={{ fontSize: 17, color: '#2563eb' }} />
+                </Box>
+                <Typography fontSize={14} fontWeight={700} color="#0f172a" sx={{ whiteSpace: 'nowrap' }}>
+                  Set Reminder
+                </Typography>
+                <CustomToggle
+                  size="md"
+                  checked={values.reminderEnabled}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setFieldValue('reminderEnabled', checked);
+
+                    if (!checked) {
+                      setFieldValue('reminderOffsetMinutes', DEFAULT_VALUES.reminderOffsetMinutes);
+                    }
+                  }}
+                  label={values.reminderEnabled ? 'On' : 'Off'}
+                />
+              </Stack>
+
+              {values.reminderEnabled && (
+                <Box
+                  sx={{
+                    width: { xs: '100%', md: 190 },
+                    minWidth: { xs: '100%', md: 190 },
+                    ml: { xs: 0, md: 0.5 },
+                    mt: { xs: 0, md: 0.75 },
+                  }}
+                >
+                  <SelectDropdownSingle
+                    name="reminderOffsetMinutes"
+                    label="Remind Before"
+                    fetchOptions={reminderFetchOptions}
+                    value={values.reminderOffsetMinutes}
+                    onChange={(id) => setFieldValue('reminderOffsetMinutes', id)}
+                    error={touched.reminderOffsetMinutes && Boolean(errors.reminderOffsetMinutes)}
+                    helperText={touched.reminderOffsetMinutes ? errors.reminderOffsetMinutes : ' '}
+                    fullWidth
+                  />
+                </Box>
+              )}
+            </Stack>
+          </Box>
         </Box>
 
         {/* LOCATION (physical meeting only) */}
@@ -508,61 +646,6 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         )}
       </Box>
 
-      <Box sx={{ mt: 2.5 }}>
-        <Stack
-          direction="column"
-          spacing={1.25}
-        >
-          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
-            <Box
-              sx={{
-                width: 34,
-                height: 34,
-                borderRadius: '10px',
-                bgcolor: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <NotificationsActiveOutlinedIcon sx={{ fontSize: 17, color: '#2563eb' }} />
-            </Box>
-            <Typography fontSize={14} fontWeight={700} color="#0f172a" sx={{ whiteSpace: 'nowrap' }}>
-              Reminder Notification
-            </Typography>
-            <CustomToggle
-              size="md"
-              checked={values.reminderEnabled}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setFieldValue('reminderEnabled', checked);
-
-                if (!checked) {
-                  setFieldValue('reminderOffsetMinutes', DEFAULT_VALUES.reminderOffsetMinutes);
-                }
-              }}
-              label={values.reminderEnabled ? 'On' : 'Off'}
-            />
-          </Stack>
-
-          {values.reminderEnabled && (
-            <Box sx={{ width: { xs: '100%', md: 240 }, ml: { xs: 0, md: '164px' } }}>
-              <SelectDropdownSingle
-                name="reminderOffsetMinutes"
-                label="Remind Before"
-                fetchOptions={async () => REMINDER_TIME_OPTIONS}
-                value={values.reminderOffsetMinutes}
-                onChange={(id) => setFieldValue('reminderOffsetMinutes', id)}
-                error={touched.reminderOffsetMinutes && Boolean(errors.reminderOffsetMinutes)}
-                helperText={touched.reminderOffsetMinutes ? errors.reminderOffsetMinutes : ' '}
-              />
-            </Box>
-          )}
-        </Stack>
-      </Box>
-
       {/* LOCATION DIALOG */}
       <Dialog
         open={locationOpen}
@@ -594,7 +677,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       </Dialog>
 
       {/* FORM ACTIONS */}
-      <Stack direction="row" spacing={2} mt={5}>
+      <Stack direction="row" spacing={2} mt={3}>
         <Button onClick={onCancel} variant="outlined" fullWidth disabled={isSubmitting}>Cancel</Button>
         <Button
           type="submit"
