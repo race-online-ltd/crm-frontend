@@ -422,29 +422,28 @@ export default function PriceProposalApprovalPage() {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: '#f8fafc' }}>
-                <TableCell sx={{ fontWeight: 700, width: 70 }}>#</TableCell>
-                <TableCell sx={{ fontWeight: 700, width: 90 }}>Move</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>System User</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 140 }}>Level</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 90 }}>Order</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>System User</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, width: 140 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {!selectedBusinessEntityId ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 5, color: '#64748b' }}>
                     Select a business entity to configure its approval workflow.
                   </TableCell>
                 </TableRow>
               ) : isStepsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 5, color: '#64748b' }}>
                     Loading approval steps...
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 5, color: '#64748b' }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 5, color: '#64748b' }}>
                     No approvers added yet. Use Add Approver to build the workflow.
                   </TableCell>
                 </TableRow>
@@ -473,7 +472,7 @@ export default function PriceProposalApprovalPage() {
                     },
                   }}
                 >
-                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{row.level}</TableCell>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={0.5}>
                       <DragIndicatorIcon sx={{ color: '#94a3b8' }} />
@@ -486,7 +485,6 @@ export default function PriceProposalApprovalPage() {
                     </Stack>
                   </TableCell>
                   <TableCell>{row.user_label}</TableCell>
-                  <TableCell>{row.level}</TableCell>
                   <TableCell align="right">
                     <Tooltip title="Edit approver">
                       <IconButton size="small" onClick={() => openEditModal(row)}>
