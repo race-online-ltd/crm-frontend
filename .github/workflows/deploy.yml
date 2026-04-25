@@ -35,7 +35,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
 
           script: |
-            TARGET_DIR="/var/www/html/dcim/frontend"
+            TARGET_DIR="/var/www/html/application/frontend"
             DELETE_PATH="${TARGET_DIR}/build"
 
             echo "Attempting to remove old build folder at ${DELETE_PATH}"
@@ -56,7 +56,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
 
           source: 'build'
-          target: '/var/www/html/dcim/frontend'
+          target: '/var/www/html/application/frontend'
 
       - name: 7. Reload Nginx
         uses: appleboy/ssh-action@v1.0.3
@@ -67,6 +67,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
 
           script: |
-            echo "Successfully deployed to /var/www/html/dcim/frontend"
+            echo "Successfully deployed to /var/www/html/application/frontend"
             sudo systemctl reload nginx
             echo "Nginx has been reloaded. Deployment complete."
