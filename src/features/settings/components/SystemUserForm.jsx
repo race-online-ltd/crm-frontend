@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import TextInputField from '../../../components/shared/TextInputField';
@@ -8,6 +8,7 @@ import PasswordField from '../../../components/shared/PasswordField';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
 import CustomToggle from '../../../components/shared/CustomToggle';
+import FormActionButtons from '../../../components/shared/FormActionButtons';
 
 const optionalEmailValidation = Yup.string()
   .trim()
@@ -203,39 +204,11 @@ export default function SystemUserForm({ editData = null, onSubmit, onCancel, fe
         </Box>
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
-        {onCancel && (
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={onCancel}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderRadius: '10px',
-              borderColor: '#e2e8f0',
-              color: '#64748b',
-            }}
-          >
-            Cancel
-          </Button>
-        )}
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '10px',
-            bgcolor: '#2563eb',
-            '&:hover': { bgcolor: '#1d4ed8' },
-          }}
-          disabled={formik.isSubmitting}
-        >
-          {formik.isSubmitting ? 'Saving...' : isEdit ? 'Update User' : 'Create User'}
-        </Button>
-      </Stack>
+      <FormActionButtons
+        onCancel={onCancel}
+        submitLabel={formik.isSubmitting ? 'Saving...' : isEdit ? 'Update User' : 'Create User'}
+        disabled={formik.isSubmitting}
+      />
     </Box>
   );
 }

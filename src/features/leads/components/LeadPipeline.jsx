@@ -262,7 +262,7 @@ function KanbanLeadCard({ item, index, onAction }) {
 }
 
 // ── Main Pipeline Component ──
-export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead }) {
+export default function LeadPipeline({ leads, setLeads, onFilterClick }) {
   const isLoading = useInitialTableLoading();
   const [view, setView] = useState('kanban');
   const [forwardDialog, setForwardDialog] = useState({ open: false, lead: null });
@@ -275,6 +275,11 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
     open: false, lead: null, fromStage: '', toStage: '', pendingResult: null,
   });
   const getStageTitle = (id) => STAGES.find((s) => s.id === id)?.title || id;
+
+  const openLeadEditInNewTab = (leadId) => {
+    if (!leadId) return;
+    window.open(`/leads/${leadId}/edit`, '_blank', 'noopener,noreferrer');
+  };
 
   const appendLeadActivity = (leadId, activity) => {
     if (!leadId) return;
@@ -420,7 +425,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         setViewDetailsDrawer({ open: true, lead });
         break;
       case 'edit':
-        onEditLead?.(lead);
+        openLeadEditInNewTab(lead?.id);
         break;
       default:
         break;

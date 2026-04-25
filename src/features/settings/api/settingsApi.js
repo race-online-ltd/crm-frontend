@@ -162,6 +162,11 @@ export async function fetchKamProductMapping(params) {
   };
 }
 
+export async function fetchKamProductMappings() {
+  const response = await api.get('/system/kam-mappings/list');
+  return response.data?.data ?? [];
+}
+
 export async function saveKamProductMapping(payload) {
   const response = await api.post('/system/kam-mappings', payload);
   return response.data?.data;

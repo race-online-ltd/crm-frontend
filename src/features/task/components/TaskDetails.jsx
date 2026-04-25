@@ -24,7 +24,6 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import CloseIcon from '@mui/icons-material/Close';
 import BlockIcon from '@mui/icons-material/Block';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
@@ -579,7 +578,7 @@ export default function TaskDetails({
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               }}
             >
-              <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1.5} sx={{ mb: 2.25 }}>
+              <Stack direction="row" alignItems="flex-start" gap={1.5} sx={{ mb: 2.25 }}>
                 <Stack direction="row" alignItems="center" gap={1.5} minWidth={0}>
                   <Box
                     sx={{
@@ -614,22 +613,6 @@ export default function TaskDetails({
                     </Stack>
                   </Box>
                 </Stack>
-
-                <IconButton
-                  size="small"
-                  onClick={onClose}
-                  sx={{
-                    borderRadius: '8px',
-                    border: '0.5px solid',
-                    borderColor: 'divider',
-                    width: 30,
-                    height: 30,
-                    color: 'text.secondary',
-                    flexShrink: 0,
-                  }}
-                >
-                  <CloseIcon sx={{ fontSize: 14 }} />
-                </IconButton>
               </Stack>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
@@ -638,20 +621,6 @@ export default function TaskDetails({
                   value={activeTask.assocType === 'lead' ? 'Lead-based' : activeTask.assocType === 'client' ? 'Client-based' : '—'}
                   icon={activeTask.assocType === 'lead' ? <AssignmentOutlinedIcon /> : <BusinessOutlinedIcon />}
                 />
-
-                <Box>
-                  <Typography
-                    fontSize={10.5}
-                    fontWeight={500}
-                    color="text.disabled"
-                    textTransform="uppercase"
-                    letterSpacing="0.5px"
-                    mb={0.625}
-                  >
-                    Task type
-                  </Typography>
-                  <TypeChip type={taskTypeKey} />
-                </Box>
 
                 <LabelText
                   label="Lead"
@@ -683,20 +652,6 @@ export default function TaskDetails({
                   </Typography>
                 </Box>
 
-                <Box>
-                  <Typography
-                    fontSize={10.5}
-                    fontWeight={500}
-                    color="text.disabled"
-                    textTransform="uppercase"
-                    letterSpacing="0.5px"
-                    mb={0.625}
-                  >
-                    Status
-                  </Typography>
-                  <StatusChip status={activeTask.status} />
-                </Box>
-
                 {(activeTask.assignedToUserName || activeTask.createdByUserName) && (
                   <>
                     <LabelText
@@ -712,6 +667,12 @@ export default function TaskDetails({
                   </>
                 )}
 
+                {isPhysical && (
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <LocationDisplayField address={activeTask.location?.address} />
+                  </Box>
+                )}
+
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <TextAreaInputField
                     label="Details"
@@ -721,12 +682,6 @@ export default function TaskDetails({
                     InputProps={{ readOnly: true }}
                   />
                 </Box>
-
-                {isPhysical && (
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <LocationDisplayField address={activeTask.location?.address} />
-                  </Box>
-                )}
 
                 {isCancelled && cancellationReason && (
                   <Box sx={{ gridColumn: '1 / -1' }}>

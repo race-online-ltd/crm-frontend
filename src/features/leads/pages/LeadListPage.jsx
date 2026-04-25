@@ -110,21 +110,13 @@ export default function LeadListPage() {
 
   const navigate = useNavigate();
 
+  const openLeadInNewTab = (leadId) => {
+    if (!leadId) return;
+    window.open(`/leads/${leadId}/edit`, '_blank', 'noopener,noreferrer');
+  };
+
   const handleEditLead = (lead) => {
-    navigate(`/leads/${lead.id}/edit`, {
-      state: {
-        lead: {
-          id: lead.id,
-          businessEntity: lead.businessEntityId || '',
-          source: lead.sourceId || '',
-          products: lead.productsIds || [],
-          client: lead.clientId || '',
-          expectedRevenue: lead.expectedRevenue || String(lead.amount || ''),
-          stage: lead.stage || lead.stageId || '',
-          deadline: lead.deadline ? new Date(lead.deadline) : null,
-        },
-      },
-    });
+    openLeadInNewTab(lead.id);
   };
 
   return (

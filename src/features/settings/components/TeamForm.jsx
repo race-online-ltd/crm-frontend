@@ -1,11 +1,12 @@
 import React from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
 import TextInputField from '../../../components/shared/TextInputField';
 import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
 import CustomToggle from '../../../components/shared/CustomToggle';
+import FormActionButtons from '../../../components/shared/FormActionButtons';
 
 const validationSchema = Yup.object({
   teamName: Yup.string().trim().required('Team Name is required'),
@@ -107,36 +108,10 @@ export default function TeamForm({
         </Box>
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={onCancel}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '10px',
-            borderColor: '#e2e8f0',
-            color: '#64748b',
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '10px',
-            bgcolor: '#2563eb',
-            '&:hover': { bgcolor: '#1d4ed8' },
-          }}
-        >
-          Save
-        </Button>
-      </Stack>
+      <FormActionButtons
+        onCancel={onCancel}
+        submitLabel="Save"
+      />
     </Box>
   );
 }
