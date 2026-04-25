@@ -554,13 +554,22 @@ export default function KAMTargetTable({
                           <TableSortLabel
                             active={orderBy === id}
                             direction={orderBy === id ? order : 'asc'}
+                            hideSortIcon={false}
                             onClick={() => handleRequestSort(id)}
                             sx={{
                               fontWeight: 800,
                               color: '#334155',
                               '&.Mui-active': { color: '#0f172a' },
                               '& .MuiTableSortLabel-icon': {
+                                opacity: 0.22,
                                 color: '#64748b !important',
+                                transition: 'opacity 0.15s ease, color 0.15s ease',
+                              },
+                              '&:hover .MuiTableSortLabel-icon': {
+                                opacity: 0.45,
+                              },
+                              '&.Mui-active .MuiTableSortLabel-icon': {
+                                opacity: 0.7,
                               },
                             }}
                           >
