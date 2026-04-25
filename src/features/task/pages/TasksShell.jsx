@@ -3,52 +3,98 @@
 // It manages which view is visible (list vs create/edit) without
 // requiring react-router changes — but you can swap it for real routes if preferred.
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import TasksListPage from './TasksListPage';
 import TaskCreation from './TaskCreation';
-import { useUserProfile } from '../../settings/context/UserProfileContext';
-import { MOCK_TASKS } from '../data/mockTasks';
-import { canAccessTask } from '../utils/taskAssignment';
-
-function toDate(value) {
-  return value ? new Date(value) : null;
-}
+import { createTask, fetchTask, updateTask } from '../api/taskApi';
 
 export default function TasksShell() {
-  const { profile } = useUserProfile();
-  // view: 'list' | 'create' | 'edit'
-  const [view, setView] = useState('list');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { taskId } = useParams();
+  const isCreateRoute = location.pathname.endsWith('/new');
+  const isEditRoute = Boolean(taskId) && !isCreateRoute;
   const [editTask, setEditTask] = useState(null);
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [loadingTask, setLoadingTask] = useState(Boolean(taskId));
 
-  const visibleTasks = useMemo(
-    () => tasks.filter((task) => canAccessTask(task, profile)),
-    [profile, tasks],
-  );
+  useEffect(() => {
+    let active = true;
+
+    if (isCreateRoute && !taskId) {
+      setEditTask(null);
+      setLoadingTask(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadTask = async () => {
+      if (!taskId) {
+        setLoadingTask(false);
+        return;
+      }
+
+      try {
+        setLoadingTask(true);
+        const data = await fetchTask(taskId);
+        if (active) {
+          if (!data?.id) {
+            setEditTask(null);
+            navigate('/tasks');
+            return;
+          }
+
+          setEditTask(data);
+        }
+      } catch {
+        if (active) {
+          setEditTask(null);
+          navigate('/tasks');
+        }
+      } finally {
+        if (active) {
+          setLoadingTask(false);
+        }
+      }
+    };
+
+    loadTask();
+
+    return () => {
+      active = false;
+    };
+  }, [taskId, isCreateRoute, navigate]);
 
   function handleNewTask() {
-    setEditTask(null);
-    setView('create');
+    navigate('/tasks/new');
   }
 
   function handleEditTask(task) {
-    setEditTask(task);
-    setView('edit');
+    if (task?.id) {
+      navigate(`/tasks/${task.id}/edit`);
+    }
   }
 
   function handleBack() {
     setEditTask(null);
-    setView('list');
+    navigate('/tasks');
   }
 
-  if (view === 'list') {
+  if (!taskId && !isCreateRoute) {
     return (
       <TasksListPage
-        tasks={visibleTasks}
-        onTasksChange={setTasks}
         onNewTask={handleNewTask}
         onEditTask={handleEditTask}
       />
+    );
+  }
+
+  if (taskId && loadingTask && !editTask) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: '#64748b' }}>
+        Loading task...
+      </div>
     );
   }
 
@@ -57,28 +103,13 @@ export default function TasksShell() {
     <TaskCreation
       initialValues={editTask}   // null → create mode; task object → edit mode
       onCancel={handleBack}
-      onSubmit={(payload, formData) => {
-        const nextTask = {
-          ...payload,
-          id: editTask?.id || `task_${Date.now()}`,
-          status: editTask?.status || 'pending',
-          assocType: payload.leadId ? 'lead' : 'client',
-          lead: payload.leadName || editTask?.lead || null,
-          client: payload.clientName || editTask?.client || null,
-          scheduledAt: toDate(payload.scheduledAt),
-          location: payload.location || null,
-          attachment: payload.attachment || [],
-        };
+      onSubmit={async (payload, formData) => {
+        if (isEditRoute && editTask?.id) {
+          await updateTask(editTask.id, formData);
+        } else {
+          await createTask(formData);
+        }
 
-        setTasks((prev) => (
-          view === 'edit'
-            ? prev.map((task) => (task.id === editTask?.id ? { ...task, ...nextTask } : task))
-            : [nextTask, ...prev]
-        ));
-
-        console.log(view === 'edit' ? 'Updating task:' : 'Creating task:', payload);
-        console.log('Task multipart payload:', Array.from(formData.entries()));
-        // TODO: POST or PATCH to your API, then:
         handleBack();
       }}
     />

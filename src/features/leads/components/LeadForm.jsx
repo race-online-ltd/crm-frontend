@@ -1,5 +1,5 @@
 // src/features/leads/components/LeadForm.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box, Button, Typography, Stack, Paper, Divider, IconButton,
 } from '@mui/material';
@@ -27,41 +27,11 @@ import DatePickerField        from '../../../components/shared/DatePickerField';
 import AttachmentField        from '../../../components/shared/AttachmentField';
 import AddClientButton        from '../../../components/shared/AddClientButton';
 import { buildMultipartFormData } from '../../../utils/formData';
-
-// ─── Mock data ───────────────────────────────────────────────────────────────
-const fetchBusinessEntities = async () => [
-  { id: 'be1', label: 'Alpha Corp' },
-  { id: 'be2', label: 'Beta Holdings' },
-  { id: 'be3', label: 'Gamma Ltd' },
-];
-const fetchSource = async () => [
-  { id: 'bt1', label: 'Facebook' },
-  { id: 'bt2', label: 'Whatsapp' },
-  { id: 'bt3', label: 'Website' },
-];
-const fetchClients = async () => [
-  { id: 'c1', label: 'Global Systems Inc' },
-  { id: 'c2', label: 'Nexus Solutions' },
-];
-const fetchStages = async () => [
-  { id: 'new',         label: 'New' },
-  { id: 'qualified',   label: 'Qualified' },
-  { id: 'proposal',    label: 'Proposal' },
-  { id: 'negotiation', label: 'Negotiation' },
-  { id: 'closed_won',  label: 'Closed Won' },
-  { id: 'closed_lost', label: 'Closed Lost' },
-];
-
-const PRODUCT_OPTIONS = [
-  { id: 'p1', label: 'Product Alpha' },
-  { id: 'p2', label: 'Product Beta' },
-  { id: 'p3', label: 'Product Gamma' },
-  { id: 'p4', label: 'Product Delta' },
-];
+import { fetchLeadFormOptions, createLead, updateLead } from '../api/leadApi';
 
 const CLIENT_META = {
-  c1: { contactPerson: 'Jennifer Lee', phone: '+1 (555) 333-4444', email: 'j.lee@globalsys.com', address: '200 Global Ave, Los Angeles, CA', city: 'Los Angeles', region: 'West',    lat: 34.0522, lng: -118.2437 },
-  c2: { contactPerson: 'Arif Rahman',  phone: '+880 1711-223344',  email: 'arif@nexus.bd',        address: '45 Gulshan Ave, Dhaka',          city: 'Dhaka',       region: 'Central', lat: 23.7935, lng:   90.4066 },
+  1: { contactPerson: 'Jennifer Lee', phone: '+1 (555) 333-4444', email: 'j.lee@globalsys.com', address: '200 Global Ave, Los Angeles, CA', city: 'Los Angeles', region: 'West', lat: 34.0522, lng: -118.2437 },
+  2: { contactPerson: 'Arif Rahman', phone: '+880 1711-223344', email: 'arif@nexus.bd', address: '45 Gulshan Ave, Dhaka', city: 'Dhaka', region: 'Central', lat: 23.7935, lng: 90.4066 },
 };
 
 // ─── Validation schema ───────────────────────────────────────────────────────
@@ -215,33 +185,97 @@ function BulkUploadTab({ onCancel }) {
 export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = null, isEdit = false }) {
   const navigate = useNavigate();
   const formInitialValues = initialValues ?? INITIAL_VALUES;
+  const [optionData, setOptionData] = useState({
+    business_entities: [],
+    sources: [],
+    clients: [],
+    products: [],
+    stages: [],
+  });
+  const [loadingOptions, setLoadingOptions] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      try {
+        setLoadingOptions(true);
+        const data = await fetchLeadFormOptions(formInitialValues.businessEntity || '');
+        if (!active) {
+          return;
+        }
+
+        setOptionData({
+          business_entities: data.business_entities || [],
+          sources: data.sources || [],
+          clients: data.clients || [],
+          products: data.products || [],
+          stages: data.stages || [],
+        });
+      } catch {
+        if (active) {
+          setOptionData({
+            business_entities: [],
+            sources: [],
+            clients: [],
+            products: [],
+            stages: [],
+          });
+        }
+      } finally {
+        if (active) {
+          setLoadingOptions(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [formInitialValues.businessEntity]);
+
+  const businessEntityFetchOptions = useMemo(() => async () => optionData.business_entities, [optionData.business_entities]);
+  const sourceFetchOptions = useMemo(() => async () => optionData.sources, [optionData.sources]);
+  const clientFetchOptions = useMemo(() => async () => optionData.clients, [optionData.clients]);
+  const stageFetchOptions = useMemo(() => async () => optionData.stages, [optionData.stages]);
 
   // ── useFormik hook ──────────────────────────────────────────────────────────
   const formik = useFormik({
     initialValues:    formInitialValues,
     validationSchema: singleLeadSchema,
     enableReinitialize: true,
-    onSubmit: (values, { setSubmitting }) => {
-      const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
-      if (totalAttachmentSize > 25 * 1024 * 1024) {
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const totalAttachmentSize = values.attachment.reduce((sum, file) => sum + file.size, 0);
+        if (totalAttachmentSize > 25 * 1024 * 1024) {
+          return;
+        }
+
+        const payload = {
+          business_entity_id: values.businessEntity,
+          source_id: values.source,
+          product_ids: values.products,
+          client_id: values.client,
+          expected_revenue: values.expectedRevenue || null,
+          lead_pipeline_stage_id: values.stage,
+          deadline: values.deadline?.toISOString() || null,
+          attachment: values.attachment,
+        };
+
+        const formData = buildMultipartFormData(payload);
+
+        const savedLead = isEdit && formInitialValues?.id
+          ? await updateLead(formInitialValues.id, formData)
+          : await createLead(formData);
+
+        await Promise.resolve(onSubmit?.(savedLead || payload, formData));
+      } catch (error) {
+        console.error('Unable to save lead:', error);
+      } finally {
         setSubmitting(false);
-        return;
       }
-
-      const payload = {
-        businessEntity: values.businessEntity,
-        source: values.source,
-        products: values.products,
-        client: values.client,
-        expectedRevenue: values.expectedRevenue,
-        stage: values.stage,
-        deadline: values.deadline?.toISOString() || null,
-        attachment: values.attachment,
-      };
-
-      const formData = buildMultipartFormData(payload);
-      onSubmit?.(payload, formData);
-      setSubmitting(false);
     },
   });
 
@@ -254,7 +288,44 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     handleBlur,
     handleSubmit,
   } = formik;
-  const clientMeta = values.client ? CLIENT_META[values.client] ?? null : null;
+  const clientMeta = values.client ? CLIENT_META[Number(values.client)] ?? null : null;
+
+  useEffect(() => {
+    if (!values.businessEntity) {
+      return;
+    }
+
+    let active = true;
+
+    const loadByBusinessEntity = async () => {
+      try {
+        const data = await fetchLeadFormOptions(values.businessEntity);
+        if (!active) {
+          return;
+        }
+
+        setOptionData((current) => ({
+          ...current,
+          products: data.products || [],
+          stages: data.stages || [],
+        }));
+      } catch {
+        if (active) {
+          setOptionData((current) => ({
+            ...current,
+            products: [],
+            stages: [],
+          }));
+        }
+      }
+    };
+
+    loadByBusinessEntity();
+
+    return () => {
+      active = false;
+    };
+  }, [values.businessEntity]);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -274,29 +345,35 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
             }}
           >
             {/* Business Entity */}
-           <SelectDropdownSingle
+            <SelectDropdownSingle
               name="businessEntity"
               label="Business Entity *"
-              fetchOptions={fetchBusinessEntities}
+              fetchOptions={businessEntityFetchOptions}
               value={values.businessEntity}
-              onChange={(id) => setFieldValue('businessEntity', id)}
+              onChange={(id) => {
+                setFieldValue('businessEntity', id);
+                setFieldValue('products', []);
+                setFieldValue('stage', '');
+              }}
               onBlur={handleBlur}
               error={Boolean(touched.businessEntity && errors.businessEntity)}
               helperText={touched.businessEntity && errors.businessEntity ? errors.businessEntity : ' '}
               disabled={isEdit}
               searchable={!isEdit}
+              loading={loadingOptions}
             />
 
             {/* Source */}
             <SelectDropdownSingle
               name="source"
               label="Source *"
-              fetchOptions={fetchSource}
+              fetchOptions={sourceFetchOptions}
               value={values.source}
               onChange={(id) => setFieldValue('source', id)}
               onBlur={handleBlur}
               error={Boolean(touched.source && errors.source)}
               helperText={touched.source && errors.source ? errors.source : ' '}
+              loading={loadingOptions}
             />
 
             {/* Products — full width */}
@@ -304,7 +381,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               <SelectDropdownMultiple
                 name="products"
                 label="Select Products *"
-                options={PRODUCT_OPTIONS}
+                options={optionData.products}
                 value={values.products}
                 onChange={(ids) => setFieldValue('products', ids)}
                 onBlur={handleBlur}
@@ -326,7 +403,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               <SelectDropdownSingle
                 name="client"
                 label="Select Client *"
-                fetchOptions={fetchClients}
+                fetchOptions={clientFetchOptions}
                 value={values.client}
                 onChange={(id) => {
                   setFieldValue('client', id);
@@ -334,9 +411,10 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                 onBlur={handleBlur}
                 error={Boolean(touched.client && errors.client)}
                 helperText={touched.client && errors.client ? errors.client : ' '}
-              disabled={isEdit}
-              searchable={!isEdit}
-            />
+                disabled={isEdit}
+                searchable={!isEdit}
+                loading={loadingOptions}
+              />
               {!isEdit && (
                 <AddClientButton onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })} />
               )}
@@ -413,12 +491,13 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
             <SelectDropdownSingle
               name="stage"
               label="Stage *"
-              fetchOptions={fetchStages}
+              fetchOptions={stageFetchOptions}
               value={values.stage}
               onChange={(id) => setFieldValue('stage', id)}
               onBlur={handleBlur}
               error={Boolean(touched.stage && errors.stage)}
               helperText={touched.stage && errors.stage ? errors.stage : ' '}
+              loading={loadingOptions}
             />
 
             {/* Deadline — full width */}

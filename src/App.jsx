@@ -31,6 +31,7 @@ const SocialSettingsPage = React.lazy(() => import("./features/settings/pages/So
 const BackofficeManagementPage = React.lazy(() => import("./features/settings/pages/BackofficeManagementPage"));
 const KamMappingPage = React.lazy(() => import("./features/settings/pages/KamMappingPage"));
 const LeadPipelinePage = React.lazy(() => import("./features/settings/pages/LeadPipelinePage"));
+const PriceProposalApprovalPage = React.lazy(() => import("./features/settings/pages/PriceProposalApprovalPage"));
 const BusinessEntityPage = React.lazy(() => import("./features/settings/pages/BusinessEntityPage"));
 const TeamPage = React.lazy(() => import("./features/settings/pages/TeamPage"));
 const GroupPage = React.lazy(() => import("./features/settings/pages/GroupPage"));
@@ -66,8 +67,10 @@ export default function App() {
   
             <Route path="/leads" element={<LeadListPage />} />
             <Route path="/leads/new" element={<LeadCreation />} />
+            <Route path="/leads/:leadId/edit" element={<LeadCreation />} />
             <Route path="/tasks" element={<TasksShell />} />
             <Route path="/tasks/new" element={<TasksShell />} />
+            <Route path="/tasks/:taskId/edit" element={<TasksShell />} />
             <Route path="/price-proposal" element={<PriceProposalPage />} />
             <Route path="/price-history" element={<PriceHistoryPage />} />
             <Route path="/clients" element={<ClientsPage />} />
@@ -89,6 +92,7 @@ export default function App() {
             <Route path="/settings/backoffice-management" element={<BackofficeManagementPage />} />
             <Route path="/settings/kam-mapping" element={<KamMappingPage />} />
             <Route path="/settings/lead-pipeline" element={<LeadPipelinePage />} />
+            <Route path="/settings/price-proposal-approval" element={<PriceProposalApprovalPage />} />
             <Route path="/settings/business-entities" element={<BusinessEntityPage />} />
             <Route path="/settings/team" element={<TeamPage />} />
             <Route path="/settings/group" element={<GroupPage />} />

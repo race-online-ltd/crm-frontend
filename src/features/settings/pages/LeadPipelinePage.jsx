@@ -77,6 +77,8 @@ export default function LeadPipelinePage() {
   const [modalValues, setModalValues] = useState(EMPTY_MODAL);
   const [modalError, setModalError] = useState('');
   const [draggedKey, setDraggedKey] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -246,6 +248,26 @@ export default function LeadPipelinePage() {
       })));
     setSaveError('');
     setSuccessMessage('');
+  };
+
+  const openDeleteConfirm = (row) => {
+    setDeleteTarget(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const confirmDeleteRow = () => {
+    if (!deleteTarget?.clientKey) {
+      closeDeleteConfirm();
+      return;
+    }
+
+    handleDeleteRow(deleteTarget.clientKey);
+    closeDeleteConfirm();
   };
 
   const handleMoveRow = (index, direction) => {
@@ -487,7 +509,7 @@ export default function LeadPipelinePage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete stage">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteRow(row.clientKey)}>
+                      <IconButton size="small" color="error" onClick={() => openDeleteConfirm(row)}>
                         <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Tooltip>
@@ -582,6 +604,56 @@ export default function LeadPipelinePage() {
           </Button>
           <Button variant="contained" onClick={handleModalSave} sx={{ textTransform: 'none', fontWeight: 700 }}>
             {modalValues.clientKey ? 'Save Changes' : 'Add Stage'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={closeDeleteConfirm}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            border: '1px solid',
+            borderColor: '#fecaca',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1.25 }}>
+          <Typography variant="h6" fontWeight={800} color="#7f1d1d">
+            Delete stage?
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: '0 !important' }}>
+          <Alert severity="warning" sx={{ borderRadius: '12px', mb: 2 }}>
+            Deleting this stage will remove all data and leads currently in that stage. This cannot be undone.
+          </Alert>
+          <Typography variant="body2" color="#334155">
+            Are you sure you want to delete
+            {' '}
+            <strong>{deleteTarget?.stage_name || 'this stage'}</strong>
+            ?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={closeDeleteConfirm}
+            variant="outlined"
+            color="inherit"
+            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDeleteRow}
+            variant="contained"
+            color="error"
+            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+          >
+            Yes, delete stage
           </Button>
         </DialogActions>
       </Dialog>

@@ -9,6 +9,10 @@ import CloseIcon              from '@mui/icons-material/Close';
 import { useFormik }          from 'formik';
 import TextAreaInputField     from '@/components/shared/TextAreaInputField';
 
+function getCompletionMessage(task) {
+  return task?.completionMessage || task?.completion_message || '';
+}
+
 export default function TaskCompleteDialog({ open, task, onClose, onConfirm }) {
   const formik = useFormik({
     initialValues: { completionMessage: '' },
@@ -18,11 +22,15 @@ export default function TaskCompleteDialog({ open, task, onClose, onConfirm }) {
         errors.completionMessage = 'Completion message is required';
       return errors;
     },
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
       const trimmedMessage = values.completionMessage.trim();
       if (!task?.id || !trimmedMessage) return;
-      onConfirm?.(task.id, { completionMessage: trimmedMessage });
-      formik.resetForm();
+      try {
+        await onConfirm?.(task.id, { completion_message: trimmedMessage });
+        formik.resetForm();
+      } catch (error) {
+        console.error('Unable to complete task:', error);
+      }
     },
   });
 
@@ -30,7 +38,7 @@ export default function TaskCompleteDialog({ open, task, onClose, onConfirm }) {
 
   useEffect(() => {
     if (!open) { resetForm(); return; }
-    resetForm({ values: { completionMessage: task?.completionMessage || '' } });
+    resetForm({ values: { completionMessage: getCompletionMessage(task) } });
   }, [open, task, resetForm]);
 
   function handleClose() { resetForm(); onClose?.(); }
@@ -85,60 +93,62 @@ export default function TaskCompleteDialog({ open, task, onClose, onConfirm }) {
         </Stack>
       </DialogTitle>
 
-      {/* ── BODY ── */}
-      <DialogContent sx={{ px: 2.5, pt: 4, pb: 2, overflow: 'visible' }}>
-        <TextAreaInputField
-          label="Completion message *"
-          name="completionMessage"
-          value={values.completionMessage}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.completionMessage && Boolean(errors.completionMessage)}
-          helperText={touched.completionMessage ? errors.completionMessage : ''}
-          placeholder="Explain how this task was completed"
-          rows={4}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#e3eaf2' },
-              '&:hover fieldset': { borderColor: '#d3deea' },
-              '&.Mui-focused fieldset': { borderColor: '#16a34a' },
-            },
-            '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
-          }}
-        />
-      </DialogContent>
+      <Box component="form" onSubmit={handleSubmit}>
+        {/* ── BODY ── */}
+        <DialogContent sx={{ px: 2.5, pt: 4, pb: 2, overflow: 'visible' }}>
+          <TextAreaInputField
+            label="Completion message *"
+            name="completionMessage"
+            value={values.completionMessage}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={touched.completionMessage && Boolean(errors.completionMessage)}
+            helperText={touched.completionMessage ? errors.completionMessage : ''}
+            placeholder="Explain how this task was completed"
+            rows={4}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#e3eaf2' },
+                '&:hover fieldset': { borderColor: '#d3deea' },
+                '&.Mui-focused fieldset': { borderColor: '#16a34a' },
+              },
+              '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
+            }}
+          />
+        </DialogContent>
 
-      {/* ── FOOTER ── */}
-      <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'divider', gap: 0.75 }}>
-        <Button
-          onClick={handleClose}
-          variant="outlined"
-          color="inherit"
-          size="small"
-          sx={{
-            borderRadius: '8px', fontSize: 12.5, fontWeight: 400,
-            borderColor: 'divider', color: 'text.secondary', mr: 'auto',
-            '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-          }}
-        >
-          Discard
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          size="small"
-          disabled={!values.completionMessage.trim()}
-          disableElevation
-          sx={{
-            borderRadius: '8px', fontSize: 12.5, fontWeight: 500,
-            bgcolor: '#16a34a',
-            '&:hover': { bgcolor: '#15803d' },
-            '&.Mui-disabled': { bgcolor: '#bbf7d0', color: '#fff' },
-          }}
-        >
-          Complete
-        </Button>
-      </DialogActions>
+        {/* ── FOOTER ── */}
+        <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'divider', gap: 0.75 }}>
+          <Button
+            onClick={handleClose}
+            variant="outlined"
+            color="inherit"
+            size="small"
+            sx={{
+              borderRadius: '8px', fontSize: 12.5, fontWeight: 400,
+              borderColor: 'divider', color: 'text.secondary', mr: 'auto',
+              '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+            }}
+          >
+            Discard
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            size="small"
+            disabled={!values.completionMessage.trim()}
+            disableElevation
+            sx={{
+              borderRadius: '8px', fontSize: 12.5, fontWeight: 500,
+              bgcolor: '#16a34a',
+              '&:hover': { bgcolor: '#15803d' },
+              '&.Mui-disabled': { bgcolor: '#bbf7d0', color: '#fff' },
+            }}
+          >
+            Complete
+          </Button>
+        </DialogActions>
+      </Box>
     </Dialog>
   );
 }

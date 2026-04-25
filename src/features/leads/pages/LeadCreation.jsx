@@ -1,36 +1,88 @@
 // src/features/leads/pages/LeadCreation.jsx
-import React, { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Stack, Divider } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LeadForm from '../components/LeadForm';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { fetchLead } from '../api/leadApi';
 
 
 export default function LeadCreation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { leadId } = useParams();
   const [tab, setTab] = useState(0);
-  const editLead = location.state?.lead ?? null;
+  const [loadedLead, setLoadedLead] = useState(null);
+  const [loadingLead, setLoadingLead] = useState(Boolean(leadId) && !location.state?.lead);
+  const editLead = location.state?.lead ?? loadedLead ?? null;
   const isEdit = Boolean(editLead);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLead = async () => {
+      if (!leadId || location.state?.lead) {
+        return;
+      }
+
+      try {
+        setLoadingLead(true);
+        const data = await fetchLead(leadId);
+        if (active) {
+          setLoadedLead(data);
+        }
+      } catch {
+        if (active) {
+          setLoadedLead(null);
+        }
+      }
+      if (active) {
+        setLoadingLead(false);
+      }
+    };
+
+    loadLead();
+
+    return () => {
+      active = false;
+    };
+  }, [leadId, location.state?.lead]);
+
   const initialValues = useMemo(() => (
     editLead
       ? {
-          businessEntity: editLead.businessEntity || '',
-          source: editLead.source || '',
-          products: editLead.products || [],
-          client: editLead.client || '',
-          expectedRevenue: editLead.expectedRevenue || '',
-          stage: editLead.stage || '',
+          id: editLead.id,
+          businessEntity: editLead.business_entity_id || editLead.businessEntity || '',
+          source: editLead.source_id || editLead.source || '',
+          products: Array.isArray(editLead.product_ids)
+            ? editLead.product_ids
+            : (Array.isArray(editLead.products) ? editLead.products.map((item) => item.id || item) : []),
+          client: editLead.client_id || editLead.client || '',
+          expectedRevenue: editLead.expected_revenue || editLead.expectedRevenue || '',
+          stage: editLead.lead_pipeline_stage_id || editLead.stage || '',
           deadline: editLead.deadline ? new Date(editLead.deadline) : null,
-          attachment: Array.isArray(editLead.attachment) ? editLead.attachment : [],
+          attachment: Array.isArray(editLead.attachment)
+              ? editLead.attachment.map((file) => ({
+                name: file.file_name || file.name,
+                size: file.file_size || 0,
+                lastModified: file.lastModified || 0,
+              }))
+            : [],
         }
       : null
   ), [editLead]);
 
+  if (leadId && loadingLead && !editLead) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: 4, textAlign: 'center', color: '#64748b' }}>
+        Loading lead...
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
-
       {/* ── Page Header ── */}
       <Box mb={3}>
         {/* <Breadcrumbs
@@ -122,9 +174,8 @@ export default function LeadCreation() {
         initialValues={initialValues}
         isEdit={isEdit}
         onCancel={() => navigate(-1)}
-        onSubmit={(payload, formData) => {
-          console.log(isEdit ? 'Lead updated:' : 'Lead submitted:', payload);
-          console.log('Lead multipart payload:', Array.from(formData.entries()));
+        onSubmit={() => {
+          navigate('/leads');
         }}
       />
     </Box>

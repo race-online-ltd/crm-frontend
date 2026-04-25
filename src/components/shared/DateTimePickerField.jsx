@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   format as formatDate,
   isValid,
+  isAfter,
   startOfMonth,
   endOfMonth,
   startOfWeek,
@@ -104,9 +105,10 @@ function ScrollColumn({ items, selected, onSelect, width = 72 }) {
 }
 
 // ─── MINI CALENDAR ────────────────────────────────────────────────────────────
-function MiniCalendar({ selectedDate, onSelectDate, disablePast }) {
+function MiniCalendar({ selectedDate, onSelectDate, disablePast, maxDateTime }) {
   const [viewDate, setViewDate] = useState(selectedDate ?? new Date());
   const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const maxDate = maxDateTime && isValid(new Date(maxDateTime)) ? new Date(maxDateTime) : null;
 
   const calStart = startOfWeek(startOfMonth(viewDate));
   const calEnd   = endOfWeek(endOfMonth(viewDate));
@@ -142,23 +144,25 @@ function MiniCalendar({ selectedDate, onSelectDate, disablePast }) {
           const isSel     = selectedDate && isSameDay(day, selectedDate);
           const isTod     = isToday(day);
           const isPastDay = disablePast && isPast(startOfDay(day)) && !isToday(day);
+          const isAfterMaxDay = maxDate ? isAfter(startOfDay(day), startOfDay(maxDate)) : false;
+          const isDisabled = isPastDay || isAfterMaxDay;
           return (
             <Box
               key={i}
-              onClick={() => !isPastDay && onSelectDate(day)}
+              onClick={() => !isDisabled && onSelectDate(day)}
               sx={{
                 textAlign:   'center',
                 py:          '6px',
                 fontSize:    13,
                 borderRadius:'6px',
-                cursor:      isPastDay ? 'default' : 'pointer',
+                cursor:      isDisabled ? 'default' : 'pointer',
                 fontWeight:  isSel ? 700 : 400,
-                color:       isSel ? '#fff' : isPastDay || !inMonth ? 'text.disabled' : isTod ? 'primary.main' : 'text.primary',
+                color:       isSel ? '#fff' : isDisabled || !inMonth ? 'text.disabled' : isTod ? 'primary.main' : 'text.primary',
                 bgcolor:     isSel ? 'primary.main' : 'transparent',
                 border:      isTod && !isSel ? '1px solid' : 'none',
                 borderColor: 'primary.main',
                 userSelect:  'none',
-                '&:hover':   { bgcolor: isPastDay ? 'transparent' : isSel ? 'primary.main' : 'action.hover' },
+                '&:hover':   { bgcolor: isDisabled ? 'transparent' : isSel ? 'primary.main' : 'action.hover' },
               }}
             >
               {formatDate(day, 'd')}
@@ -193,6 +197,7 @@ export default function DateTimePickerField({
   disabled    = false,
   readOnly    = false,
   disablePast = false,
+  maxDateTime = null,
   format      = 'MM/dd/yyyy, hh:mm aa',
   error       = false,
   helperText,
@@ -207,6 +212,7 @@ export default function DateTimePickerField({
   const [hour,      setHour]      = useState(10);
   const [minute,    setMinute]    = useState(30);
   const [ampm,      setAmpm]      = useState('AM');
+  const maxDate = maxDateTime && isValid(new Date(maxDateTime)) ? new Date(maxDateTime) : null;
 
   function syncFromValue(v) {
     const d = v && isValid(new Date(v)) ? new Date(v) : new Date();
@@ -226,6 +232,7 @@ export default function DateTimePickerField({
     let h24 = hour % 12;
     if (ampm === 'PM') h24 += 12;
     result.setHours(h24, minute, 0, 0);
+    if (maxDate && isAfter(result, maxDate)) return;
     onChange(result);
     handleClose();
   }
@@ -242,6 +249,14 @@ export default function DateTimePickerField({
     d.setHours(h24, minute, 0, 0);
     return formatDate(d, 'dd/MM/yyyy, hh:mm aa');
   })();
+  const isOverMax = maxDate ? (() => {
+    if (!draftDate) return false;
+    const d = new Date(draftDate);
+    let h24 = hour % 12;
+    if (ampm === 'PM') h24 += 12;
+    d.setHours(h24, minute, 0, 0);
+    return isAfter(d, maxDate);
+  })() : false;
 
   return (
     <>
@@ -303,7 +318,7 @@ export default function DateTimePickerField({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-          <MiniCalendar selectedDate={draftDate} onSelectDate={setDraftDate} disablePast={disablePast} />
+          <MiniCalendar selectedDate={draftDate} onSelectDate={setDraftDate} disablePast={disablePast} maxDateTime={maxDateTime} />
           <Divider orientation="vertical" flexItem />
           <Box sx={{ display: 'flex', px: 1, py: 1 }}>
             <ScrollColumn items={HOURS}        selected={hour}   onSelect={setHour}   />
@@ -317,7 +332,7 @@ export default function DateTimePickerField({
           <Button size="small" onClick={handleClose} sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}>
             Cancel
           </Button>
-          <Button size="small" variant="contained" onClick={handleAccept} disabled={!draftDate} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}>
+          <Button size="small" variant="contained" onClick={handleAccept} disabled={!draftDate || isOverMax} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}>
             OK
           </Button>
         </Box>

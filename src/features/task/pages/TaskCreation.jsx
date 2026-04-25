@@ -1,103 +1,86 @@
 // src/features/tasks/pages/TaskCreation.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { subMinutes } from 'date-fns';
 import {
-  Box, Typography, Stack, Breadcrumbs, Link, Divider,
+  Box, Typography, Stack, Divider,
 } from '@mui/material';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import ArrowBackIcon    from '@mui/icons-material/ArrowBack';
 import EventNoteIcon    from '@mui/icons-material/EventNote';
 import EditNoteIcon     from '@mui/icons-material/EditNote';
 import TaskForm         from '../components/TaskForm';
 
-/**
- * Props:
- *  - initialValues: null → create mode | task object → edit mode
- *  - onCancel()
- *  - onSubmit(payload)
- */
 export default function TaskCreation({ initialValues = null, onCancel, onSubmit }) {
   const navigate = useNavigate();
   const isEdit = Boolean(initialValues);
-  const associationMode = initialValues?.assocType === 'client' ? 'client' : 'lead';
+  const associationMode = initialValues?.client_id || initialValues?.client ? 'client' : 'lead';
   const associationOption = isEdit
     ? {
         id: associationMode === 'lead'
-          ? (initialValues.leadId || initialValues.lead || '')
-          : (initialValues.clientId || initialValues.client || ''),
+          ? (initialValues.lead_id || initialValues.leadId || initialValues.lead || '')
+          : (initialValues.client_id || initialValues.clientId || initialValues.client || ''),
         label: associationMode === 'lead'
           ? (initialValues.lead || initialValues.leadName || '')
           : (initialValues.client || initialValues.clientName || ''),
       }
     : null;
 
-  // Map a task record back to formik shape
   const formikInitial = initialValues
     ? {
-        assignToUserId: initialValues.assignedToUserId || initialValues.assignedToKamId || '',
-        lead:        initialValues.leadId    || initialValues.lead || '',
-        client:      initialValues.clientId  || initialValues.client || '',
-        taskType:    initialValues.taskType  || '',
+        assignToUserId: initialValues.assigned_to_user_id || initialValues.assignedToUserId || '',
+        lead:        initialValues.lead_id    || initialValues.leadId || initialValues.lead || '',
+        client:      initialValues.client_id  || initialValues.clientId || initialValues.client || '',
+        taskType:    String(initialValues.task_type_id || initialValues.taskType || ''),
         title:       initialValues.title     || '',
         details:     initialValues.details   || '',
-        scheduledAt: initialValues.scheduledAt ? new Date(initialValues.scheduledAt) : null,
+        scheduledAt: initialValues.scheduledAt
+          ? new Date(initialValues.scheduledAt)
+          : (initialValues.scheduled_at ? new Date(initialValues.scheduled_at) : null),
         location:    initialValues.location  || null,
-        attachment:  Array.isArray(initialValues.attachment) ? initialValues.attachment : [],
-        reminderEnabled: Boolean(initialValues.reminder?.enabled ?? initialValues.reminderEnabled),
-        reminderOffsetMinutes: String(
-          initialValues.reminder?.offsetMinutes
-          ?? initialValues.reminderOffsetMinutes
-          ?? '30'
-        ),
+        attachment:  Array.isArray(initialValues.attachment)
+          ? initialValues.attachment.map((file) => ({
+              name: file.file_name || file.name,
+              size: file.file_size || 0,
+              lastModified: file.lastModified || 0,
+            }))
+          : [],
+        reminderEnabled: Boolean(initialValues.reminderEnabled ?? initialValues.reminder_enabled),
+        reminderAt: initialValues.reminderAt
+          ? new Date(initialValues.reminderAt)
+          : (initialValues.reminder_at
+            ? new Date(initialValues.reminder_at)
+            : (initialValues.reminder_offset_minutes && (initialValues.scheduledAt || initialValues.scheduled_at)
+              ? subMinutes(new Date(initialValues.scheduledAt || initialValues.scheduled_at), Number(initialValues.reminder_offset_minutes))
+              : null)),
         reminderChannels: Array.isArray(initialValues.reminder?.channels)
           ? initialValues.reminder.channels
-          : (Array.isArray(initialValues.reminderChannels) ? initialValues.reminderChannels : ['google_calendar', 'sms']),
+          : (Array.isArray(initialValues.reminderChannels)
+            ? initialValues.reminderChannels
+            : (Array.isArray(initialValues.reminder_channels)
+              ? initialValues.reminder_channels
+              : ['google_calendar', 'sms'])),
       }
-    : undefined; // TaskForm will use its own INITIAL_VALUES
+    : undefined;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 1.5, sm: 2 } }}>
+    <Box sx={{ bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 1.5, sm: 2 } }}>
 
       {/* ── Header ── */}
       <Box mb={2}>
-        {/* <Breadcrumbs
-          separator={<NavigateNextIcon sx={{ fontSize: 14, color: '#94a3b8' }} />}
-          sx={{ mb: 1.5 }}
-        >
-          <Link
-            underline="hover"
-            onClick={onCancel}
-            sx={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500, cursor: 'pointer' }}
-          >
-            Tasks
-          </Link>
-          <Typography sx={{ fontSize: '0.78rem', color: '#1e293b', fontWeight: 600 }}>
-            {isEdit ? 'Edit Task' : 'New Task'}
-          </Typography>
-        </Breadcrumbs> */}
-
-        <Stack direction="row" alignItems="center" spacing={2}>          {/* Back Button */}
+        <Stack direction="row" alignItems="center" spacing={2}>
           <Box
             onClick={() => navigate(-1)}
             sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#475569',
-              flexShrink: 0,
-              '&:hover': {
-                bgcolor: '#f1f5f9',
-              },
+              width: 36, height: 36, borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#475569', flexShrink: 0,
+              '&:hover': { bgcolor: '#f1f5f9' },
             }}
           >
             <ArrowBackIcon sx={{ fontSize: 18 }} />
           </Box>
 
-          {/* Icon */}          <Box sx={{
+          <Box sx={{
             width: 42, height: 42, borderRadius: '12px',
             bgcolor: '#eff6ff', border: '1px solid #bfdbfe',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -106,6 +89,7 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
               ? <EditNoteIcon  sx={{ fontSize: 22, color: '#2563eb' }} />
               : <EventNoteIcon sx={{ fontSize: 22, color: '#2563eb' }} />}
           </Box>
+
           <Box>
             <Typography variant="h5" fontWeight={700} color="#0f172a" lineHeight={1.2}>
               {isEdit ? 'Edit Task' : 'Create New Task'}

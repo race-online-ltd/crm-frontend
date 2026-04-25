@@ -11,7 +11,8 @@ import WarningAmberIcon  from '@mui/icons-material/WarningAmber';
 import CloseIcon         from '@mui/icons-material/Close';
 import RefreshIcon       from '@mui/icons-material/Refresh';
 
-export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
+export default function TaskCheckInDialog({ open, task, onClose, onSuccess, loading = false }) {
+  const CHECK_IN_RADIUS_METERS = 50;
   const [state,    setState]    = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -32,24 +33,41 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
       return;
     }
 
+    if (!task?.location?.latitude || !task?.location?.longitude) {
+      setErrorMsg('This task does not have valid check-in coordinates.');
+      setState('error');
+      return;
+    }
+
     setState('locating');
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         setState('checking');
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
         const dist = haversine(
-          pos.coords.latitude, pos.coords.longitude,
+          latitude, longitude,
           task.location.latitude, task.location.longitude,
         );
-        await new Promise((r) => setTimeout(r, 700));
 
-        if (dist <= 70) {
-          setState('success');
-          setTimeout(() => { onSuccess?.(task.id); onClose?.(); setState('idle'); }, 1200);
+        if (dist <= CHECK_IN_RADIUS_METERS) {
+          try {
+            await onSuccess?.(task, {
+              latitude,
+              longitude,
+              distance_meters: Math.round(dist),
+            });
+            setState('success');
+            setTimeout(() => { onClose?.(); setState('idle'); }, 1200);
+          } catch (error) {
+            setErrorMsg(error?.message || 'Unable to record check-in.');
+            setState('error');
+          }
           return;
         }
 
-        setErrorMsg(`You are ${Math.round(dist)} m away. Must be within 70 m to check in.`);
+        setErrorMsg(`You are ${Math.round(dist)} m away. Must be within ${CHECK_IN_RADIUS_METERS} m to check in.`);
         setState('error');
       },
       (err) => {
@@ -140,7 +158,7 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
           {/* State-driven content */}
           {state === 'idle' && (
             <Typography fontSize={13} color="text.secondary" lineHeight={1.7}>
-              We'll verify your GPS matches the venue location. You must be within 70 m to check in.
+              We'll verify your GPS matches the venue location. You must be within 50 m to check in.
             </Typography>
           )}
 
@@ -213,6 +231,7 @@ export default function TaskCheckInDialog({ open, task, onClose, onSuccess }) {
             variant="contained"
             size="small"
             disableElevation
+            disabled={loading || isLoading}
             startIcon={
               state === 'error'
                 ? <RefreshIcon sx={{ fontSize: '13px !important' }} />

@@ -9,6 +9,10 @@ import CloseIcon  from '@mui/icons-material/Close';
 import { useFormik } from 'formik';
 import TextAreaInputField from '@/components/shared/TextAreaInputField';
 
+function getCancellationReason(task) {
+  return task?.cancellationReason || task?.cancellation_reason || '';
+}
+
 export default function TaskCancelDialog({ open, task, onClose, onConfirm }) {
   const formik = useFormik({
     initialValues: { cancellationReason: '' },
@@ -18,11 +22,15 @@ export default function TaskCancelDialog({ open, task, onClose, onConfirm }) {
         errors.cancellationReason = 'Cancellation reason is required';
       return errors;
     },
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
       const trimmedReason = values.cancellationReason.trim();
       if (!task?.id || !trimmedReason) return;
-      onConfirm?.(task.id, { cancellationReason: trimmedReason });
-      formik.resetForm();
+      try {
+        await onConfirm?.(task.id, { cancellation_reason: trimmedReason });
+        formik.resetForm();
+      } catch (error) {
+        console.error('Unable to cancel task:', error);
+      }
     },
   });
 
@@ -30,7 +38,7 @@ export default function TaskCancelDialog({ open, task, onClose, onConfirm }) {
 
   useEffect(() => {
     if (!open) { resetForm(); return; }
-    resetForm({ values: { cancellationReason: task?.cancellationReason || '' } });
+    resetForm({ values: { cancellationReason: getCancellationReason(task) } });
   }, [open, task, resetForm]);
 
   function handleClose() { resetForm(); onClose?.(); }
@@ -85,60 +93,62 @@ export default function TaskCancelDialog({ open, task, onClose, onConfirm }) {
         </Stack>
       </DialogTitle>
 
-      {/* ── BODY ── */}
-      <DialogContent sx={{ px: 2.5, pt: 2.25, pb: 2, overflow: 'visible' }}>
-        <TextAreaInputField
-          label="Cancellation reason *"
-          name="cancellationReason"
-          value={values.cancellationReason}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.cancellationReason && Boolean(errors.cancellationReason)}
-          helperText={touched.cancellationReason ? errors.cancellationReason : ''}
-          placeholder="Explain why this task is being cancelled"
-          rows={4}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#e3eaf2' },
-              '&:hover fieldset': { borderColor: '#d3deea' },
-              '&.Mui-focused fieldset': { borderColor: '#b91c1c' },
-            },
-            '& .MuiInputLabel-root.Mui-focused': { color: '#b91c1c' },
-          }}
-        />
-      </DialogContent>
+      <Box component="form" onSubmit={handleSubmit}>
+        {/* ── BODY ── */}
+        <DialogContent sx={{ px: 2.5, pt: 2.25, pb: 2, overflow: 'visible' }}>
+          <TextAreaInputField
+            label="Cancellation reason *"
+            name="cancellationReason"
+            value={values.cancellationReason}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={touched.cancellationReason && Boolean(errors.cancellationReason)}
+            helperText={touched.cancellationReason ? errors.cancellationReason : ''}
+            placeholder="Explain why this task is being cancelled"
+            rows={4}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#e3eaf2' },
+                '&:hover fieldset': { borderColor: '#d3deea' },
+                '&.Mui-focused fieldset': { borderColor: '#b91c1c' },
+              },
+              '& .MuiInputLabel-root.Mui-focused': { color: '#b91c1c' },
+            }}
+          />
+        </DialogContent>
 
-      {/* ── FOOTER ── */}
-      <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'divider', gap: 0.75 }}>
-        <Button
-          onClick={handleClose}
-          variant="outlined"
-          color="inherit"
-          size="small"
-          sx={{
-            borderRadius: '8px', fontSize: 12.5, fontWeight: 400,
-            borderColor: 'divider', color: 'text.secondary', mr: 'auto',
-            '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-          }}
-        >
-          Discard
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          size="small"
-          disabled={!values.cancellationReason.trim()}
-          disableElevation
-          sx={{
-            borderRadius: '8px', fontSize: 12.5, fontWeight: 500,
-            bgcolor: '#b91c1c',
-            '&:hover': { bgcolor: '#991b1b' },
-            '&.Mui-disabled': { bgcolor: '#fecaca', color: '#fff' },
-          }}
-        >
-          Confirm cancel
-        </Button>
-      </DialogActions>
+        {/* ── FOOTER ── */}
+        <DialogActions sx={{ px: 2.5, py: 1.625, borderTop: '0.5px solid', borderColor: 'divider', gap: 0.75 }}>
+          <Button
+            onClick={handleClose}
+            variant="outlined"
+            color="inherit"
+            size="small"
+            sx={{
+              borderRadius: '8px', fontSize: 12.5, fontWeight: 400,
+              borderColor: 'divider', color: 'text.secondary', mr: 'auto',
+              '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+            }}
+          >
+            Discard
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            size="small"
+            disabled={!values.cancellationReason.trim()}
+            disableElevation
+            sx={{
+              borderRadius: '8px', fontSize: 12.5, fontWeight: 500,
+              bgcolor: '#b91c1c',
+              '&:hover': { bgcolor: '#991b1b' },
+              '&.Mui-disabled': { bgcolor: '#fecaca', color: '#fff' },
+            }}
+          >
+            Confirm cancel
+          </Button>
+        </DialogActions>
+      </Box>
     </Dialog>
   );
 }
