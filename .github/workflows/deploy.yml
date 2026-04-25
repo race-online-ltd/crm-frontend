@@ -39,6 +39,6 @@ jobs:
 
       - name: 6. Reload Nginx
         run: |
-          echo "Reloading Nginx..."
+          echo "Reloading Nginx........"
           sudo systemctl reload nginx
           echo "Deployment complete!"
