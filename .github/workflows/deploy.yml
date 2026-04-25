@@ -1,4 +1,4 @@
-name: Vite React App CI/CD on Push to develop
+name: Vite React App CI/CD (Self-Hosted)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_and_deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: 1. Checkout Repository Code
@@ -20,53 +20,25 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 3. Install Project Dependencies
+      - name: 3. Install Dependencies
         run: npm install
 
       - name: 4. Build Vite React App
         run: CI=false npm run build
 
-      - name: 5. Clean Up Old Deployment (Delete dist)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          port: 22
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: 5. Deploy to Server (LOCAL)
+        run: |
+          TARGET_DIR="/var/www/html/application/frontend"
+          BUILD_DIR="$GITHUB_WORKSPACE/build"
 
-          script: |
-            TARGET_DIR="/var/www/html/application/frontend"
-            DELETE_PATH="${TARGET_DIR}/build"
+          echo "Removing old build..."
+          rm -rf ${TARGET_DIR}/build
 
-            echo "Attempting to remove old build folder at ${DELETE_PATH}"
+          echo "Copying new build..."
+          cp -r $BUILD_DIR ${TARGET_DIR}/
 
-            if [ -d "${DELETE_PATH}" ]; then
-                sudo rm -rf "${DELETE_PATH}" 
-                echo "Old build folder deleted successfully."
-            else
-                echo "Old build folder not found. Clean up skipped."
-            fi
-
-      - name: 6. Deploy 'build' folder to Server via SSH
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          port: 22
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-          source: 'build'
-          target: '/var/www/html/application/frontend'
-
-      - name: 7. Reload Nginx
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          port: 22
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-          script: |
-            echo "Successfully deployed to /var/www/html/application/frontend"
-            sudo systemctl reload nginx
-            echo "Nginx has been reloaded. Deployment complete."
+      - name: 6. Reload Nginx
+        run: |
+          echo "Reloading Nginx..."
+          sudo systemctl reload nginx
+          echo "Deployment complete!"
