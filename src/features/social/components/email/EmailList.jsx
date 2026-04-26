@@ -108,6 +108,7 @@
 import React, { useState } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import Chip from '@mui/material/Chip';
+import ChatConversionTooltip from '../ChatConversionTooltip';
 
 const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
@@ -166,48 +167,49 @@ const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact 
           const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
 
           return (
-          <button
-            key={contact.id}
-            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
-            disabled={isAssignedToOtherAgent}
-            className={`email-list__item ${
-              selectedContact?.id === contact.id ? 'email-list__item--active' : ''
-            } ${isAssignedToOtherAgent ? 'email-list__item--disabled' : ''}`}
-          >
-            <div className="email-list__item-content">
-              <div
-                className={`email-list__unread-dot ${
-                  contact.unreadCount > 0
-                    ? 'email-list__unread-dot--active'
-                    : 'email-list__unread-dot--inactive'
-                }`}
-              />
-              <div className="email-list__info">
-                <div className="email-list__name-row">
-                  <span
-                    className={`email-list__name ${
-                      contact.unreadCount > 0 ? 'email-list__name--unread' : ''
+          <ChatConversionTooltip key={contact.id} contact={contact}>
+            <button
+              onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+              disabled={isAssignedToOtherAgent}
+              className={`email-list__item ${
+                selectedContact?.id === contact.id ? 'email-list__item--active' : ''
+              } ${isAssignedToOtherAgent ? 'email-list__item--disabled' : ''}`}
+            >
+              <div className="email-list__item-content">
+                <div
+                  className={`email-list__unread-dot ${
+                    contact.unreadCount > 0
+                      ? 'email-list__unread-dot--active'
+                      : 'email-list__unread-dot--inactive'
+                  }`}
+                />
+                <div className="email-list__info">
+                  <div className="email-list__name-row">
+                    <span
+                      className={`email-list__name ${
+                        contact.unreadCount > 0 ? 'email-list__name--unread' : ''
+                      }`}
+                    >
+                      {contact.name}
+                    </span>
+                    <span className="email-list__time">{contact.lastMessageTime}</span>
+                  </div>
+                  <p
+                    className={`email-list__preview ${
+                      contact.unreadCount > 0 ? 'email-list__preview--unread' : ''
                     }`}
                   >
-                    {contact.name}
-                  </span>
-                  <span className="email-list__time">{contact.lastMessageTime}</span>
-                </div>
-                <p
-                  className={`email-list__preview ${
-                    contact.unreadCount > 0 ? 'email-list__preview--unread' : ''
-                  }`}
-                >
-                  {contact.lastMessage}
-                </p>
-                {contact.assignedAgentId && (
-                  <p className="social-chat-assignee">
-                    Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                    {contact.lastMessage}
                   </p>
-                )}
+                  {contact.assignedAgentId && (
+                    <p className="social-chat-assignee">
+                      Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          </ChatConversionTooltip>
           );
         })}
       </div>

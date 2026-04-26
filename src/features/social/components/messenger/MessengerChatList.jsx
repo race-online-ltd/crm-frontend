@@ -58,6 +58,7 @@
 import SearchIcon from '@mui/icons-material/Search';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
+import ChatConversionTooltip from '../ChatConversionTooltip';
 
 const MessengerChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
@@ -115,46 +116,47 @@ const MessengerChatList = ({ contacts, selectedContact, currentAgentId, onSelect
           const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
 
           return (
-          <button
-            key={contact.id}
-            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
-            disabled={isAssignedToOtherAgent}
-            className={`messenger-list__item ${
-              selectedContact?.id === contact.id ? 'messenger-list__item--active' : ''
-            } ${isAssignedToOtherAgent ? 'messenger-list__item--disabled' : ''}`}
-          >
-            <div className="messenger-list__avatar">
-              <div className="messenger-list__avatar-circle">
-                {contact.name.charAt(0)}
+          <ChatConversionTooltip key={contact.id} contact={contact}>
+            <button
+              onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+              disabled={isAssignedToOtherAgent}
+              className={`messenger-list__item ${
+                selectedContact?.id === contact.id ? 'messenger-list__item--active' : ''
+              } ${isAssignedToOtherAgent ? 'messenger-list__item--disabled' : ''}`}
+            >
+              <div className="messenger-list__avatar">
+                <div className="messenger-list__avatar-circle">
+                  {contact.name.charAt(0)}
+                </div>
+                {contact.online && <div className="messenger-list__online-dot" />}
               </div>
-              {contact.online && <div className="messenger-list__online-dot" />}
-            </div>
 
-            <div className="messenger-list__info">
-              <div className="messenger-list__name-row">
-                <span className={`messenger-list__name ${
-                  contact.unreadCount > 0 ? 'messenger-list__name--unread' : ''
+              <div className="messenger-list__info">
+                <div className="messenger-list__name-row">
+                  <span className={`messenger-list__name ${
+                    contact.unreadCount > 0 ? 'messenger-list__name--unread' : ''
+                  }`}>
+                    {contact.name}
+                  </span>
+                  <span className="messenger-list__time">{contact.lastMessageTime}</span>
+                </div>
+                <p className={`messenger-list__preview ${
+                  contact.unreadCount > 0 ? 'messenger-list__preview--unread' : ''
                 }`}>
-                  {contact.name}
-                </span>
-                <span className="messenger-list__time">{contact.lastMessageTime}</span>
-              </div>
-              <p className={`messenger-list__preview ${
-                contact.unreadCount > 0 ? 'messenger-list__preview--unread' : ''
-              }`}>
-                {contact.lastMessage}
-              </p>
-              {contact.assignedAgentId && (
-                <p className="social-chat-assignee">
-                  Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                  {contact.lastMessage}
                 </p>
-              )}
-            </div>
+                {contact.assignedAgentId && (
+                  <p className="social-chat-assignee">
+                    Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                  </p>
+                )}
+              </div>
 
-            {contact.unreadCount > 0 && (
-              <div className="messenger-list__unread-badge">{contact.unreadCount}</div>
-            )}
-          </button>
+              {contact.unreadCount > 0 && (
+                <div className="messenger-list__unread-badge">{contact.unreadCount}</div>
+              )}
+            </button>
+          </ChatConversionTooltip>
           );
         })}
       </div>
