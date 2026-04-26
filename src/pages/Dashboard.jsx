@@ -25,7 +25,17 @@ const Dashboard = () => {
   const { user } = useContext(userContext);
   const dispatch = useDispatch();
   const tabList = useSelector((state) => state.tablist.tabs);
-  const dataCenterId = useSelector((state) => state.updatedDataCenter.dataCenter);
+  // const dataCenterId = useSelector((state) => state.updatedDataCenter.dataCenter);
+  const dataCenterId = (() => {
+  const rawId = useSelector((state) => state.updatedDataCenter.dataCenter);
+
+  return rawId !== null &&
+    rawId !== undefined &&
+    rawId !== "" &&
+    !isNaN(rawId)
+    ? Number(rawId)
+    : null;
+})();
   const [activeTab, setActiveTab] = useState(null);
 
   const [liveSensorData, setLiveSensorData] = useState(() => {
@@ -553,6 +563,7 @@ const Dashboard = () => {
     9: <Control live={liveControlSensorData?.sensor_types?.[0]} />,
   };
 
+  console.log('🔔 Dashboard datacenter-------------:', dataCenterId);
   return (
     <section>
       <div className="card">

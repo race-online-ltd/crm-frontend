@@ -7,8 +7,7 @@ let channel;
 
 const connectAbly = () => {
   ablyAPI.connection.once("connected", () => {
-    console.log("Connected to Ably globally!");
-    console.log("Client ID:", ablyAPI.auth.clientId);
+   
   });
   channel = ablyAPI.channels.get("public:sensor-channel");
 };

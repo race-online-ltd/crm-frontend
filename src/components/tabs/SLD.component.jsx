@@ -91,7 +91,7 @@ const detector = circleDatacenterMapping[dataCenterId];
     // const isCircleLike = svg => /d="([^"]254\.5,254\.5[^"])"/.test(d);
 
     
-  console.log('Checking path:', { id, d, isCircleLike });
+
 
       if (isCircleLike && id) {
         found.push(id);
@@ -297,7 +297,7 @@ useEffect(() => {
   // Store formik in ref so it's accessible in useEffect
   formikRef.current = formik;
 
-console.log('circlePaths:', circlePaths);
+
 
 
   return (

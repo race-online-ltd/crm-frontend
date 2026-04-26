@@ -240,7 +240,7 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
   };
 
   const handleChangePassword = () => {
-    console.log('Change Password clicked');
+    
   };
 
   const formik = useFormik({
@@ -251,7 +251,7 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
       dropdownFilter: Yup.string().required('Data center is required!'),
     }),
     onSubmit: (values) => {
-      console.log('Form Submitted:', values);
+      
     },
   });
 
@@ -268,25 +268,26 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
   }, [dispatch, user?.id]);
 
   useEffect(() => {
-    if (selectedDataCenter != null) {
+    if (!selectedDataCenter) return;
       getTabDataCenters(selectedDataCenter)
         .then((res) => {
           dispatch(setTabList(res.data));
         })
         .catch(errorMessage);
-    }
+    
   }, [selectedDataCenter, dispatch]);
 
   /* ✅ NEW: Sensor Real-Time API call (ID passed exactly like getTabDataCenters) */
   useEffect(() => {
-    if (selectedDataCenter != null) {
+    if (!selectedDataCenter) return;
       fetchSensorRealTimeValueByDataCenter(selectedDataCenter)
         .then((res) => {
-          console.log('Sensor Real-Time Values:', res.data);
+          
         })
         .catch(errorMessage);
-    }
+    
   }, [selectedDataCenter]);
+
 
   return (
     <header
