@@ -3,9 +3,10 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SocialConnectionSection from './SocialConnectionSection';
 import { WHATSAPP_FIELDS } from '../../constants/socialSettings';
 
-export default function WhatsAppSettingsSection() {
+export default function WhatsAppSettingsSection(props) {
   return (
     <SocialConnectionSection
+      {...props}
       title="WhatsApp Cloud API"
       subtitle="COnfigure WhatsApp connections with the Meta Graph API."
       icon={<WhatsAppIcon sx={{ fontSize: 22 }} />}

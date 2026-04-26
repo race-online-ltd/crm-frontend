@@ -3,9 +3,10 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import SocialConnectionSection from './SocialConnectionSection';
 import { EMAIL_FIELDS } from '../../constants/socialSettings';
 
-export default function EmailSettingsSection() {
+export default function EmailSettingsSection(props) {
   return (
     <SocialConnectionSection
+      {...props}
       title="Email Receive Configuration"
       subtitle="Configure receive-only mailbox connections per business entity."
       icon={<EmailOutlinedIcon sx={{ fontSize: 22 }} />}

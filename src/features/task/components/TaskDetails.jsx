@@ -602,26 +602,12 @@ export default function TaskDetails({
                     <Stack direction="row" alignItems="center" gap={0.75} mt={0.75} flexWrap="wrap" useFlexGap>
                       <TypeChip type={taskTypeKey} />
                       <StatusChip status={activeTask.status} />
-                      {activeTask.client ? (
-                        <Stack direction="row" alignItems="center" gap={0.5}>
-                          <PersonOutlineIcon sx={{ fontSize: 12, color: '#94a3b8' }} />
-                          <Typography fontSize={12} color="#64748b">
-                            {activeTask.client}
-                          </Typography>
-                        </Stack>
-                      ) : null}
                     </Stack>
                   </Box>
                 </Stack>
               </Stack>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-                <LabelText
-                  label="Association"
-                  value={activeTask.assocType === 'lead' ? 'Lead-based' : activeTask.assocType === 'client' ? 'Client-based' : '—'}
-                  icon={activeTask.assocType === 'lead' ? <AssignmentOutlinedIcon /> : <BusinessOutlinedIcon />}
-                />
-
                 <LabelText
                   label="Lead"
                   value={safeText(activeTask.lead)}
