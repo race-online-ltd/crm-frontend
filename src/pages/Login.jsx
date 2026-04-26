@@ -14,7 +14,7 @@ const Login = ({ collapsed }) => {
         email,
         password,
       });
-      localStorage.setItem("token", response.data.token);
+      sessionStorage.setItem("token", response.data.token);
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed", error);

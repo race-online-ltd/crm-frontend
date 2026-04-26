@@ -28,8 +28,8 @@ export const Login = () => {
           const token = res.access_token;
           const encryptedUserData = encryptData(res.data);
           setUser(res.data);
-          localStorage.setItem("user-info", encryptedUserData);
-          localStorage.setItem('access_token', token);
+          sessionStorage.setItem("user-info", encryptedUserData);
+          sessionStorage.setItem('access_token', token);
           navigate("/admin/home");
           resetForm();
         })

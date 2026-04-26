@@ -1946,7 +1946,7 @@ useEffect(() => {
 
 // }, [alarmSensors, alarmSmokeWaterSensors]);
 
-
+console.log('🔔 home-pagess-----:', incommingMQTTData);
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>

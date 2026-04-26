@@ -62,7 +62,7 @@ const App = () => {
     };
   }, [dispatch]);
   return (
-    <PermissionProvider>
+    
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<PublicRoutes />}>
@@ -70,7 +70,7 @@ const App = () => {
             <Route path="*" element={<Error />} />
           </Route>
 
-          <Route path="/admin/*" element={<PrivateRoutes />}>
+          <Route path="/admin/*" element={<PermissionProvider><PrivateRoutes /></PermissionProvider>}>
             <Route path="home" element={<Home />} />
             <Route path="alarm-details/:id" element={<AlarmDetails />} />
             <Route path="device-details/:id" element={<DeviceAlarmDetails />} />
@@ -126,7 +126,7 @@ const App = () => {
           </Route>
         </Routes>
       </BrowserRouter>
-    </PermissionProvider>
+   
   );
 };
 

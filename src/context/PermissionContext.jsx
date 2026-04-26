@@ -6,26 +6,42 @@ const PermissionContext = createContext([]);
 export const PermissionProvider = ({ children }) => {
   const [permissions, setPermissions] = useState([]);
 
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const data = await getUserPermissions();
+  // useEffect(() => {
+  //   const fetchPermissions = async () => {
+  //     try {
+  //       const data = await getUserPermissions();
       
-        if (data && Array.isArray(data.permissions)) {
-          setPermissions(data.permissions);
+  //       if (data && Array.isArray(data.permissions)) {
+  //         setPermissions(data.permissions);
         
-        } else {
-          setPermissions([]);
-        }
-      } catch (err) {
+  //       } else {
+  //         setPermissions([]);
+  //       }
+  //     } catch (err) {
        
-        setPermissions([]);
-      }
-    };
+  //       setPermissions([]);
+  //     }
+  //   };
 
-    fetchPermissions();
-  }, []);
+  //   fetchPermissions();
+  // }, []);
 
+const token = sessionStorage.getItem("access_token");
+
+useEffect(() => {
+  if (!token) return;
+
+  const fetchPermissions = async () => {
+    try {
+      const data = await getUserPermissions();
+      setPermissions(data.permissions || []);
+    } catch {
+      setPermissions([]);
+    }
+  };
+
+  fetchPermissions();
+}, [token]);
   return (
     <PermissionContext.Provider value={permissions}>
       {children}

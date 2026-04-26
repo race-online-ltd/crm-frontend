@@ -45,6 +45,10 @@ export const getUserPermissions = async () => {
     const response = await apiClient.get("/user-permissions");
     return response.data;
   } catch (error) {
+    if (error.response?.status === 401) {
+      // ❗ silent fail (important)
+      return { permissions: [] };
+    }
     throw error;
   }
 };
