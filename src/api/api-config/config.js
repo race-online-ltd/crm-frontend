@@ -10,6 +10,9 @@ export const apiClient = axios.create({
   },
 });
 
+// 🔒 redirect loop prevent flag
+let isRedirecting = false;
+ 
 apiClient.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('access_token');
@@ -24,6 +27,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// ✅ RESPONSE INTERCEPTOR
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -32,26 +36,25 @@ apiClient.interceptors.response.use(
 
     console.log("STATUS:", status, "URL:", url);
 
-    // ❗ 1. login API skip
+    // 🚫 login API skip
     if (url?.includes("/auth/login")) {
       return Promise.reject(error);
     }
 
-    // ❗ 2. permission বা optional APIs skip
+    // 🚫 optional API skip
     if (url?.includes("/user-permissions")) {
       return Promise.reject(error);
     }
 
-    // ❗ 3. main 401 handler
-    if (status === 401) {
-      const currentPath = window.location.pathname;
+    // 🔥 MAIN FIX
+    if (status === 401 && !isRedirecting) {
+      isRedirecting = true;
 
-      if (currentPath !== "/login") {
-        sessionStorage.removeItem("access_token");
-        sessionStorage.removeItem("user-info");
+      // clear session
+      sessionStorage.clear();
 
-        window.location.href = "/login";
-      }
+      // ✅ IMPORTANT: login route = "/"
+      window.location.replace("/");
     }
 
     return Promise.reject(error);
