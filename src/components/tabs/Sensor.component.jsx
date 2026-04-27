@@ -110,7 +110,7 @@ const Sensor = ({ data, smokeAndwaterData }) => {
   const [displayData, setDisplayData] = useState(null);
   const [displaySmokeWaterData, setDisplaySmokeWaterData] = useState(null);
 
-  console.log('🔍 Incoming sensor data:', data);
+
   useEffect(() => {
     if (data && data.sensor_types?.length > 0) {
       dataRef.current = data;
@@ -149,7 +149,7 @@ const Sensor = ({ data, smokeAndwaterData }) => {
   }
 
   const offlineIds = displayData?.offline_sensor_id || [];
-  console.log('offlineIds:', offlineIds);
+ 
   return (
     <>
       {/* Combined SENSOR DATA */}
@@ -161,6 +161,8 @@ const Sensor = ({ data, smokeAndwaterData }) => {
               {sensorType.sensors?.map((sensor) => {
                 // Check if this sensor type is for gauges (temp/humidity) or cards (smoke/water)
                 const isGaugeType = sensorType.id === 1 || sensorType.id === 2; // Assuming 1 and 2 are temp/humidity
+                const isTemp = sensorType.id === 1;
+                const unit = isTemp ? "ºC" : "%";
                 const isOffline = offlineIds.includes(sensor.id);
                 if (isGaugeType) {
                   return (
@@ -199,7 +201,7 @@ const Sensor = ({ data, smokeAndwaterData }) => {
                         }}
                         labels={{
                           valueLabel: {
-                            formatTextValue: (value) => value + ' ºC',
+                            formatTextValue: (value) => value + ' ' + unit,
                             style: {
                               fill: '#97C3AC',
                               fontSize: 40,
@@ -209,7 +211,7 @@ const Sensor = ({ data, smokeAndwaterData }) => {
                           tickLabels: {
                             type: 'outer',
                             defaultTickValueConfig: {
-                              formatTextValue: (value) => value + ' ºC',
+                              formatTextValue: (value) => value + ' ' + unit,
                               style: { fontSize: 10 },
                             },
                             ticks: sensor.thresholds
