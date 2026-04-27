@@ -89,12 +89,12 @@ const DEFAULT_VALUES = {
 // ─── REVERSE GEOCODE ────────────────────────
 async function reverseGeocode(lat, lng) {
   return new Promise((resolve) => {
-    if (!window.google) return resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    if (!window.google) return resolve('');
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       resolve(status === 'OK' && results[0]
         ? results[0].formatted_address
-        : `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+        : ''
       );
     });
   });
@@ -112,8 +112,6 @@ function LocationPicker({ value, onChange }) {
   const [locationError, setLocationError] = useState('');
   const { isLoaded, error: googleMapsError } = useGoogleMapsLoader();
   const canUseGoogleMaps = isLoaded && Boolean(window.google?.maps);
-  const fallbackAddress = useCallback((lat, lng) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`, []);
-
   const placeMarker = useCallback(({ lat, lng }) => {
     if (!mapInstance.current || !canUseGoogleMaps) return;
     if (markerRef.current) {
@@ -195,9 +193,8 @@ function LocationPicker({ value, onChange }) {
           }
 
           if (!canUseGoogleMaps) {
-            const address = fallbackAddress(lat, lng);
-            setSearchQuery(address);
-            onChange({ address, latitude: lat, longitude: lng });
+            setSearchQuery('');
+            onChange({ address: '', latitude: lat, longitude: lng });
             setLoading(false);
             return;
           }
@@ -532,7 +529,18 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
 
       {/* ── Tab Switcher ── */}
       {!isAssociationLocked && (
-        <Box sx={{ display: 'inline-flex', bgcolor: '#f1f5f9', borderRadius: '12px', p: '4px', mb: 1.5 }}>
+        <Box
+          sx={{
+            display: 'inline-flex',
+            flexWrap: 'wrap',
+            maxWidth: '100%',
+            bgcolor: '#f1f5f9',
+            borderRadius: '12px',
+            p: '4px',
+            mb: 1.5,
+            gap: 0.5,
+          }}
+        >
           {['Lead Based', 'Client Based'].map((label, i) => {
             const tabValue = i === 0 ? 'lead' : 'client';
             return (
@@ -552,7 +560,8 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
                   boxShadow: effectiveMode === tabValue ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                   transition: 'all 0.18s ease',
                   userSelect: 'none',
-                  whiteSpace: 'nowrap',
+                  whiteSpace: 'normal',
+                  textAlign: 'center',
                 }}
               >
                 {label}
@@ -672,25 +681,20 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
                     <PinDropIcon fontSize="small" color={values.location ? 'primary' : 'disabled'} />
                   </InputAdornment>
                 ),
-                endAdornment: (
-                  !isEditMode ? (
-                    <InputAdornment position="end">
-                      <Stack direction="row" spacing={0.5}>
-                        <Button size="small" onClick={handleOpenLocationDialog} sx={{ fontSize: 12 }}>
-                          {values.location ? 'Change' : 'Pick'}
-                        </Button>
-                        {values.location && (
-                          <IconButton size="small" onClick={handleClearLocation}>
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Stack>
-                    </InputAdornment>
-                  ) : null
-                ),
+                endAdornment: values.location ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={handleClearLocation} disabled={isEditMode}>
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
               }}
               sx={{
-                '& .MuiInputBase-input': { cursor: 'pointer' },
+                '& .MuiInputBase-input': {
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                },
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': {
                     borderColor: values.location ? 'primary.main' : LIGHT_BORDER_COLOR,
@@ -709,6 +713,31 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
               }}
               onClick={handleOpenLocationDialog}
             />
+            {!isEditMode && (
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                justifyContent="space-between"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                sx={{ mt: 1 }}
+              >
+                <Typography fontSize={12} color="text.secondary">
+                  {values.location ? 'Update the pinned place if the meeting location changed.' : 'Pick a place from the map for physical meetings.'}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleOpenLocationDialog}
+                  sx={{
+                    textTransform: 'none',
+                    alignSelf: { xs: 'stretch', sm: 'flex-start' },
+                    minWidth: { sm: 112 },
+                  }}
+                >
+                  {values.location ? 'Change location' : 'Pick location'}
+                </Button>
+              </Stack>
+            )}
             {isEditMode && (
               <Typography fontSize={12} color="text.secondary" mt={0.75}>
                 Location is locked for existing tasks.
@@ -742,10 +771,15 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
             <Stack
               direction={{ xs: 'column', md: 'row' }}
               spacing={1.25}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
+              alignItems={{ xs: 'stretch', md: 'center' }}
               sx={{ width: '100%' }}
             >
-              <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.25}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ minWidth: 0, flexShrink: 0 }}
+              >
                 <Box
                   sx={{
                     width: 34,
@@ -761,7 +795,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
                 >
                   <NotificationsActiveOutlinedIcon sx={{ fontSize: 17, color: '#2563eb' }} />
                 </Box>
-                <Typography fontSize={14} fontWeight={700} color="#0f172a" sx={{ whiteSpace: 'nowrap' }}>
+                <Typography fontSize={14} fontWeight={700} color="#0f172a" sx={{ whiteSpace: { xs: 'normal', sm: 'nowrap' } }}>
                   Set Reminder
                 </Typography>
                 <CustomToggle
@@ -778,9 +812,9 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
 
               <Box
                 sx={{
-                  width: { xs: '100%', md: 280 },
-                  minWidth: { xs: '100%', md: 280 },
-                  minHeight: 88,
+                  width: { xs: '100%', md: 300 },
+                  minWidth: 0,
+                  minHeight: { xs: 'auto', md: 88 },
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-start',
@@ -849,6 +883,18 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         loading={isSubmitting}
         disabled={isSubmitting}
         mt={3}
+        width="100%"
+        containerSx={{
+          justifyContent: { xs: 'stretch', sm: 'flex-end' },
+        }}
+        cancelSx={{
+          flex: { xs: 1, sm: '0 0 140px' },
+          maxWidth: { xs: '100%', sm: 160 },
+        }}
+        submitSx={{
+          flex: { xs: 1, sm: '0 0 160px' },
+          maxWidth: { xs: '100%', sm: 180 },
+        }}
       />
     </Box>
   );

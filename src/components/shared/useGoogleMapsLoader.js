@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
+import { fetchGoogleMapsConfig } from '../../api/googleMapsApi';
 
 let googleMapsPromise = null;
+let googleMapsConfigPromise = null;
+let googleMapsUiStyleInjected = false;
+
+async function getGoogleMapsBrowserKey() {
+  if (!googleMapsConfigPromise) {
+    googleMapsConfigPromise = fetchGoogleMapsConfig()
+      .then((config) => config?.browser_api_key || '')
+      .catch((error) => {
+        googleMapsConfigPromise = null;
+        throw error;
+      });
+  }
+
+  return googleMapsConfigPromise;
+}
 
 function loadGoogleMaps(apiKey, libraries) {
   if (typeof window === 'undefined') {
@@ -46,8 +62,39 @@ function loadGoogleMaps(apiKey, libraries) {
   return googleMapsPromise;
 }
 
+function ensureGoogleMapsUiStyles() {
+  if (typeof document === 'undefined' || googleMapsUiStyleInjected) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = 'google-maps-ui-fixes';
+  style.textContent = `
+    .pac-container {
+      z-index: 1700 !important;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .pac-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .pac-item:hover {
+      background: #eff6ff;
+    }
+  `;
+
+  document.head.appendChild(style);
+  googleMapsUiStyleInjected = true;
+}
+
 export default function useGoogleMapsLoader(libraries = ['places']) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
   const librariesKey = Array.isArray(libraries) ? libraries.join(',') : 'places';
   const [isLoaded, setIsLoaded] = useState(typeof window !== 'undefined' && Boolean(window.google?.maps));
   const [error, setError] = useState('');
@@ -55,9 +102,11 @@ export default function useGoogleMapsLoader(libraries = ['places']) {
   useEffect(() => {
     let active = true;
 
-    loadGoogleMaps(apiKey, librariesKey.split(','))
+    getGoogleMapsBrowserKey()
+      .then((apiKey) => loadGoogleMaps(apiKey, librariesKey.split(',')))
       .then(() => {
         if (active) {
+          ensureGoogleMapsUiStyles();
           setIsLoaded(true);
           setError('');
         }
@@ -71,7 +120,7 @@ export default function useGoogleMapsLoader(libraries = ['places']) {
     return () => {
       active = false;
     };
-  }, [apiKey, librariesKey]);
+  }, [librariesKey]);
 
   return { isLoaded, error };
 }

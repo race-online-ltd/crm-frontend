@@ -5,7 +5,7 @@ import {
   Box, Typography, Card, CardContent, Chip, Stack, IconButton,
   Menu, MenuItem, ListItemIcon, ListItemText,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Select, Dialog, DialogTitle, DialogContent,
+  Select, Dialog, DialogTitle, DialogContent, useMediaQuery, useTheme,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CloseIcon from '@mui/icons-material/Close';
@@ -404,6 +404,8 @@ function KanbanLeadCard({ item, index, onAction }) {
 
 // ── Main Pipeline Component ──
 export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead, loading = null }) {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const initialLoading = useInitialTableLoading();
   const isLoading = loading ?? initialLoading;
   const [view, setView] = useState('kanban');
@@ -742,16 +744,37 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
       <Dialog
         open={taskDialog.open}
         onClose={() => setTaskDialog({ open: false, lead: null })}
-        fullWidth maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: '14px' } }}
+        fullWidth
+        maxWidth="md"
+        fullScreen={isSmallScreen}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 0, sm: '16px' },
+          },
+        }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            px: { xs: 2, sm: 3 },
+            py: 2,
+          }}
+        >
           <Typography variant="h6" fontWeight={700}>Add Task</Typography>
           <IconButton size="small" onClick={() => setTaskDialog({ open: false, lead: null })}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 2.5, overflow: 'visible' }}>
+        <DialogContent
+          sx={{
+            px: { xs: 2, sm: 3 },
+            pb: { xs: 2, sm: 3 },
+            pt: 1.5,
+            overflowX: 'hidden',
+          }}
+        >
           <Suspense fallback={DialogLoading}>
             {taskDialog.open ? (
               <TaskForm

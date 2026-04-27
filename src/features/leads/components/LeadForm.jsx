@@ -31,11 +31,6 @@ import FormActionButtons      from '../../../components/shared/FormActionButtons
 import { buildMultipartFormData } from '../../../utils/formData';
 import { fetchLeadFormOptions, createLead, updateLead } from '../api/leadApi';
 
-const CLIENT_META = {
-  1: { contactPerson: 'Jennifer Lee', phone: '+1 (555) 333-4444', email: 'j.lee@globalsys.com', address: '200 Global Ave, Los Angeles, CA', city: 'Los Angeles', region: 'West', lat: 34.0522, lng: -118.2437 },
-  2: { contactPerson: 'Arif Rahman', phone: '+880 1711-223344', email: 'arif@nexus.bd', address: '45 Gulshan Ave, Dhaka', city: 'Dhaka', region: 'Central', lat: 23.7935, lng: 90.4066 },
-};
-
 // ─── Validation schema ───────────────────────────────────────────────────────
 const singleLeadSchema = Yup.object({
   business_entity_id:  Yup.string().required('Business entity is required'),
@@ -342,7 +337,15 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     handleBlur,
     handleSubmit,
   } = formik;
-  const clientMeta = values.client_id ? CLIENT_META[Number(values.client_id)] ?? null : null;
+  const selectedClient = optionData.clients.find((client) => String(client.id) === String(values.client_id)) || null;
+  const clientMeta = selectedClient ? {
+    contactPerson: selectedClient.contact_person || '',
+    phone: selectedClient.contact_no || '',
+    email: selectedClient.email || '',
+    address: selectedClient.address || '',
+    lat: selectedClient.lat,
+    lng: selectedClient.long,
+  } : null;
   const getIsOtherSource = (sourceId) => {
     const source = optionData.sources.find((option) => String(option.id) === String(sourceId)) || null;
     return Boolean(String(source?.label || '').trim().toLowerCase().includes('other'));
@@ -446,22 +449,28 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
 
         setOptionData((current) => ({
           ...current,
+          clients: data.clients || [],
+          kam_users: data.kam_users || [],
+          backoffices: data.backoffices || [],
           products: data.products || [],
           stages,
         }));
 
         if (shouldSetDefaultStage) {
-          setFieldValue('stage', stages[0]?.id || '');
+          setFieldValue('lead_pipeline_stage_id', stages[0]?.id || '', false);
         }
       } catch {
         if (active) {
           setOptionData((current) => ({
             ...current,
+            clients: [],
+            kam_users: [],
+            backoffices: [],
             products: [],
             stages: [],
           }));
           if (selectedStageRef.current) {
-            setFieldValue('stage', '');
+            setFieldValue('lead_pipeline_stage_id', '', false);
           }
         }
       }
@@ -472,7 +481,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     return () => {
       active = false;
     };
-  }, [values.business_entity_id]);
+  }, [setFieldValue, values.business_entity_id]);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -503,6 +512,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               onChange={(id) => {
                 setFieldValue('business_entity_id', id);
                 setFieldValue('products', []);
+                setFieldValue('client_id', '');
                 setFieldValue('lead_pipeline_stage_id', '');
 
                 const defaultAssignment = getDefaultAssignmentForBusinessEntity(id);
@@ -558,13 +568,13 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               />
             )}
 
-            {/* Products + Assign To Type + Target */}
+            {/* Product + Client + Add Client */}
             <Box
               sx={{
                 gridColumn: '1 / -1',
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-                gap: '4px 20px',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr auto' },
+                gap: { xs: '12px', sm: '4px 20px' },
                 alignItems: 'start',
               }}
             >
@@ -578,6 +588,37 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                 error={Boolean(touched.products && errors.products)}
                 helperText={touched.products && errors.products ? errors.products : ' '}
               />
+              <SelectDropdownSingle
+                name="client_id"
+                label="Select Client *"
+                fetchOptions={clientFetchOptions}
+                value={values.client_id}
+                onChange={(id) => {
+                  setFieldValue('client_id', id);
+                }}
+                onBlur={handleBlur}
+                error={Boolean(touched.client_id && errors.client_id)}
+                helperText={touched.client_id && errors.client_id ? errors.client_id : ' '}
+                disabled={isEdit}
+                searchable={!isEdit}
+                loading={loadingOptions}
+              />
+              <AddClientButton
+                onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })}
+                sx={{ width: { xs: '100%', sm: 'auto' }, mt: { xs: 0, sm: 0.5 } }}
+              />
+            </Box>
+
+            {/* Assign Type + Target + Stage */}
+            <Box
+              sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+                gap: '4px 20px',
+                alignItems: 'start',
+              }}
+            >
               <SelectDropdownSingle
                 name="lead_assign_id"
                 label="Assign Type *"
@@ -607,37 +648,6 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                 }}
                 onBlur={handleBlur}
                 searchable
-              />
-            </Box>
-
-            {/* Client + Stage row */}
-            <Box
-              sx={{
-                gridColumn: '1 / -1',
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'auto 1fr 1fr' },
-                gap: { xs: '12px', sm: '4px 20px' },
-                alignItems: 'start',
-              }}
-            >
-              <AddClientButton
-                onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })}
-                sx={{ width: { xs: '100%', sm: 'auto' } }}
-              />
-              <SelectDropdownSingle
-                name="client_id"
-                label="Select Client *"
-                fetchOptions={clientFetchOptions}
-                value={values.client_id}
-                onChange={(id) => {
-                  setFieldValue('client_id', id);
-                }}
-                onBlur={handleBlur}
-                error={Boolean(touched.client_id && errors.client_id)}
-                helperText={touched.client_id && errors.client_id ? errors.client_id : ' '}
-                disabled={isEdit}
-                searchable={!isEdit}
-                loading={loadingOptions}
               />
               <SelectDropdownSingle
                 name="lead_pipeline_stage_id"
@@ -675,14 +685,28 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                     bgcolor: '#f8fafc',
                   }}
                 >
-                  <iframe
-                    title="client-map"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0, display: 'block' }}
-                    loading="lazy"
-                    src={`https://maps.google.com/maps?q=${clientMeta.lat},${clientMeta.lng}&z=13&output=embed`}
-                  />
+                  {clientMeta.lat && clientMeta.lng ? (
+                    <iframe
+                      title="client-map"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0, display: 'block' }}
+                      loading="lazy"
+                      src={`https://maps.google.com/maps?q=${clientMeta.lat},${clientMeta.lng}&z=13&output=embed`}
+                    />
+                  ) : (
+                    <Stack
+                      alignItems="center"
+                      justifyContent="center"
+                      spacing={1}
+                      sx={{ width: '100%', height: '100%', color: '#94a3b8', px: 2, textAlign: 'center' }}
+                    >
+                      <MapIcon sx={{ fontSize: 24, color: '#cbd5e1' }} />
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                        No client map location available
+                      </Typography>
+                    </Stack>
+                  )}
                 </Paper>
 
                 <Paper
@@ -697,12 +721,14 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                   </Stack>
                   <Divider sx={{ mb: 1.25 }} />
                   <Stack spacing={0.75}>
-                    <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson} />
-                    <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone} />
-                    <InfoRow icon={<EmailIcon />}      text={clientMeta.email} isLink />
-                    <InfoRow icon={<LocationOnIcon />} text={clientMeta.address} />
-                    <InfoRow icon={<MapIcon />}        text={clientMeta.city} />
-                    <InfoRow icon={<PublicIcon />}     text={clientMeta.region} />
+                    <InfoRow icon={<BusinessIcon />}   text={selectedClient?.client_name || selectedClient?.label || 'Client'} />
+                    <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson || 'No contact person'} />
+                    <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone || 'No phone number'} />
+                    <InfoRow icon={<EmailIcon />}      text={clientMeta.email || 'No email address'} isLink={Boolean(clientMeta.email)} />
+                    <InfoRow icon={<LocationOnIcon />} text={clientMeta.address || 'No address available'} />
+                    {(clientMeta.lat && clientMeta.lng) ? (
+                      <InfoRow icon={<PublicIcon />} text={`${clientMeta.lat}, ${clientMeta.lng}`} />
+                    ) : null}
                   </Stack>
                 </Paper>
               </Box>
