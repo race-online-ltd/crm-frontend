@@ -19,6 +19,7 @@ const messengerContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 2, task: 1, ticket: 0 },
   },
   {
     id: 'm2',
@@ -31,6 +32,7 @@ const messengerContacts = [
     assignedAgentId: 'agent_2',
     assignedAgentName: 'Agent 2',
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 1, task: 2, ticket: 1 },
   },
   {
     id: 'm3',
@@ -43,6 +45,7 @@ const messengerContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 0, task: 1, ticket: 3 },
   },
   {
     id: 'm4',
@@ -55,6 +58,7 @@ const messengerContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 3, task: 0, ticket: 1 },
   },
   {
     id: 'm5',
@@ -67,6 +71,7 @@ const messengerContacts = [
     assignedAgentId: 'agent_1',
     assignedAgentName: 'Agent 1',
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 1, task: 1, ticket: 0 },
   },
   {
     id: 'm6',
@@ -79,6 +84,7 @@ const messengerContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 4, task: 2, ticket: 0 },
   },
 ];
 
@@ -94,6 +100,7 @@ const whatsappContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 1, task: 0, ticket: 2 },
   },
   {
     id: 'w2',
@@ -106,6 +113,7 @@ const whatsappContacts = [
     assignedAgentId: 'agent_3',
     assignedAgentName: 'Agent 3',
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 2, task: 1, ticket: 1 },
   },
   {
     id: 'w3',
@@ -118,6 +126,7 @@ const whatsappContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 0, task: 3, ticket: 1 },
   },
   {
     id: 'w4',
@@ -130,6 +139,7 @@ const whatsappContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 2, task: 0, ticket: 0 },
   },
   {
     id: 'w5',
@@ -142,6 +152,7 @@ const whatsappContacts = [
     assignedAgentId: 'agent_1',
     assignedAgentName: 'Agent 1',
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 1, task: 2, ticket: 1 },
   },
 ];
 
@@ -156,6 +167,7 @@ const emailContacts = [
     assignedAgentId: null,
     assignedAgentName: null,
     simulateRaceOnPick: false,
+    conversionCounts: { lead: 3, task: 1, ticket: 0 },
   },
   {
     id: 'e2',

@@ -3,9 +3,10 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import SocialConnectionSection from './SocialConnectionSection';
 import { FACEBOOK_FIELDS } from '../../constants/socialSettings';
 
-export default function FacebookSettingsSection() {
+export default function FacebookSettingsSection(props) {
   return (
     <SocialConnectionSection
+      {...props}
       title="Facebook Messenger"
       subtitle="Configure Facebook Messenger connections with Meta Graph API."
       icon={<FacebookIcon sx={{ fontSize: 22 }} />}

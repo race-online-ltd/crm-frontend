@@ -418,6 +418,11 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
   });
   const getStageTitle = (id) => STAGES.find((s) => s.id === id)?.title || id;
 
+  const openLeadEditInNewTab = (leadId) => {
+    if (!leadId) return;
+    window.open(`/leads/${leadId}/edit`, '_blank', 'noopener,noreferrer');
+  };
+
   const appendLeadActivity = (leadId, activity) => {
     if (!leadId) return;
 
@@ -570,7 +575,7 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
         setViewDetailsDrawer({ open: true, lead });
         break;
       case 'edit':
-        onEditLead?.(lead);
+        openLeadEditInNewTab(lead?.id);
         break;
       default:
         break;

@@ -1,5 +1,5 @@
 // src/features/leads/components/LeadForm.jsx
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   Box, Button, Typography, Stack, Paper, Divider, IconButton,
 } from '@mui/material';
@@ -27,6 +27,7 @@ import AmountInputField       from '../../../components/shared/AmountInputField'
 import DatePickerField        from '../../../components/shared/DatePickerField';
 import AttachmentField        from '../../../components/shared/AttachmentField';
 import AddClientButton        from '../../../components/shared/AddClientButton';
+import FormActionButtons      from '../../../components/shared/FormActionButtons';
 import { buildMultipartFormData } from '../../../utils/formData';
 import { fetchLeadFormOptions, createLead, updateLead } from '../api/leadApi';
 
@@ -60,6 +61,34 @@ const INITIAL_VALUES = {
   deadline:       null,
   attachment:     [],
 };
+
+function isActiveLeadStage(stage) {
+  const statusValue = stage?.active ?? stage?.is_active ?? stage?.status ?? stage?.state;
+
+  if (typeof statusValue === 'boolean') {
+    return statusValue;
+  }
+
+  if (typeof statusValue === 'string') {
+    return ['active', 'enabled', 'true'].includes(statusValue.toLowerCase());
+  }
+
+  return true;
+}
+
+function normalizeLeadStages(stages = []) {
+  return stages
+    .filter(isActiveLeadStage)
+    .sort((a, b) => {
+      const aOrder = Number(a?.sort_order ?? a?.sortOrder ?? Number.MAX_SAFE_INTEGER);
+      const bOrder = Number(b?.sort_order ?? b?.sortOrder ?? Number.MAX_SAFE_INTEGER);
+      return aOrder - bOrder;
+    })
+    .map((stage) => ({
+      id: String(stage.id),
+      label: stage.stage_name || stage.name || stage.label || `Stage ${stage.id}`,
+    }));
+}
 
 // ─── InfoRow ─────────────────────────────────────────────────────────────────
 function InfoRow({ icon, text, isLink }) {
@@ -202,6 +231,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     stages: [],
   });
   const [loadingOptions, setLoadingOptions] = useState(true);
+  const selectedStageRef = useRef(formInitialValues.stage || '');
 
   useEffect(() => {
     let active = true;
@@ -222,7 +252,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           kam_users: data.kam_users || [],
           backoffices: data.backoffices || [],
           products: data.products || [],
-          stages: data.stages || [],
+          stages: normalizeLeadStages(data.stages || []),
         });
       } catch {
         if (active) {
@@ -410,11 +440,19 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           return;
         }
 
+        const stages = normalizeLeadStages(data.stages || []);
+        const currentStage = String(selectedStageRef.current || '');
+        const shouldSetDefaultStage = !currentStage || !stages.some((stage) => stage.id === currentStage);
+
         setOptionData((current) => ({
           ...current,
           products: data.products || [],
-          stages: data.stages || [],
+          stages,
         }));
+
+        if (shouldSetDefaultStage) {
+          setFieldValue('stage', stages[0]?.id || '');
+        }
       } catch {
         if (active) {
           setOptionData((current) => ({
@@ -422,6 +460,9 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
             products: [],
             stages: [],
           }));
+          if (selectedStageRef.current) {
+            setFieldValue('stage', '');
+          }
         }
       }
     };

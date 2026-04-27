@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   Autocomplete,
   TextField,
   Typography,
@@ -19,6 +18,7 @@ import {
   fetchBusinessEntities,
   fetchProductsByBusinessEntity,
 } from '../../settings/api/settingsApi';
+import FormActionButtons from '../../../components/shared/FormActionButtons';
 
 const TARGET_MODES = [
   { id: 'monthly', label: 'Monthly' },
@@ -552,40 +552,14 @@ export default function SetTarget({
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mt: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleCancel}
-            sx={{
-              fontWeight: 600,
-              borderRadius: '10px',
-              borderColor: '#e2e8f0',
-              color: '#64748b',
-              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            fullWidth
-            type="submit"
-            variant="contained"
-            disabled={isSubmitting}
-            startIcon={<CheckCircleOutlineIcon />}
-            sx={{
-              fontWeight: 700,
-              borderRadius: '10px',
-              bgcolor: '#2563eb',
-              py: 1.2,
-              boxShadow: 'none',
-              '&:hover': { bgcolor: '#1d4ed8', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' },
-              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-            }}
-          >
-            {submitLabel}
-          </Button>
-        </Box>
+        <FormActionButtons
+          onCancel={handleCancel}
+          submitLabel={submitLabel}
+          submitIcon={<CheckCircleOutlineIcon />}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          mt={4}
+        />
       </form>
     </Box>
   );

@@ -62,6 +62,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
+import ChatConversionTooltip from '../ChatConversionTooltip';
 
 const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
@@ -124,43 +125,44 @@ const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectC
           const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
 
           return (
-          <button
-            key={contact.id}
-            onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
-            disabled={isAssignedToOtherAgent}
-            className={`whatsapp-list__item ${
-              selectedContact?.id === contact.id ? 'whatsapp-list__item--active' : ''
-            } ${isAssignedToOtherAgent ? 'whatsapp-list__item--disabled' : ''}`}
-          >
-            <div className="whatsapp-list__avatar">
-              {contact.name.charAt(0)}
-            </div>
-            <div className="whatsapp-list__info">
-              <div className="whatsapp-list__name-row">
-                <span className="whatsapp-list__name">{contact.name}</span>
-                <span className={`whatsapp-list__time ${
-                  contact.unreadCount > 0
-                    ? 'whatsapp-list__time--unread'
-                    : 'whatsapp-list__time--read'
-                }`}>
-                  {contact.lastMessageTime}
-                </span>
+          <ChatConversionTooltip key={contact.id} contact={contact}>
+            <button
+              onClick={() => !isAssignedToOtherAgent && onSelectContact(contact)}
+              disabled={isAssignedToOtherAgent}
+              className={`whatsapp-list__item ${
+                selectedContact?.id === contact.id ? 'whatsapp-list__item--active' : ''
+              } ${isAssignedToOtherAgent ? 'whatsapp-list__item--disabled' : ''}`}
+            >
+              <div className="whatsapp-list__avatar">
+                {contact.name.charAt(0)}
               </div>
-              <div className="whatsapp-list__preview-row">
-                <div className="whatsapp-list__preview-wrap">
-                  <p className="whatsapp-list__preview">{contact.lastMessage}</p>
-                  {contact.assignedAgentId && (
-                    <p className="social-chat-assignee social-chat-assignee--dark">
-                      Assigned to {contact.assignedAgentName || contact.assignedAgentId}
-                    </p>
+              <div className="whatsapp-list__info">
+                <div className="whatsapp-list__name-row">
+                  <span className="whatsapp-list__name">{contact.name}</span>
+                  <span className={`whatsapp-list__time ${
+                    contact.unreadCount > 0
+                      ? 'whatsapp-list__time--unread'
+                      : 'whatsapp-list__time--read'
+                  }`}>
+                    {contact.lastMessageTime}
+                  </span>
+                </div>
+                <div className="whatsapp-list__preview-row">
+                  <div className="whatsapp-list__preview-wrap">
+                    <p className="whatsapp-list__preview">{contact.lastMessage}</p>
+                    {contact.assignedAgentId && (
+                      <p className="social-chat-assignee social-chat-assignee--dark">
+                        Assigned to {contact.assignedAgentName || contact.assignedAgentId}
+                      </p>
+                    )}
+                  </div>
+                  {contact.unreadCount > 0 && (
+                    <div className="whatsapp-list__unread-badge">{contact.unreadCount}</div>
                   )}
                 </div>
-                {contact.unreadCount > 0 && (
-                  <div className="whatsapp-list__unread-badge">{contact.unreadCount}</div>
-                )}
               </div>
-            </div>
-          </button>
+            </button>
+          </ChatConversionTooltip>
           );
         })}
       </div>

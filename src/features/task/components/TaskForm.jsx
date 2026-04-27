@@ -1,6 +1,6 @@
 // src/features/tasks/components/TaskForm.jsx
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box, Button, Typography, Stack, Dialog, DialogTitle, DialogContent,
   DialogActions, InputAdornment, TextField, IconButton,
@@ -15,6 +15,8 @@ import TextInputField           from '../../../components/shared/TextInputField'
 import TextAreaInputField       from '../../../components/shared/TextAreaInputField';
 import AttachmentField          from '../../../components/shared/AttachmentField';
 import CustomToggle             from '../../../components/shared/CustomToggle';
+import FormActionButtons        from '../../../components/shared/FormActionButtons';
+import useGoogleMapsLoader      from '../../../components/shared/useGoogleMapsLoader';
 import CheckCircleOutlineIcon   from '@mui/icons-material/CheckCircleOutline';
 import PinDropIcon              from '@mui/icons-material/PinDrop';
 import SearchIcon               from '@mui/icons-material/Search';
@@ -108,9 +110,12 @@ function LocationPicker({ value, onChange }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]         = useState(false);
   const [locationError, setLocationError] = useState('');
+  const { isLoaded, error: googleMapsError } = useGoogleMapsLoader();
+  const canUseGoogleMaps = isLoaded && Boolean(window.google?.maps);
+  const fallbackAddress = useCallback((lat, lng) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`, []);
 
-  function placeMarker({ lat, lng }) {
-    if (!mapInstance.current) return;
+  const placeMarker = useCallback(({ lat, lng }) => {
+    if (!mapInstance.current || !canUseGoogleMaps) return;
     if (markerRef.current) {
       markerRef.current.setPosition({ lat, lng });
     } else {
@@ -119,10 +124,10 @@ function LocationPicker({ value, onChange }) {
         animation: window.google.maps.Animation.DROP,
       });
     }
-  }
+  }, [canUseGoogleMaps]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google || mapInstance.current) return;
+    if (!mapRef.current || !canUseGoogleMaps || mapInstance.current) return;
     const center = value?.latitude
       ? { lat: value.latitude, lng: value.longitude }
       : { lat: 23.8103, lng: 90.4125 };
@@ -148,10 +153,10 @@ function LocationPicker({ value, onChange }) {
       setLoading(false);
       onChange({ address, latitude: lat, longitude: lng });
     });
-  }, []); // eslint-disable-line
+  }, [canUseGoogleMaps, value, placeMarker]); // eslint-disable-line
 
   useEffect(() => {
-    if (!inputRef.current || !window.google || searchBoxRef.current) return;
+    if (!inputRef.current || !canUseGoogleMaps || !window.google || searchBoxRef.current) return;
     searchBoxRef.current = new window.google.maps.places.SearchBox(inputRef.current);
     searchBoxRef.current.addListener('places_changed', () => {
       const places = searchBoxRef.current.getPlaces();
@@ -166,7 +171,7 @@ function LocationPicker({ value, onChange }) {
       onChange({ address, latitude: lat, longitude: lng });
       setSearchQuery(address);
     });
-  }, [onChange]);
+  }, [canUseGoogleMaps, onChange, placeMarker]);
 
   function handleMyLocation() {
     setLocationError('');
@@ -187,6 +192,14 @@ function LocationPicker({ value, onChange }) {
           if (mapInstance.current) {
             mapInstance.current.panTo({ lat, lng });
             mapInstance.current.setZoom(16);
+          }
+
+          if (!canUseGoogleMaps) {
+            const address = fallbackAddress(lat, lng);
+            setSearchQuery(address);
+            onChange({ address, latitude: lat, longitude: lng });
+            setLoading(false);
+            return;
           }
 
           placeMarker({ lat, lng });
@@ -254,6 +267,7 @@ function LocationPicker({ value, onChange }) {
           placeholder="Search for a place or address…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          disabled={!canUseGoogleMaps}
           InputProps={{
             startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment>,
             endAdornment: searchQuery ? (
@@ -281,7 +295,20 @@ function LocationPicker({ value, onChange }) {
           {locationError}
         </Typography>
       )}
-      <Box ref={mapRef} sx={{ height: 350, width: '100%', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} />
+      {!locationError && !canUseGoogleMaps && (
+        <Typography variant="caption" color={googleMapsError ? 'error' : 'text.secondary'} sx={{ display: 'block', mb: 1 }}>
+          {googleMapsError || 'Google Maps is unavailable right now. Use My Location to save coordinates.'}
+        </Typography>
+      )}
+      {canUseGoogleMaps ? (
+        <Box ref={mapRef} sx={{ height: 350, width: '100%', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} />
+      ) : (
+        <Box sx={{ height: 350, width: '100%', borderRadius: 1, overflow: 'hidden', border: '1px dashed', borderColor: 'divider', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Map preview is unavailable. Use My Location to set coordinates manually.
+          </Typography>
+        </Box>
+      )}
       {value?.address && (
         <Box sx={{ mt: 1.5, px: 1.5, py: 1, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
           <PinDropIcon fontSize="small" color="primary" />
@@ -815,18 +842,14 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
       </Dialog>
 
       {/* FORM ACTIONS */}
-      <Stack direction="row" spacing={2} mt={3}>
-        <Button onClick={onCancel} variant="outlined" fullWidth disabled={isSubmitting}>Cancel</Button>
-        <Button
-          type="submit"
-          variant="contained"
-          startIcon={<CheckCircleOutlineIcon />}
-          fullWidth
-          loading={isSubmitting}
-        >
-          Save Task
-        </Button>
-      </Stack>
+      <FormActionButtons
+        onCancel={onCancel}
+        submitLabel="Save Task"
+        submitIcon={<CheckCircleOutlineIcon />}
+        loading={isSubmitting}
+        disabled={isSubmitting}
+        mt={3}
+      />
     </Box>
   );
 }

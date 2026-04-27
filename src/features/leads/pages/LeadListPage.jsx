@@ -32,6 +32,11 @@ export default function LeadListPage() {
     loadLeads();
   }, [loadLeads]);
 
+  const openLeadInNewTab = (leadId) => {
+    if (!leadId) return;
+    window.open(`/leads/${leadId}/edit`, '_blank', 'noopener,noreferrer');
+  };
+
   const handleEditLead = (lead) => {
     navigate(`/leads/${lead.id}/edit`, {
       state: {

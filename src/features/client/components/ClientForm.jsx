@@ -28,6 +28,8 @@ import MapIcon from '@mui/icons-material/Map';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import TextInputField from '../../../components/shared/TextInputField';
 import NumberInputField from '../../../components/shared/NumberInputField';
+import FormActionButtons from '../../../components/shared/FormActionButtons';
+import useGoogleMapsLoader from '../../../components/shared/useGoogleMapsLoader';
 import {
   createClient,
   fetchAreas,
@@ -117,9 +119,18 @@ function LocationPicker({ value, onChange }) {
   const inputRef = React.useRef(null);
   const searchBoxRef = React.useRef(null);
   const [searchText, setSearchText] = useState(value?.address || '');
+  const { isLoaded, error: googleMapsError } = useGoogleMapsLoader();
+  const canUseGoogleMaps = isLoaded && Boolean(window.google?.maps);
+  const fallbackAddress = useCallback((lat, lng) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`, []);
 
   const reverseGeocode = useCallback((lat, lng) => {
-    if (!window.google) return;
+    if (!canUseGoogleMaps) {
+      const address = fallbackAddress(lat, lng);
+      setSearchText(address);
+      onChange({ address, latitude: lat, longitude: lng });
+      return;
+    }
+
     new window.google.maps.Geocoder().geocode({ location: { lat, lng } }, (results, status) => {
       if (status === 'OK' && results[0]) {
         const addr = results[0].formatted_address;
@@ -127,10 +138,10 @@ function LocationPicker({ value, onChange }) {
         onChange({ address: addr, latitude: lat, longitude: lng });
       }
     });
-  }, [onChange]);
+  }, [canUseGoogleMaps, fallbackAddress, onChange]);
 
   const placeMarker = useCallback((lat, lng) => {
-    if (!mapInstance.current) return;
+    if (!mapInstance.current || !canUseGoogleMaps) return;
     const pos = { lat, lng };
     if (markerRef.current) {
       markerRef.current.setPosition(pos);
@@ -146,10 +157,10 @@ function LocationPicker({ value, onChange }) {
       );
     }
     mapInstance.current.panTo(pos);
-  }, [reverseGeocode]);
+  }, [canUseGoogleMaps, reverseGeocode]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google || mapInstance.current) return;
+    if (!mapRef.current || !canUseGoogleMaps || mapInstance.current) return;
     const center = value?.latitude
       ? { lat: value.latitude, lng: value.longitude }
       : { lat: 23.8103, lng: 90.4125 };
@@ -173,10 +184,10 @@ function LocationPicker({ value, onChange }) {
     if (value?.latitude) {
       placeMarker(value.latitude, value.longitude);
     }
-  }, [value, placeMarker, reverseGeocode]);
+  }, [canUseGoogleMaps, value, placeMarker, reverseGeocode]);
 
   useEffect(() => {
-    if (!inputRef.current || !window.google || searchBoxRef.current) return;
+    if (!inputRef.current || !canUseGoogleMaps || searchBoxRef.current) return;
     searchBoxRef.current = new window.google.maps.places.SearchBox(inputRef.current);
     searchBoxRef.current.addListener('places_changed', () => {
       const places = searchBoxRef.current.getPlaces();
@@ -192,7 +203,7 @@ function LocationPicker({ value, onChange }) {
       mapInstance.current?.setZoom(15);
       onChange({ address: addr, latitude: lat, longitude: lng });
     });
-  }, [onChange, placeMarker]);
+  }, [canUseGoogleMaps, onChange, placeMarker]);
 
   return (
     <Box>
@@ -204,6 +215,7 @@ function LocationPicker({ value, onChange }) {
           placeholder="Search for a location…"
           size="small"
           fullWidth
+          disabled={!canUseGoogleMaps}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -228,8 +240,18 @@ function LocationPicker({ value, onChange }) {
           onClick={() => {
             if (!navigator.geolocation) return;
             navigator.geolocation.getCurrentPosition(({ coords }) => {
-              placeMarker(coords.latitude, coords.longitude);
-              reverseGeocode(coords.latitude, coords.longitude);
+              const lat = coords.latitude;
+              const lng = coords.longitude;
+
+              if (!canUseGoogleMaps) {
+                const address = fallbackAddress(lat, lng);
+                setSearchText(address);
+                onChange({ address, latitude: lat, longitude: lng });
+                return;
+              }
+
+              placeMarker(lat, lng);
+              reverseGeocode(lat, lng);
               mapInstance.current?.setZoom(15);
             });
           }}
@@ -249,17 +271,23 @@ function LocationPicker({ value, onChange }) {
         </Button>
       </Stack>
 
-      <Box
-        ref={mapRef}
-        sx={{
-          width: '100%',
-          height: 320,
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          bgcolor: '#f8fafc',
-        }}
-      />
+      {!canUseGoogleMaps ? (
+        <Alert severity={googleMapsError ? 'error' : 'info'} sx={{ mt: 1, borderRadius: '10px' }}>
+          {googleMapsError || 'Google Maps is unavailable right now. Use Current Location to save coordinates.'}
+        </Alert>
+      ) : (
+        <Box
+          ref={mapRef}
+          sx={{
+            width: '100%',
+            height: 320,
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+            bgcolor: '#f8fafc',
+          }}
+        />
+      )}
 
       {value?.address && (
         <Stack
@@ -639,41 +667,14 @@ export default function ClientForm({
           </Box>
         </Box>
 
-        {!isReadOnly && (
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={onCancel}
-              sx={{ fontWeight: 600, borderRadius: '10px', borderColor: '#e2e8f0', color: '#64748b' }}
-            >
-              Cancel
-            </Button>
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting}
-              startIcon={<CheckCircleOutlineIcon />}
-              sx={{ fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb', py: 1.2, boxShadow: 'none' }}
-            >
-              {isEdit ? 'Update Client' : 'Create Client'}
-            </Button>
-          </Stack>
-        )}
-
-        {isReadOnly && (
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={5}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={onCancel}
-              sx={{ fontWeight: 600, borderRadius: '10px', borderColor: '#e2e8f0', color: '#64748b' }}
-            >
-              Back
-            </Button>
-          </Stack>
-        )}
+        <FormActionButtons
+          onCancel={onCancel}
+          cancelLabel={isReadOnly ? 'Back' : 'Cancel'}
+          submitLabel={isReadOnly ? null : (isEdit ? 'Update Client' : 'Create Client')}
+          submitIcon={isReadOnly ? null : <CheckCircleOutlineIcon />}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+        />
       </form>
 
       <Dialog open={mapModalOpen} onClose={() => setMapModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}>

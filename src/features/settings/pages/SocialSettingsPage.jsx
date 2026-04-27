@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Box, Divider, Stack, Tab, Tabs, Typography } from '@mui/material';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 import FacebookSettingsSection from '../components/social/FacebookSettingsSection';
 import WhatsAppSettingsSection from '../components/social/WhatsAppSettingsSection';
 import EmailSettingsSection from '../components/social/EmailSettingsSection';
+import { fetchBusinessEntities } from '../api/settingsApi';
+import {
+  activateSocialConnection,
+  deactivateSocialConnection,
+  deleteSocialConnection,
+  fetchSocialConnections,
+  saveSocialConnection,
+} from '../api/socialConnectionsApi';
 
 const CHANNEL_TABS = [
   { value: 'facebook', label: 'Facebook' },
@@ -13,6 +21,28 @@ const CHANNEL_TABS = [
 
 export default function SocialSettingsPage() {
   const [activeTab, setActiveTab] = useState('facebook');
+  const fetchActiveBusinessEntities = useCallback(async () => {
+    const entities = await fetchBusinessEntities();
+    return entities.filter((entity) => entity.status !== false);
+  }, []);
+
+  const fetchConnectionsByChannel = useCallback(async ({ channelKey }) => (
+    fetchSocialConnections(channelKey)
+  ), []);
+
+  const saveConnection = useCallback(async ({ channelKey, payload }) => (
+    saveSocialConnection({ channelKey, payload })
+  ), []);
+
+  const deleteConnection = useCallback(async ({ row }) => (
+    deleteSocialConnection(row.id)
+  ), []);
+
+  const toggleConnectionActive = useCallback(async ({ row, nextIsActive }) => (
+    nextIsActive
+      ? activateSocialConnection(row.id)
+      : deactivateSocialConnection(row.id)
+  ), []);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', px: { xs: 2, sm: 3, md: 3 }, py: { xs: 3, sm: 3 } }}>
@@ -77,9 +107,33 @@ export default function SocialSettingsPage() {
         </Tabs>
       </Box>
 
-      {activeTab === 'facebook' && <FacebookSettingsSection />}
-      {activeTab === 'whatsapp' && <WhatsAppSettingsSection />}
-      {activeTab === 'email' && <EmailSettingsSection />}
+      {activeTab === 'facebook' && (
+        <FacebookSettingsSection
+          fetchBusinessEntities={fetchActiveBusinessEntities}
+          fetchConnections={fetchConnectionsByChannel}
+          saveConnection={saveConnection}
+          deleteConnection={deleteConnection}
+          toggleConnectionActive={toggleConnectionActive}
+        />
+      )}
+      {activeTab === 'whatsapp' && (
+        <WhatsAppSettingsSection
+          fetchBusinessEntities={fetchActiveBusinessEntities}
+          fetchConnections={fetchConnectionsByChannel}
+          saveConnection={saveConnection}
+          deleteConnection={deleteConnection}
+          toggleConnectionActive={toggleConnectionActive}
+        />
+      )}
+      {activeTab === 'email' && (
+        <EmailSettingsSection
+          fetchBusinessEntities={fetchActiveBusinessEntities}
+          fetchConnections={fetchConnectionsByChannel}
+          saveConnection={saveConnection}
+          deleteConnection={deleteConnection}
+          toggleConnectionActive={toggleConnectionActive}
+        />
+      )}
     </Box>
   );
 }

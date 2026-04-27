@@ -17,19 +17,20 @@ const MediumTabs = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 8px 16px 10px;
+          padding: 8px 16px 12px;
           width: 100%;
           box-sizing: border-box;
         }
 
-        /* The track — segmented pill container */
         .medium-tabs-group {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: #f5f3f3;
-          border-radius: 80px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 999px;
           padding: 3px;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
         .medium-tab {
@@ -58,7 +59,7 @@ const MediumTabs = () => {
 
         .medium-tab--active {
           background: #ffffff;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 0.5px rgba(0,0,0,0.06);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 0.5px rgba(15,23,42,0.08);
         }
 
         .medium-tab__icon {

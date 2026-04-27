@@ -146,6 +146,10 @@ function buildFieldComponentSx(field) {
   };
 }
 
+function hasShownError(formik, fieldName) {
+  return Boolean(formik.errors[fieldName] && (formik.touched[fieldName] || formik.submitCount > 0));
+}
+
 export default function SocialConnectionSection({
   title,
   subtitle,
@@ -474,114 +478,118 @@ export default function SocialConnectionSection({
               mb: 2,
             }}
           >
-            <SelectDropdownSingle
-              name="businessEntity"
-              label="Business Entity *"
-              fetchOptions={entityOptionsFetcher}
-              value={formik.values.businessEntity}
-              onChange={(value) => formik.setFieldValue('businessEntity', value)}
-              onBlur={() => formik.setFieldTouched('businessEntity', true)}
-              error={formik.touched.businessEntity && Boolean(formik.errors.businessEntity)}
-              helperText={formik.touched.businessEntity && formik.errors.businessEntity ? formik.errors.businessEntity : ' '}
-            />
+            <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: '0px 20px' }}>
+              <SelectDropdownSingle
+                name="businessEntity"
+                label="Business Entity *"
+                fetchOptions={entityOptionsFetcher}
+                value={formik.values.businessEntity}
+                onChange={(value) => formik.setFieldValue('businessEntity', value)}
+                onBlur={() => formik.setFieldTouched('businessEntity', true)}
+                error={hasShownError(formik, 'businessEntity')}
+                helperText={hasShownError(formik, 'businessEntity') ? formik.errors.businessEntity : ' '}
+              />
 
-            <TextInputField
-              name="connectionName"
-              label="Connection Name *"
-              value={formik.values.connectionName}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.connectionName && Boolean(formik.errors.connectionName)}
-              helperText={formik.touched.connectionName && formik.errors.connectionName ? formik.errors.connectionName : ' '}
-            />
-
-            {fields.map((field) => (
-              <TextField
-                key={field.name}
-                name={field.name}
-                fullWidth
-                size="small"
-                type={field.type || 'text'}
-                label={field.label}
-                value={formik.values[field.name]}
+              <TextInputField
+                name="connectionName"
+                label="Connection Name *"
+                value={formik.values.connectionName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                error={formik.touched[field.name] && Boolean(formik.errors[field.name])}
-                helperText={formik.touched[field.name] && formik.errors[field.name] ? formik.errors[field.name] : ' '}
-              placeholder={field.placeholder}
-              multiline={field.multiline}
-              rows={field.rows}
-              select={field.select}
-              sx={{
-                ...(field.multiline ? { gridColumn: '1 / -1' } : {}),
-                ...buildFieldComponentSx(field),
-              }}
-            >
-                {field.select && field.options.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            ))}
+                error={hasShownError(formik, 'connectionName')}
+                helperText={hasShownError(formik, 'connectionName') ? formik.errors.connectionName : ' '}
+              />
 
-            {showInlineToggle && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: 45,
-                  justifyContent: { xs: 'flex-start', md: 'flex-start' },
-                  transform: 'translateY(-12px) translateX(15px)',
-                }}
-              >
+              {fields.map((field) => (
+                <TextField
+                  key={field.name}
+                  name={field.name}
+                  fullWidth
+                  size="small"
+                  type={field.type || 'text'}
+                  label={field.label}
+                  value={formik.values[field.name]}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={hasShownError(formik, field.name)}
+                  helperText={hasShownError(formik, field.name) ? formik.errors[field.name] : ' '}
+                  placeholder={field.placeholder}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                  select={field.select}
+                  sx={{
+                    ...(field.multiline ? { gridColumn: '1 / -1' } : {}),
+                    ...buildFieldComponentSx(field),
+                  }}
+                >
+                  {field.select && field.options.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ))}
+
+              {showInlineToggle && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    minHeight: 45,
+                    justifyContent: { xs: 'flex-start', md: 'flex-start' },
+                    transform: 'translateY(-12px) translateX(15px)',
+                  }}
+                >
+                  <FormControlLabel
+                    sx={{ m: 0 }}
+                    control={(
+                      <Switch
+                        checked={formik.values.isActive}
+                        onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
+                      />
+                    )}
+                    label="Set Active"
+                  />
+                </Box>
+              )}
+            </Box>
+
+            <Stack
+              sx={{ gridColumn: '1 / -1', mt: 1 }}
+              direction={{ xs: 'column', md: 'row' }}
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              justifyContent={showInlineToggle ? 'flex-end' : 'space-between'}
+              spacing={2}
+            >
+              {!showInlineToggle && (
                 <FormControlLabel
-                  sx={{ m: 0 }}
                   control={(
                     <Switch
                       checked={formik.values.isActive}
                       onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
                     />
                   )}
-                  label="Set Active"
+                  label="Set this connection as active for the selected business entity"
                 />
-              </Box>
-            )}
+              )}
+
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={formik.isSubmitting}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: '10px',
+                  px: 3,
+                  ml: 'auto',
+                  alignSelf: { xs: 'stretch', md: 'auto' },
+                }}
+              >
+                {formik.isSubmitting ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </Stack>
           </Box>
-
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent={showInlineToggle ? 'flex-end' : 'space-between'}
-            spacing={2}
-          >
-            {!showInlineToggle && (
-              <FormControlLabel
-                control={(
-                  <Switch
-                    checked={formik.values.isActive}
-                    onChange={(event) => formik.setFieldValue('isActive', event.target.checked)}
-                  />
-                )}
-                label="Set this connection as active for the selected business entity"
-              />
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={formik.isSubmitting}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                borderRadius: '10px',
-                px: 3,
-                alignSelf: { xs: 'stretch', md: showInlineToggle ? 'flex-end' : 'auto' },
-              }}
-            >
-              {formik.isSubmitting ? 'Saving...' : 'Save Configuration'}
-            </Button>
-          </Stack>
         </>
       ) : (
         <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '12px' }}>
@@ -593,7 +601,6 @@ export default function SocialConnectionSection({
                 <TableCell sx={{ fontWeight: 700 }}>Primary ID</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Identifiers</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Active</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Saved</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 700 }}>Action</TableCell>
               </TableRow>
@@ -601,7 +608,7 @@ export default function SocialConnectionSection({
             <TableBody>
               {rowsLoading && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3, color: '#64748b' }}>
                     <OrbitLoader
                       title="Loading saved configurations"
                       subtitle="Syncing business entity connections and saved settings."
@@ -613,7 +620,7 @@ export default function SocialConnectionSection({
 
               {!rowsLoading && rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#64748b' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3, color: '#64748b' }}>
                     No saved configuration yet.
                   </TableCell>
                 </TableRow>
@@ -635,14 +642,6 @@ export default function SocialConnectionSection({
                       onChange={() => handleToggleActive(row)}
                       size="small"
                       disabled={actionRowId === row.id}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={row.status}
-                      size="small"
-                      color={row.isActive ? 'success' : 'default'}
-                      variant={row.isActive ? 'filled' : 'outlined'}
                     />
                   </TableCell>
                   <TableCell>{formatTimestamp(row.savedAt)}</TableCell>

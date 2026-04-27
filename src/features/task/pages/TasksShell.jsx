@@ -72,7 +72,7 @@ export default function TasksShell() {
 
   function handleEditTask(task) {
     if (task?.id) {
-      navigate(`/tasks/${task.id}/edit`);
+      window.open(`/tasks/${task.id}/edit`, '_blank', 'noopener,noreferrer');
     }
   }
 
