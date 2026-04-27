@@ -75,7 +75,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
-const WhatsAppConversation = ({ contact, messages, backBtn }) => {
+const WhatsAppConversation = ({ contact, messages, backBtn, composerDisabled = false }) => {
   const [input, setInput] = useState('');
 
   return (
@@ -131,6 +131,12 @@ const WhatsAppConversation = ({ contact, messages, backBtn }) => {
         </div>
       </div>
 
+      {composerDisabled && (
+        <div className="social-conv__readonly-banner">
+          View only mode. Sending is disabled for this role.
+        </div>
+      )}
+
       <div className="whatsapp-conv__messages">
         {messages.map((msg) => (
           <div
@@ -165,16 +171,17 @@ const WhatsAppConversation = ({ contact, messages, backBtn }) => {
       </div>
 
       <div className="whatsapp-conv__input-bar">
-        <IconButton size="small" sx={{ color: '#54656F' }}><EmojiEmotionsIcon /></IconButton>
-        <IconButton size="small" sx={{ color: '#54656F' }}><AttachFileIcon /></IconButton>
+        <IconButton size="small" sx={{ color: '#54656F' }} disabled={composerDisabled}><EmojiEmotionsIcon /></IconButton>
+        <IconButton size="small" sx={{ color: '#54656F' }} disabled={composerDisabled}><AttachFileIcon /></IconButton>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message"
+          placeholder={composerDisabled ? 'View only' : 'Type a message'}
           className="whatsapp-conv__input"
+          disabled={composerDisabled}
         />
-        <IconButton size="small" sx={{ color: '#54656F' }}>
+        <IconButton size="small" sx={{ color: '#54656F' }} disabled={composerDisabled}>
           {input.trim() ? <SendIcon /> : <MicIcon />}
         </IconButton>
       </div>

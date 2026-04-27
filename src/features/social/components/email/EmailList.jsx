@@ -110,7 +110,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import Chip from '@mui/material/Chip';
 import ChatConversionTooltip from '../ChatConversionTooltip';
 
-const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+const EmailList = ({ contacts, selectedContact, currentAgentId, lockForHandlersOnly, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -164,7 +164,9 @@ const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact 
 
       <div className="email-list__contacts">
         {filteredContacts.map((contact) => {
-          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+          const isAssignedToOtherAgent = Boolean(
+            lockForHandlersOnly && contact.assignedAgentId && contact.assignedAgentId !== currentAgentId,
+          );
 
           return (
           <ChatConversionTooltip key={contact.id} contact={contact}>

@@ -349,6 +349,20 @@
   color: #475569;
 }
 
+.social-conv__readonly-banner {
+  padding: 9px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.social-conv__readonly-banner--email {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .messenger-list__avatar {
   position: relative;
   flex-shrink: 0;
@@ -560,6 +574,12 @@
 
 .messenger-conv__input::placeholder {
   color: #9e9e9e;
+}
+
+.messenger-conv__input:disabled,
+.whatsapp-conv__input:disabled {
+  cursor: not-allowed;
+  color: #94a3b8;
 }
 
 /* ===== WhatsApp Chat List ===== */

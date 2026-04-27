@@ -60,7 +60,7 @@ import Chip from '@mui/material/Chip';
 import { useState } from 'react';
 import ChatConversionTooltip from '../ChatConversionTooltip';
 
-const MessengerChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+const MessengerChatList = ({ contacts, selectedContact, currentAgentId, lockForHandlersOnly, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -113,7 +113,9 @@ const MessengerChatList = ({ contacts, selectedContact, currentAgentId, onSelect
 
       <div className="messenger-list__contacts">
         {filtered.map((contact) => {
-          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+          const isAssignedToOtherAgent = Boolean(
+            lockForHandlersOnly && contact.assignedAgentId && contact.assignedAgentId !== currentAgentId,
+          );
 
           return (
           <ChatConversionTooltip key={contact.id} contact={contact}>

@@ -1,7 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import { useUserProfile } from '../../settings/context/UserProfileContext';
+import { fetchRolePermissions } from '../../settings/api/settingsApi';
 import {
   MESSAGE_TEMPLATES_BY_MEDIUM,
 } from '../data/mockData';
@@ -14,8 +16,38 @@ import {
 } from '../services/chatAssignmentService';
 
 const SocialContext = createContext(undefined);
+const EMPTY_SOCIAL_ACCESS = {
+  canViewSocial: false,
+  canHandleSocial: false,
+};
+
+function resolveSocialAccess(payload) {
+  const menus = Array.isArray(payload?.menus)
+    ? payload.menus
+    : Array.isArray(payload?.data?.menus)
+      ? payload.data.menus
+      : [];
+
+  const socialMenu = menus.find((menu) => menu?.key === 'social');
+  const actions = Array.isArray(socialMenu?.permissions) ? socialMenu.permissions : [];
+
+  const hasAction = (actionKey) => actions.some((action) => {
+    const key = String(action?.key || '').trim().toLowerCase();
+
+    return Boolean(action?.checked) && (
+      key === actionKey
+      || key === `social.${actionKey}`
+    );
+  });
+
+  return {
+    canViewSocial: hasAction('view'),
+    canHandleSocial: hasAction('update'),
+  };
+}
 
 export const SocialProvider = ({ children }) => {
+  const { profile } = useUserProfile();
   const [activeEntity, setActiveEntity] = useState('Race Online Ltd.');
   const [activeMedium, setActiveMedium] = useState('messenger');
   const [chatStore, setChatStore] = useState(() => createInitialChatStore());
@@ -27,6 +59,15 @@ export const SocialProvider = ({ children }) => {
     severity: 'success',
     message: '',
   });
+  const [socialAccess, setSocialAccess] = useState(EMPTY_SOCIAL_ACCESS);
+  const [isAccessLoading, setIsAccessLoading] = useState(true);
+
+  const currentAgent = useMemo(() => ({
+    id: profile?.id ? String(profile.id) : CURRENT_AGENT.id,
+    name: profile?.fullName || profile?.userName || CURRENT_AGENT.name,
+    role: profile?.role || '',
+  }), [profile?.fullName, profile?.id, profile?.role, profile?.userName]);
+  const { canViewSocial, canHandleSocial } = socialAccess;
 
   const contacts = useMemo(
     () => getChatsForSelection(chatStore, activeEntity, activeMedium),
@@ -63,12 +104,27 @@ export const SocialProvider = ({ children }) => {
   function requestChatSelection(contact) {
     if (!contact) return;
 
-    if (contact.assignedAgentId && contact.assignedAgentId !== CURRENT_AGENT.id) {
+    if (isAccessLoading) {
+      showToast('Checking social access...', 'info');
+      return;
+    }
+
+    if (!canViewSocial) {
+      showToast('You do not have access to this chat', 'error');
+      return;
+    }
+
+    if (!canHandleSocial) {
+      setSelectedContactId(contact.id);
+      return;
+    }
+
+    if (contact.assignedAgentId && contact.assignedAgentId !== currentAgent.id) {
       showToast('Chat already taken', 'error');
       return;
     }
 
-    if (contact.assignedAgentId === CURRENT_AGENT.id) {
+    if (contact.assignedAgentId === currentAgent.id) {
       setSelectedContactId(contact.id);
       return;
     }
@@ -98,7 +154,7 @@ export const SocialProvider = ({ children }) => {
 
     const result = await claimChatAssignment({
       chat: latestChat,
-      currentAgent: CURRENT_AGENT,
+      currentAgent,
     });
 
     if (!result.ok) {
@@ -123,13 +179,56 @@ export const SocialProvider = ({ children }) => {
     setIsPickingChat(false);
   }
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadSocialAccess() {
+      if (!profile?.roleId) {
+        if (active) {
+          setSocialAccess(EMPTY_SOCIAL_ACCESS);
+          setIsAccessLoading(false);
+        }
+        return;
+      }
+
+      setIsAccessLoading(true);
+
+      try {
+        const permissionPayload = await fetchRolePermissions(profile.roleId);
+
+        if (!active) return;
+
+        setSocialAccess(resolveSocialAccess(permissionPayload));
+      } catch {
+        if (!active) return;
+
+        setSocialAccess(EMPTY_SOCIAL_ACCESS);
+        showToast('Unable to load social access', 'error');
+      } finally {
+        if (active) {
+          setIsAccessLoading(false);
+        }
+      }
+    }
+
+    loadSocialAccess();
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.roleId]);
+
   return (
     <SocialContext.Provider value={{
       activeEntity, setActiveEntity,
       activeMedium, setActiveMedium,
       contacts,
       messages,
-      currentAgent: CURRENT_AGENT,
+      currentAgent,
+      viewerRole: profile?.role || '',
+      canViewSocial,
+      canHandleSocial,
+      isAccessLoading,
       selectedContact,
       setSelectedContact,
       requestChatSelection,

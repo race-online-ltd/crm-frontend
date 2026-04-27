@@ -64,6 +64,8 @@
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 import { useSocial } from '../context/SocialContext';
 import MessengerChatList from './messenger/MessengerChatList';
 import MessengerConversation from './messenger/MessengerConversation';
@@ -86,6 +88,8 @@ const SocialInbox = () => {
     confirmPickChat,
     isPickingChat,
     currentAgent,
+    canHandleSocial,
+    isAccessLoading,
   } = useSocial();
 
   const handleBack = () => setSelectedContact(null);
@@ -98,6 +102,7 @@ const SocialInbox = () => {
             contacts={contacts}
             selectedContact={selectedContact}
             currentAgentId={currentAgent.id}
+            lockForHandlersOnly={canHandleSocial}
             onSelectContact={requestChatSelection}
           />
         );
@@ -107,6 +112,7 @@ const SocialInbox = () => {
             contacts={contacts}
             selectedContact={selectedContact}
             currentAgentId={currentAgent.id}
+            lockForHandlersOnly={canHandleSocial}
             onSelectContact={requestChatSelection}
           />
         );
@@ -116,6 +122,7 @@ const SocialInbox = () => {
             contacts={contacts}
             selectedContact={selectedContact}
             currentAgentId={currentAgent.id}
+            lockForHandlersOnly={canHandleSocial}
             onSelectContact={requestChatSelection}
           />
         );
@@ -125,6 +132,17 @@ const SocialInbox = () => {
   };
 
   const renderConversation = () => {
+    if (isAccessLoading) {
+      return (
+        <div className="empty-conversation">
+          <CircularProgress size={28} />
+          <Typography mt={1.5} fontSize={14} color="#64748b">
+            Loading social access...
+          </Typography>
+        </div>
+      );
+    }
+
     if (!selectedContact) {
       return (
         <div className="empty-conversation">
@@ -147,11 +165,32 @@ const SocialInbox = () => {
 
     switch (activeMedium) {
       case 'messenger':
-        return <MessengerConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return (
+          <MessengerConversation
+            contact={selectedContact}
+            messages={messages}
+            backBtn={backBtn}
+            composerDisabled={!canHandleSocial}
+          />
+        );
       case 'whatsapp':
-        return <WhatsAppConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return (
+          <WhatsAppConversation
+            contact={selectedContact}
+            messages={messages}
+            backBtn={backBtn}
+            composerDisabled={!canHandleSocial}
+          />
+        );
       case 'email':
-        return <EmailConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return (
+          <EmailConversation
+            contact={selectedContact}
+            messages={messages}
+            backBtn={backBtn}
+            composerDisabled={!canHandleSocial}
+          />
+        );
       default:
         return null;
     }
@@ -166,7 +205,7 @@ const SocialInbox = () => {
         {renderConversation()}
       </div>
       <ChatPickDialog
-        open={Boolean(pendingChat)}
+        open={canHandleSocial && Boolean(pendingChat)}
         chat={pendingChat}
         loading={isPickingChat}
         onClose={closePickDialog}

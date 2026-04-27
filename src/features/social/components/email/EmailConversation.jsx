@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button';
 
-const EmailConversation = ({ contact, messages, backBtn }) => {
+const EmailConversation = ({ contact, messages, backBtn, composerDisabled = false }) => {
   const subject = messages[0]?.subject || 'No Subject';
 
   return (
@@ -40,6 +40,12 @@ const EmailConversation = ({ contact, messages, backBtn }) => {
           Convert to task
         </Button>
       </div>
+
+      {composerDisabled && (
+        <div className="social-conv__readonly-banner social-conv__readonly-banner--email">
+          View only mode. Sending is disabled for this role.
+        </div>
+      )}
 
       <div className="email-conv__subject">
         <h2>{subject}</h2>

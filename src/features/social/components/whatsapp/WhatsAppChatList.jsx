@@ -64,7 +64,7 @@ import Chip from '@mui/material/Chip';
 import { useState } from 'react';
 import ChatConversionTooltip from '../ChatConversionTooltip';
 
-const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
+const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, lockForHandlersOnly, onSelectContact }) => {
   const [filter, setFilter] = useState('UNREAD');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -122,7 +122,9 @@ const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectC
 
       <div className="whatsapp-list__contacts">
         {filtered.map((contact) => {
-          const isAssignedToOtherAgent = Boolean(contact.assignedAgentId && contact.assignedAgentId !== currentAgentId);
+          const isAssignedToOtherAgent = Boolean(
+            lockForHandlersOnly && contact.assignedAgentId && contact.assignedAgentId !== currentAgentId,
+          );
 
           return (
           <ChatConversionTooltip key={contact.id} contact={contact}>

@@ -72,7 +72,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useState } from 'react';
 import { Button } from '@mui/material';
 
-const MessengerConversation = ({ contact, messages, backBtn }) => {
+const MessengerConversation = ({ contact, messages, backBtn, composerDisabled = false }) => {
   const [input, setInput] = useState('');
 
   return (
@@ -129,6 +129,12 @@ const MessengerConversation = ({ contact, messages, backBtn }) => {
         </div>
       </div>
 
+      {composerDisabled && (
+        <div className="social-conv__readonly-banner">
+          View only mode. Sending is disabled for this role.
+        </div>
+      )}
+
       <div className="messenger-conv__messages">
         {messages.map((msg) => (
           <div
@@ -153,17 +159,18 @@ const MessengerConversation = ({ contact, messages, backBtn }) => {
       </div>
 
       <div className="messenger-conv__input-bar">
-        <IconButton size="small" sx={{ color: '#0084FF' }}><AddCircleIcon /></IconButton>
-        <IconButton size="small" sx={{ color: '#0084FF' }}><ImageIcon /></IconButton>
-        <IconButton size="small" sx={{ color: '#0084FF' }}><EmojiEmotionsIcon /></IconButton>
+        <IconButton size="small" sx={{ color: '#0084FF' }} disabled={composerDisabled}><AddCircleIcon /></IconButton>
+        <IconButton size="small" sx={{ color: '#0084FF' }} disabled={composerDisabled}><ImageIcon /></IconButton>
+        <IconButton size="small" sx={{ color: '#0084FF' }} disabled={composerDisabled}><EmojiEmotionsIcon /></IconButton>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Aa"
+          placeholder={composerDisabled ? 'View only' : 'Aa'}
           className="messenger-conv__input"
+          disabled={composerDisabled}
         />
-        <IconButton size="small" sx={{ color: '#0084FF' }}>
+        <IconButton size="small" sx={{ color: '#0084FF' }} disabled={composerDisabled}>
           {input.trim() ? <SendIcon /> : <span style={{ fontSize: 18 }}>👍</span>}
         </IconButton>
       </div>
