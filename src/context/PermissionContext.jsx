@@ -26,7 +26,7 @@ export const PermissionProvider = ({ children }) => {
   //   fetchPermissions();
   // }, []);
 
-const token = sessionStorage.getItem("access_token");
+const token = localStorage.getItem("access_token");
 
 useEffect(() => {
   if (!token) return;

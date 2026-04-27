@@ -219,7 +219,7 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
   }, [dataCenterOptions]);
 
   const handleLogout = () => {
-    const token = sessionStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
 
     logoutUser(
       {},
@@ -230,11 +230,11 @@ const Header = ({ username, toggleSidebar, isSidebarCollapsed, isMobile }) => {
       }
     )
       .then(() => {
-        sessionStorage.clear();
+        localStorage.clear();
         navigate('/');
       })
       .catch(() => {
-        sessionStorage.clear();
+        localStorage.clear();
         navigate('/');
       });
   };

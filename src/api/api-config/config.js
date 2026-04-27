@@ -15,7 +15,7 @@ let isRedirecting = false;
  
 apiClient.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
 
     config.headers = {
       ...config.headers,
@@ -51,7 +51,7 @@ apiClient.interceptors.response.use(
       isRedirecting = true;
 
       // clear session
-      sessionStorage.clear();
+      localStorage.clear();
 
       // ✅ IMPORTANT: login route = "/"
       window.location.replace("/");
