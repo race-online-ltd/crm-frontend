@@ -9,6 +9,9 @@ export async function fetchLeadFormOptions(businessEntityId = '') {
     business_entities: [],
     sources: [],
     clients: [],
+    lead_assigns: [],
+    kam_users: [],
+    backoffices: [],
     products: [],
     stages: [],
   };
@@ -43,4 +46,3 @@ export async function updateLead(id, formData) {
 
   return response.data?.data ?? null;
 }
-

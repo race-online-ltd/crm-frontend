@@ -30,6 +30,14 @@ const STAGE_LABELS = {
   closed_lost: 'Closed Lost',
 };
 
+function resolveStageLabel(lead) {
+  return lead?.stageLabel
+    || STAGE_LABELS[lead?.stageId || lead?.stage]
+    || lead?.stage
+    || lead?.stageId
+    || 'Not available';
+}
+
 function formatDateTime(value) {
   if (!value) return 'Not available';
 
@@ -110,7 +118,7 @@ export default function ViewDetailsDrawer({
   const commercialInfo = [
     { label: 'Business Entity', value: lead?.businessEntity || 'Not available' },
     { label: 'Source', value: lead?.source || 'Not available' },
-    { label: 'Current Stage', value: STAGE_LABELS[lead?.stageId || lead?.stage] || 'Not available' },
+    { label: 'Current Stage', value: resolveStageLabel(lead) },
     { label: 'Expected Revenue', value: formatAmount(lead?.amount) },
   ];
 

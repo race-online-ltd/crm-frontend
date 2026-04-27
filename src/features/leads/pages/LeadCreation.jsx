@@ -53,14 +53,18 @@ export default function LeadCreation() {
     editLead
       ? {
           id: editLead.id,
-          businessEntity: editLead.business_entity_id || editLead.businessEntity || '',
-          source: editLead.source_id || editLead.source || '',
+          business_entity_id: editLead.business_entity_id || '',
+          source_id: editLead.source_id || '',
+          source_info: editLead.source_info || '',
+          lead_assign_id: editLead.lead_assign_id || '',
+          kam_id: editLead.kam_id || editLead.assigned_to_user_id || '',
+          backoffice_id: editLead.backoffice_id || '',
           products: Array.isArray(editLead.product_ids)
             ? editLead.product_ids
             : (Array.isArray(editLead.products) ? editLead.products.map((item) => item.id || item) : []),
-          client: editLead.client_id || editLead.client || '',
-          expectedRevenue: editLead.expected_revenue || editLead.expectedRevenue || '',
-          stage: editLead.lead_pipeline_stage_id || editLead.stage || '',
+          client_id: editLead.client_id || '',
+          expected_revenue: editLead.expected_revenue || '',
+          lead_pipeline_stage_id: editLead.lead_pipeline_stage_id || '',
           deadline: editLead.deadline ? new Date(editLead.deadline) : null,
           attachment: Array.isArray(editLead.attachment)
               ? editLead.attachment.map((file) => ({

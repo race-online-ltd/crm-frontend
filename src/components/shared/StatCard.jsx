@@ -7,10 +7,13 @@ const StatCard = ({
   iconBg, 
   iconColor, 
   title, 
+  subtitle,
   value, 
+  valueSecondary,
   percentage, 
   footerLabel, 
-  footerValue 
+  footerValue,
+  footerSecondaryValue,
 }) => {
   return (
     <Card variant="outlined" sx={{ borderRadius: 2, height: "100%", display: "flex", flexDirection: "column" }}>
@@ -52,9 +55,37 @@ const StatCard = ({
             >
               {title}
             </Typography>
+            {subtitle ? (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  lineHeight: 1.25,
+                  color: "text.secondary",
+                  fontWeight: 500,
+                  mb: 0.5,
+                  minHeight: 18,
+                }}
+              >
+                {subtitle}
+              </Typography>
+            ) : null}
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
               {value}
             </Typography>
+            {valueSecondary ? (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  mt: 0.25,
+                }}
+              >
+                {valueSecondary}
+              </Typography>
+            ) : null}
           </Box>
 
           {percentage !== undefined && (
@@ -74,15 +105,22 @@ const StatCard = ({
         <Box 
           display="flex" 
           justifyContent="space-between" 
-          alignItems="center" 
+          alignItems={footerSecondaryValue ? 'flex-start' : 'center'} 
           sx={{ mt: "auto" }} 
         >
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
             {footerLabel}
           </Typography>
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            {footerValue}
-          </Typography>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.2 }}>
+              {footerValue}
+            </Typography>
+            {footerSecondaryValue ? (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', lineHeight: 1.2, mt: 0.25 }}>
+                {footerSecondaryValue}
+              </Typography>
+            ) : null}
+          </Box>
         </Box>
       </CardContent>
     </Card>

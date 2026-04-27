@@ -60,7 +60,7 @@ function mergeFiles(currentFiles, selectedFiles) {
 }
 
 export default function AttachmentField({
-  label = 'Attachments',
+  label = '',
   value = [],
   onChange,
   accept = ATTACHMENT_ACCEPT,

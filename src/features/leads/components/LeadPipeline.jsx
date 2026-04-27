@@ -33,14 +33,42 @@ const DialogLoading = (
   </Box>
 );
 
+function hashString(value = '') {
+  const seed = String(value || 'default');
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+}
+
+function getDynamicColor(value = '') {
+  const palette = ['#2563eb', '#7c3aed', '#0f766e', '#db2777', '#d97706', '#16a34a', '#dc2626', '#4f46e5'];
+  return palette[hashString(value) % palette.length];
+}
+
 // ── Stage config ──
-const STAGES = [
-  { id: 'new',         title: 'New',         color: '#4786EE' },
-  { id: 'contacted',   title: 'Contacted',   color: '#8ad0b2' },
-  { id: 'qualified',   title: 'Qualified',   color: '#40be6e' },
-  { id: 'proposal',    title: 'Proposal',    color: '#96ced8' },
-  { id: 'negotiation', title: 'Negotiation', color: '#5b90ab' },
-  { id: 'closed',      title: 'Closed',      color: '#66955d' },
+export const STAGES = [
+  { id: 'new',         title: 'New',         color: getDynamicColor('new') },
+  { id: 'contacted',   title: 'Contacted',   color: getDynamicColor('contacted') },
+  { id: 'qualified',   title: 'Qualified',   color: getDynamicColor('qualified') },
+  { id: 'proposal',    title: 'Proposal',    color: getDynamicColor('proposal') },
+  { id: 'negotiation', title: 'Negotiation', color: getDynamicColor('negotiation') },
+  { id: 'closed',      title: 'Closed',      color: getDynamicColor('closed') },
+];
+
+const ENTITY_COLOR_PALETTE = [
+  '#2563eb',
+  '#7c3aed',
+  '#0f766e',
+  '#db2777',
+  '#d97706',
+  '#16a34a',
+  '#dc2626',
+  '#4f46e5',
 ];
 
 const STATUS_COLORS = {
@@ -56,6 +84,101 @@ const SOURCE_COLORS = {
   'WhatsApp':  { bg: '#dcfce7', color: '#16a34a' },
   'Direct':    { bg: '#fef3c7', color: '#d97706' },
 };
+
+function slugifyLabel(value = '') {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+export function getEntityAccentColor(entityId, entityName = '') {
+  const seed = String(entityId ?? entityName ?? 'default');
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+
+  return ENTITY_COLOR_PALETTE[Math.abs(hash) % ENTITY_COLOR_PALETTE.length];
+}
+
+function getStageBucketId(stageName = '') {
+  const normalized = slugifyLabel(stageName);
+  if (normalized.includes('closed') || normalized.includes('won') || normalized.includes('lost')) {
+    return 'closed';
+  }
+  const match = STAGES.find((stage) => stage.id === normalized || slugifyLabel(stage.title) === normalized);
+  return match?.id || 'new';
+}
+
+function buildPipelineItem(lead) {
+  const entityColor = getEntityAccentColor(lead.business_entity_id, lead.business_entity);
+  const stageId = getStageBucketId(lead.stage);
+  const stageConfig = STAGES.find((stage) => stage.id === stageId) || null;
+  const products = Array.isArray(lead.products)
+    ? lead.products.map((product) => product?.label || product?.name || product).filter(Boolean)
+    : [];
+  const expectedRevenue = Number(String(lead.expected_revenue ?? lead.expectedRevenue ?? 0).replace(/[^0-9.-]/g, '')) || 0;
+
+  return {
+    id: String(lead.id),
+    name: lead.client || lead.client_name || 'Untitled Lead',
+    subtitle: lead.business_entity || lead.businessEntity || '-',
+    user: lead.kam || lead.assigned_to_user || lead.assignedToUser || '-',
+    source: lead.source || '-',
+    sourceId: String(lead.source_id || lead.sourceId || ''),
+    sourceInfo: lead.source_info || lead.sourceInfo || '',
+    leadAssignId: lead.lead_assign_id || lead.leadAssignId || '',
+    kamId: lead.kam_id || lead.kamId || '',
+    backofficeId: lead.backoffice_id || lead.backofficeId || '',
+    leadPipelineStageId: lead.lead_pipeline_stage_id || lead.leadPipelineStageId || '',
+    stageLabel: lead.stage || lead.stageLabel || stageConfig?.title || stageId,
+    stageColor: lead.stage_color || lead.stageColor || stageConfig?.color || getDynamicColor(stageId),
+    businessEntity: lead.business_entity || lead.businessEntity || '-',
+    businessEntityId: lead.business_entity_id || lead.businessEntityId || '',
+    businessEntityColor: entityColor,
+    client: lead.client || lead.client_name || '-',
+    clientId: lead.client_id || lead.clientId || '',
+    productsIds: Array.isArray(lead.product_ids) ? lead.product_ids : [],
+    amount: expectedRevenue,
+    expectedRevenue: String(expectedRevenue),
+    stage: stageId,
+    stageId,
+    deadline: lead.deadline || null,
+    status: stageId === 'closed' ? 'Won' : 'In Progress',
+    products: products.length ? products.join(', ') : '-',
+    assignedDate: lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-',
+    duration: '-',
+  };
+}
+
+export function createEmptyPipelineState() {
+  return STAGES.reduce((acc, stage) => {
+    acc[stage.id] = { title: stage.title, items: [] };
+    return acc;
+  }, {});
+}
+
+export function buildPipelineStateFromLeads(leads = []) {
+  const state = createEmptyPipelineState();
+
+  leads.forEach((lead) => {
+    const item = buildPipelineItem(lead);
+    const stageKey = item.stage;
+
+    if (!state[stageKey]) {
+      state[stageKey] = { title: stageKey, items: [] };
+    }
+
+    state[stageKey].items.push(item);
+  });
+
+  return state;
+}
 
 function formatAmount(amount) {
   if (typeof amount === 'number') return `৳${amount.toLocaleString()}`;
@@ -127,12 +250,21 @@ function LeadListView({ leads, onStageChange, onAction }) {
               const stageCfg = STAGES.find((s) => s.id === lead.stageId);
               const statusCfg = STATUS_COLORS[lead.status] || { bg: '#f1f5f9', color: '#64748b' };
               const sourceCfg = SOURCE_COLORS[lead.source] || { bg: '#f1f5f9', color: '#64748b' };
+              const accentColor = lead.businessEntityColor || '#2563eb';
+              const stageColor = lead.stageColor || stageCfg?.color || '#2563eb';
 
               return (
-                <TableRow key={lead.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                <TableRow
+                  key={lead.id}
+                  hover
+                  sx={{
+                    '&:hover': { bgcolor: '#f8fafc' },
+                    '& td:first-of-type': { borderLeft: `3px solid ${accentColor}` },
+                  }}
+                >
                   <TableCell>
                     <Typography variant="body2" fontWeight={600} color="#1e293b">{lead.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">{lead.subtitle || '-'}</Typography>
+                    <Typography variant="caption" sx={{ color: accentColor, fontWeight: 700 }}>{lead.subtitle || '-'}</Typography>
                   </TableCell>
                   <TableCell sx={{ color: '#64748b', fontSize: '0.82rem' }}>{lead.products || '-'}</TableCell>
                   <TableCell>
@@ -147,9 +279,9 @@ function LeadListView({ leads, onStageChange, onAction }) {
                       onChange={(e) => handleStageSelect(lead, e.target.value)}
                       sx={{
                         fontSize: '0.75rem', fontWeight: 600, height: 28, borderRadius: '8px',
-                        bgcolor: stageCfg?.color + '18', color: stageCfg?.color,
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: stageCfg?.color + '40' },
-                        '& .MuiSelect-icon': { color: stageCfg?.color },
+                        bgcolor: `${stageColor}18`, color: stageColor,
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: `${stageColor}40` },
+                        '& .MuiSelect-icon': { color: stageColor },
                       }}
                     >
                       {STAGES.map((s) => (
@@ -198,6 +330,8 @@ function LeadListView({ leads, onStageChange, onAction }) {
 // ── Kanban Card with action menu ──
 function KanbanLeadCard({ item, index, onAction }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const accentColor = item.businessEntityColor || '#2563eb';
+  const stageColor = item.stageColor || '#2563eb';
 
   return (
     <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -210,14 +344,21 @@ function KanbanLeadCard({ item, index, onAction }) {
           sx={{
             mb: 1, borderRadius: '8px',
             boxShadow: snapshot.isDragging ? '0 6px 12px rgba(0,0,0,0.12)' : '0 1px 2px rgba(0,0,0,0.03)',
-            borderColor: '#e2e8f0', bgcolor: '#fff',
+            borderColor: `${accentColor}30`,
+            borderLeft: `4px solid ${accentColor}`,
+            bgcolor: '#fff',
           }}
         >
           <CardContent sx={{ p: '10px !important' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-              <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.8, color: '#1e293b', fontSize: '0.78rem' }}>
-                {item.name}
-              </Typography>
+              <Box sx={{ minWidth: 0, pr: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.25, color: '#1e293b', fontSize: '0.78rem' }}>
+                  {item.name}
+                </Typography>
+              <Typography variant="caption" sx={{ color: accentColor, fontWeight: 700, display: 'block', lineHeight: 1.2 }}>
+                  {item.businessEntity}
+                </Typography>
+              </Box>
               <IconButton size="small" onClick={(e) => { e.stopPropagation(); setAnchorEl(e.currentTarget); }}
                 sx={{ mt: -0.5, mr: -0.5 }}>
                 <MoreHorizIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
@@ -262,8 +403,9 @@ function KanbanLeadCard({ item, index, onAction }) {
 }
 
 // ── Main Pipeline Component ──
-export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead }) {
-  const isLoading = useInitialTableLoading();
+export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLead, loading = null }) {
+  const initialLoading = useInitialTableLoading();
+  const isLoading = loading ?? initialLoading;
   const [view, setView] = useState('kanban');
   const [forwardDialog, setForwardDialog] = useState({ open: false, lead: null });
   const [taskDialog, setTaskDialog] = useState({ open: false, lead: null });
@@ -370,9 +512,17 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
 
   const handleConfirmStageChange = (note) => {
     const { lead, fromStageId, toStageId } = stageChangeDialog;
+    const toStageConfig = STAGES.find((stage) => stage.id === toStageId) || null;
 
     // Update lead with note
-    const updatedLead = { ...lead, stageChangeNote: note };
+    const updatedLead = {
+      ...lead,
+      stageId: toStageId,
+      stage: toStageId,
+      stageLabel: toStageConfig?.title || toStageId,
+      stageColor: toStageConfig?.color || lead.stageColor,
+      stageChangeNote: note,
+    };
 
     const sourceCol = leads[fromStageId];
     const destCol = leads[toStageId];
@@ -522,10 +672,13 @@ export default function LeadPipeline({ leads, setLeads, onFilterClick, onEditLea
                         {...provided.droppableProps}
                         ref={provided.innerRef}
                         sx={{
-                          p: 1, minHeight: 120, flexGrow: 1,
+                          p: 1,
+                          minHeight: 120,
+                          height: 'calc(545px)',
+                          flexGrow: 1,
                           bgcolor: snapshot.isDraggingOver ? '#edf2f7' : 'transparent',
                           transition: 'background-color 0.2s ease',
-                          overflowY: 'auto', maxHeight: 400,
+                          overflowY: 'auto',
                           '&::-webkit-scrollbar': { width: 4 },
                           '&::-webkit-scrollbar-thumb': { bgcolor: '#e2e8f0', borderRadius: 10 },
                         }}

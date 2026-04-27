@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 
 import SelectDropdownSingle   from '../../../components/shared/SelectDropdownSingle';
 import SelectDropdownMultiple from '../../../components/shared/SelectDropdownMultiple';
+import TextInputField         from '../../../components/shared/TextInputField';
 import AmountInputField       from '../../../components/shared/AmountInputField';
 import DatePickerField        from '../../../components/shared/DatePickerField';
 import AttachmentField        from '../../../components/shared/AttachmentField';
@@ -36,21 +37,26 @@ const CLIENT_META = {
 
 // ─── Validation schema ───────────────────────────────────────────────────────
 const singleLeadSchema = Yup.object({
-  businessEntity:  Yup.string().required('Business entity is required'),
-  source:    Yup.string().required('Source is required'),
+  business_entity_id:  Yup.string().required('Business entity is required'),
+  source_id:    Yup.string().required('Source is required'),
+  lead_assign_id:    Yup.string().required('Assign To is required'),
   products:        Yup.array().min(1, 'Select at least one product'),
-  client:          Yup.string().required('Client is required'),
-  stage:    Yup.string().required('Stage is required'),
+  client_id:          Yup.string().required('Client is required'),
+  lead_pipeline_stage_id:    Yup.string().required('Stage is required'),
   deadline: Yup.date().nullable().required('Deadline is required'),
 });
 
 const INITIAL_VALUES = {
-  businessEntity: '',
-  source:    '',
+  business_entity_id: '',
+  source_id:    '',
+  source_info:     '',
   products:       [],
-  client:         '',
-  expectedRevenue: '',
-  stage:          '',
+  client_id:         '',
+  lead_assign_id:    '',
+  kam_id: '',
+  backoffice_id:    '',
+  expected_revenue: '',
+  lead_pipeline_stage_id:          '',
   deadline:       null,
   attachment:     [],
 };
@@ -184,11 +190,14 @@ function BulkUploadTab({ onCancel }) {
 // ─── Main LeadForm ────────────────────────────────────────────────────────────
 export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = null, isEdit = false }) {
   const navigate = useNavigate();
-  const formInitialValues = initialValues ?? INITIAL_VALUES;
+  const formInitialValues = { ...INITIAL_VALUES, ...(initialValues || {}) };
   const [optionData, setOptionData] = useState({
     business_entities: [],
     sources: [],
     clients: [],
+    lead_assigns: [],
+    kam_users: [],
+    backoffices: [],
     products: [],
     stages: [],
   });
@@ -200,7 +209,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     const load = async () => {
       try {
         setLoadingOptions(true);
-        const data = await fetchLeadFormOptions(formInitialValues.businessEntity || '');
+        const data = await fetchLeadFormOptions(formInitialValues.business_entity_id || '');
         if (!active) {
           return;
         }
@@ -209,6 +218,9 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           business_entities: data.business_entities || [],
           sources: data.sources || [],
           clients: data.clients || [],
+          lead_assigns: data.lead_assigns || [],
+          kam_users: data.kam_users || [],
+          backoffices: data.backoffices || [],
           products: data.products || [],
           stages: data.stages || [],
         });
@@ -218,6 +230,9 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
             business_entities: [],
             sources: [],
             clients: [],
+            lead_assigns: [],
+            kam_users: [],
+            backoffices: [],
             products: [],
             stages: [],
           });
@@ -234,12 +249,17 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     return () => {
       active = false;
     };
-  }, [formInitialValues.businessEntity]);
+  }, [formInitialValues.business_entity_id]);
 
   const businessEntityFetchOptions = useMemo(() => async () => optionData.business_entities, [optionData.business_entities]);
   const sourceFetchOptions = useMemo(() => async () => optionData.sources, [optionData.sources]);
+  const leadAssignFetchOptions = useMemo(() => async () => optionData.lead_assigns, [optionData.lead_assigns]);
   const clientFetchOptions = useMemo(() => async () => optionData.clients, [optionData.clients]);
-  const stageFetchOptions = useMemo(() => async () => optionData.stages, [optionData.stages]);
+  const stageOptions = useMemo(
+    () => [...optionData.stages].sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)),
+    [optionData.stages],
+  );
+  const stageFetchOptions = useMemo(() => async () => stageOptions, [stageOptions]);
 
   // ── useFormik hook ──────────────────────────────────────────────────────────
   const formik = useFormik({
@@ -254,12 +274,16 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
         }
 
         const payload = {
-          business_entity_id: values.businessEntity,
-          source_id: values.source,
+          business_entity_id: values.business_entity_id,
+          source_id: values.source_id,
+          source_info: values.source_info || null,
           product_ids: values.products,
-          client_id: values.client,
-          expected_revenue: values.expectedRevenue || null,
-          lead_pipeline_stage_id: values.stage,
+          client_id: values.client_id,
+          lead_assign_id: values.lead_assign_id || null,
+          kam_id: values.kam_id || null,
+          backoffice_id: values.backoffice_id || null,
+          expected_revenue: values.expected_revenue || null,
+          lead_pipeline_stage_id: values.lead_pipeline_stage_id,
           deadline: values.deadline?.toISOString() || null,
           attachment: values.attachment,
         };
@@ -288,10 +312,92 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     handleBlur,
     handleSubmit,
   } = formik;
-  const clientMeta = values.client ? CLIENT_META[Number(values.client)] ?? null : null;
+  const clientMeta = values.client_id ? CLIENT_META[Number(values.client_id)] ?? null : null;
+  const getIsOtherSource = (sourceId) => {
+    const source = optionData.sources.find((option) => String(option.id) === String(sourceId)) || null;
+    return Boolean(String(source?.label || '').trim().toLowerCase().includes('other'));
+  };
+  const isOtherSource = getIsOtherSource(values.source_id);
+  const selectedLeadAssign = optionData.lead_assigns.find((option) => String(option.id) === String(values.lead_assign_id)) || null;
+  const selectedLeadAssignName = String(selectedLeadAssign?.label || '').trim().toLowerCase();
+  const isBackOfficeAssign = selectedLeadAssignName.includes('back office');
+  const assignTargetOptions = isBackOfficeAssign
+    ? optionData.backoffices
+    : optionData.kam_users;
+  const getDefaultAssignmentForBusinessEntity = useCallback((businessEntityId) => {
+    const selectedBusinessEntity = optionData.business_entities.find(
+      (option) => String(option.id) === String(businessEntityId),
+    ) || null;
+    const businessEntityName = String(selectedBusinessEntity?.label || '').trim().toLowerCase();
+
+    if (!businessEntityName) {
+      return null;
+    }
+
+    if (businessEntityName.includes('race') || businessEntityName.includes('orbit')) {
+      const backOfficeAssign = optionData.lead_assigns.find((option) =>
+        String(option.label || '').trim().toLowerCase().includes('back office'),
+      );
+
+      return backOfficeAssign
+        ? { lead_assign_id: backOfficeAssign.id, target_type: 'backoffice' }
+        : null;
+    }
+
+    if (businessEntityName.includes('dhaka colo')) {
+      const kamAssign = optionData.lead_assigns.find((option) =>
+        String(option.label || '').trim().toLowerCase().includes('kam'),
+      );
+
+      return kamAssign
+        ? { lead_assign_id: kamAssign.id, target_type: 'kam' }
+        : null;
+    }
+
+    return null;
+  }, [optionData.business_entities, optionData.lead_assigns]);
 
   useEffect(() => {
-    if (!values.businessEntity) {
+    if (!values.business_entity_id || !stageOptions.length) {
+      return;
+    }
+
+    const currentStageExists = stageOptions.some((option) => String(option.id) === String(values.lead_pipeline_stage_id));
+    const defaultStageId = stageOptions[0]?.id || '';
+
+    if ((!values.lead_pipeline_stage_id || !currentStageExists) && defaultStageId) {
+      setFieldValue('lead_pipeline_stage_id', defaultStageId, false);
+    }
+  }, [setFieldValue, stageOptions, values.business_entity_id, values.lead_pipeline_stage_id]);
+
+  useEffect(() => {
+    if (!values.business_entity_id || isEdit || values.lead_assign_id) {
+      return;
+    }
+
+    const defaultAssignment = getDefaultAssignmentForBusinessEntity(values.business_entity_id);
+    if (!defaultAssignment) {
+      return;
+    }
+
+    setFieldValue('lead_assign_id', defaultAssignment.lead_assign_id, false);
+    if (defaultAssignment.target_type === 'backoffice') {
+      setFieldValue('backoffice_id', '', false);
+      setFieldValue('kam_id', '', false);
+    } else {
+      setFieldValue('kam_id', '', false);
+      setFieldValue('backoffice_id', '', false);
+    }
+  }, [
+    getDefaultAssignmentForBusinessEntity,
+    isEdit,
+    setFieldValue,
+    values.business_entity_id,
+    values.lead_assign_id,
+  ]);
+
+  useEffect(() => {
+    if (!values.business_entity_id) {
       return;
     }
 
@@ -299,7 +405,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
 
     const loadByBusinessEntity = async () => {
       try {
-        const data = await fetchLeadFormOptions(values.businessEntity);
+        const data = await fetchLeadFormOptions(values.business_entity_id);
         if (!active) {
           return;
         }
@@ -325,7 +431,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
     return () => {
       active = false;
     };
-  }, [values.businessEntity]);
+  }, [values.business_entity_id]);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -339,25 +445,44 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: isOtherSource ? '1fr 1fr 1fr' : '1fr 1fr',
+              },
               gap: '4px 20px',
               width: '100%',
             }}
           >
             {/* Business Entity */}
             <SelectDropdownSingle
-              name="businessEntity"
+              name="business_entity_id"
               label="Business Entity *"
               fetchOptions={businessEntityFetchOptions}
-              value={values.businessEntity}
+              value={values.business_entity_id}
               onChange={(id) => {
-                setFieldValue('businessEntity', id);
+                setFieldValue('business_entity_id', id);
                 setFieldValue('products', []);
-                setFieldValue('stage', '');
+                setFieldValue('lead_pipeline_stage_id', '');
+
+                const defaultAssignment = getDefaultAssignmentForBusinessEntity(id);
+                if (defaultAssignment) {
+                  setFieldValue('lead_assign_id', defaultAssignment.lead_assign_id);
+                  if (defaultAssignment.target_type === 'backoffice') {
+                    setFieldValue('backoffice_id', '');
+                    setFieldValue('kam_id', '');
+                  } else {
+                    setFieldValue('kam_id', '');
+                    setFieldValue('backoffice_id', '');
+                  }
+                } else {
+                  setFieldValue('lead_assign_id', '');
+                  setFieldValue('kam_id', '');
+                  setFieldValue('backoffice_id', '');
+                }
               }}
               onBlur={handleBlur}
-              error={Boolean(touched.businessEntity && errors.businessEntity)}
-              helperText={touched.businessEntity && errors.businessEntity ? errors.businessEntity : ' '}
+              error={Boolean(touched.business_entity_id && errors.business_entity_id)}
+              helperText={touched.business_entity_id && errors.business_entity_id ? errors.business_entity_id : ' '}
               disabled={isEdit}
               searchable={!isEdit}
               loading={loadingOptions}
@@ -365,19 +490,43 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
 
             {/* Source */}
             <SelectDropdownSingle
-              name="source"
+              name="source_id"
               label="Source *"
               fetchOptions={sourceFetchOptions}
-              value={values.source}
-              onChange={(id) => setFieldValue('source', id)}
+              value={values.source_id}
+              onChange={(id) => {
+                setFieldValue('source_id', id);
+                if (!getIsOtherSource(id)) {
+                  setFieldValue('source_info', '');
+                }
+              }}
               onBlur={handleBlur}
-              error={Boolean(touched.source && errors.source)}
-              helperText={touched.source && errors.source ? errors.source : ' '}
+              error={Boolean(touched.source_id && errors.source_id)}
+              helperText={touched.source_id && errors.source_id ? errors.source_id : ' '}
               loading={loadingOptions}
             />
 
-            {/* Products — full width */}
-            <Box sx={{ gridColumn: '1 / -1' }}>
+            {/* Other Info */}
+            {isOtherSource && (
+              <TextInputField
+                name="source_info"
+                label="Other Info"
+                value={values.source_info}
+                onChange={(e) => setFieldValue('source_info', e.target.value)}
+                onBlur={handleBlur}
+              />
+            )}
+
+            {/* Products + Assign To Type + Target */}
+            <Box
+              sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+                gap: '4px 20px',
+                alignItems: 'start',
+              }}
+            >
               <SelectDropdownMultiple
                 name="products"
                 label="Select Products *"
@@ -388,39 +537,81 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                 error={Boolean(touched.products && errors.products)}
                 helperText={touched.products && errors.products ? errors.products : ' '}
               />
+              <SelectDropdownSingle
+                name="lead_assign_id"
+                label="Assign Type *"
+                fetchOptions={leadAssignFetchOptions}
+                value={values.lead_assign_id}
+                onChange={(id) => {
+                  setFieldValue('lead_assign_id', id);
+                  setFieldValue('kam_id', '');
+                  setFieldValue('backoffice_id', '');
+                }}
+                onBlur={handleBlur}
+                loading={loadingOptions}
+                error={Boolean(touched.lead_assign_id && errors.lead_assign_id)}
+                helperText={touched.lead_assign_id && errors.lead_assign_id ? errors.lead_assign_id : ' '}
+              />
+              <SelectDropdownSingle
+                name={isBackOfficeAssign ? 'backoffice_id' : 'kam_id'}
+                label={isBackOfficeAssign ? 'Select Back Office *' : 'Select KAM User *'}
+                options={assignTargetOptions}
+                value={isBackOfficeAssign ? values.backoffice_id : values.kam_id}
+                onChange={(id) => {
+                  if (isBackOfficeAssign) {
+                    setFieldValue('backoffice_id', id);
+                  } else {
+                    setFieldValue('kam_id', id);
+                  }
+                }}
+                onBlur={handleBlur}
+                searchable
+              />
             </Box>
 
-            {/* Client + Add button — full width row */}
+            {/* Client + Stage row */}
             <Box
               sx={{
                 gridColumn: '1 / -1',
                 display: 'grid',
-                gridTemplateColumns: '1fr auto',
-                gap: '20px',
+                gridTemplateColumns: { xs: '1fr', sm: 'auto 1fr 1fr' },
+                gap: { xs: '12px', sm: '4px 20px' },
                 alignItems: 'start',
               }}
             >
+              <AddClientButton
+                onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              />
               <SelectDropdownSingle
-                name="client"
+                name="client_id"
                 label="Select Client *"
                 fetchOptions={clientFetchOptions}
-                value={values.client}
+                value={values.client_id}
                 onChange={(id) => {
-                  setFieldValue('client', id);
+                  setFieldValue('client_id', id);
                 }}
                 onBlur={handleBlur}
-                error={Boolean(touched.client && errors.client)}
-                helperText={touched.client && errors.client ? errors.client : ' '}
+                error={Boolean(touched.client_id && errors.client_id)}
+                helperText={touched.client_id && errors.client_id ? errors.client_id : ' '}
                 disabled={isEdit}
                 searchable={!isEdit}
                 loading={loadingOptions}
               />
-              {!isEdit && (
-                <AddClientButton onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })} />
-              )}
+              <SelectDropdownSingle
+                name="lead_pipeline_stage_id"
+                label="Stage *"
+                fetchOptions={stageFetchOptions}
+                value={values.lead_pipeline_stage_id}
+                onChange={(id) => setFieldValue('lead_pipeline_stage_id', id)}
+                onBlur={handleBlur}
+                error={Boolean(touched.lead_pipeline_stage_id && errors.lead_pipeline_stage_id)}
+                helperText={touched.lead_pipeline_stage_id && errors.lead_pipeline_stage_id ? errors.lead_pipeline_stage_id : ' '}
+                loading={loadingOptions}
+              />
             </Box>
 
-            {/* Conditional Map & Info Section */}
+            {/* Conditional Client Information */}
             {clientMeta && (
               <Box
                 sx={{
@@ -430,25 +621,29 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
                   gap: '20px',
                 }}
               >
-                {/* Map */}
                 <Paper
                   variant="outlined"
                   sx={{
-                    height: 210, borderRadius: '12px', overflow: 'hidden',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    mb: 3, bgcolor: '#f8fafc',
+                    height: 210,
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 3,
+                    bgcolor: '#f8fafc',
                   }}
                 >
                   <iframe
                     title="client-map"
-                    width="100%" height="100%"
+                    width="100%"
+                    height="100%"
                     style={{ border: 0, display: 'block' }}
                     loading="lazy"
                     src={`https://maps.google.com/maps?q=${clientMeta.lat},${clientMeta.lng}&z=13&output=embed`}
                   />
                 </Paper>
 
-                {/* Client info card */}
                 <Paper
                   variant="outlined"
                   sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
@@ -472,36 +667,30 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               </Box>
             )}
 
-            {/* Expected Revenue */}
-            <AmountInputField
-              name="expectedRevenue"
-              label="Expected Revenue (৳)"
-              value={values.expectedRevenue}
-              onChange={(e) => setFieldValue('expectedRevenue', e.target.value)}
-              onBlur={handleBlur}
-              error={Boolean(touched.expectedRevenue && errors.expectedRevenue)}
-              helperText={
-                touched.expectedRevenue && errors.expectedRevenue
-                  ? errors.expectedRevenue
-                  : ' '
-              }
-            />
+            {/* Expected Revenue + Lead Deadline */}
+            <Box
+              sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: '4px 20px',
+                alignItems: 'start',
+              }}
+            >
+              <AmountInputField
+                name="expected_revenue"
+                label="Expected Monthly Revenue (৳)"
+                value={values.expected_revenue}
+                onChange={(e) => setFieldValue('expected_revenue', e.target.value)}
+                onBlur={handleBlur}
+                error={Boolean(touched.expected_revenue && errors.expected_revenue)}
+                helperText={
+                  touched.expected_revenue && errors.expected_revenue
+                    ? errors.expected_revenue
+                    : ' '
+                }
+              />
 
-            {/* Stage */}
-            <SelectDropdownSingle
-              name="stage"
-              label="Stage *"
-              fetchOptions={stageFetchOptions}
-              value={values.stage}
-              onChange={(id) => setFieldValue('stage', id)}
-              onBlur={handleBlur}
-              error={Boolean(touched.stage && errors.stage)}
-              helperText={touched.stage && errors.stage ? errors.stage : ' '}
-              loading={loadingOptions}
-            />
-
-            {/* Deadline — full width */}
-            <Box sx={{ gridColumn: '1 / -1' }}>
               <DatePickerField
                 label="Lead Deadline *"
                 value={values.deadline}
@@ -518,7 +707,7 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
 
             <Box sx={{ gridColumn: '1 / -1' }}>
               <AttachmentField
-                label="Attachment"
+                // label="Attachment"
                 value={values.attachment}
                 onChange={(files) => setFieldValue('attachment', files)}
               />
@@ -527,33 +716,35 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           </Box>{/* end grid */}
 
           {/* ── Actions ── */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mt={6}>
-            <Button
-              fullWidth variant="outlined" onClick={onCancel}
-              sx={{
-                fontWeight: 600, borderRadius: '10px',
-                borderColor: '#e2e8f0', color: '#64748b',
-                '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting}
-              startIcon={<CheckCircleOutlineIcon />}
-              sx={{
-                fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb',
-                py: 1.2, boxShadow: 'none',
-                '&:hover': { bgcolor: '#1d4ed8', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' },
-                '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-              }}
-            >
-              {isEdit ? 'Update Lead' : 'Create Lead'}
-            </Button>
-          </Stack>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', sm: '30%' } }}>
+              <Button
+                fullWidth variant="outlined" onClick={onCancel}
+                sx={{
+                  fontWeight: 600, borderRadius: '10px',
+                  borderColor: '#e2e8f0', color: '#64748b',
+                  '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                disabled={isSubmitting}
+                startIcon={<CheckCircleOutlineIcon />}
+                sx={{
+                  fontWeight: 700, borderRadius: '10px', bgcolor: '#2563eb',
+                  py: 1.2, boxShadow: 'none',
+                  '&:hover': { bgcolor: '#1d4ed8', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' },
+                  '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
+                }}
+              >
+                {isEdit ? 'Update Lead' : 'Create Lead'}
+              </Button>
+            </Stack>
+          </Box>
         </form>
       )}
     </Box>
