@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Stack, Divider, Button, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { LeadCalendarSkeleton, LeadPipelineSkeleton, LeadStatsSkeleton } from '../components/LeadSectionSkeletons';
-import { fetchLeads } from '../api/leadApi';
+import { fetchLeads,fetchLeadPipeline } from '../api/leadApi';
 import { buildPipelineStateFromLeads, createEmptyPipelineState } from '../components/LeadPipeline';
 
 const LeadStatCardsSection = React.lazy(() => import('../components/LeadStatCardsSection'));
@@ -14,6 +14,22 @@ export default function LeadListPage() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState(createEmptyPipelineState());
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
+
+  const getLeadPipeline = useCallback(async () => {
+  try {
+    setIsLoadingLeads(true);
+    const response = await fetchLeadPipeline({
+      per_page: 10,
+      page: 1,
+    });
+
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setIsLoadingLeads(false);
+  }
+}, []);
 
   const loadLeads = useCallback(async () => {
     try {
@@ -29,6 +45,7 @@ export default function LeadListPage() {
   }, []);
 
   useEffect(() => {
+    getLeadPipeline();
     loadLeads();
   }, [loadLeads]);
 

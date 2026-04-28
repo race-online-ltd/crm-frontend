@@ -46,3 +46,9 @@ export async function updateLead(id, formData) {
 
   return response.data?.data ?? null;
 }
+
+
+export async function fetchLeadPipeline(params = {}) {
+  const response = await api.get('/leads/stage-pipeline', { params });
+  return response.data?.data ?? {};
+}
