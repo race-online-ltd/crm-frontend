@@ -12,6 +12,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Alert,
 } from '@mui/material';
 import { useFormik } from 'formik';
@@ -121,13 +122,9 @@ function LocationPicker({ value, onChange }) {
   const [searchText, setSearchText] = useState(value?.address || '');
   const { isLoaded, error: googleMapsError } = useGoogleMapsLoader();
   const canUseGoogleMaps = isLoaded && Boolean(window.google?.maps);
-  const fallbackAddress = useCallback((lat, lng) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`, []);
-
   const reverseGeocode = useCallback((lat, lng) => {
     if (!canUseGoogleMaps) {
-      const address = fallbackAddress(lat, lng);
-      setSearchText(address);
-      onChange({ address, latitude: lat, longitude: lng });
+      onChange({ address: '', latitude: lat, longitude: lng });
       return;
     }
 
@@ -136,9 +133,12 @@ function LocationPicker({ value, onChange }) {
         const addr = results[0].formatted_address;
         setSearchText(addr);
         onChange({ address: addr, latitude: lat, longitude: lng });
+        return;
       }
+
+      onChange({ address: '', latitude: lat, longitude: lng });
     });
-  }, [canUseGoogleMaps, fallbackAddress, onChange]);
+  }, [canUseGoogleMaps, onChange]);
 
   const placeMarker = useCallback((lat, lng) => {
     if (!mapInstance.current || !canUseGoogleMaps) return;
@@ -244,9 +244,7 @@ function LocationPicker({ value, onChange }) {
               const lng = coords.longitude;
 
               if (!canUseGoogleMaps) {
-                const address = fallbackAddress(lat, lng);
-                setSearchText(address);
-                onChange({ address, latitude: lat, longitude: lng });
+                onChange({ address: '', latitude: lat, longitude: lng });
                 return;
               }
 
@@ -475,7 +473,10 @@ export default function ClientForm({
   });
 
   const handleConfirmLocation = () => {
-    if (pendingLocation) setFieldValue('location', pendingLocation);
+    if (pendingLocation) {
+      setFieldValue('location', pendingLocation);
+      setFieldValue('address', pendingLocation.address || '');
+    }
     setMapModalOpen(false);
   };
 
@@ -551,7 +552,15 @@ export default function ClientForm({
             />
           </Box>
 
-          <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'start' }}>
+          <Box
+            sx={{
+              gridColumn: '1 / -1',
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' },
+              gap: '12px',
+              alignItems: 'start',
+            }}
+          >
             <TextareaInputField
               name="address"
               label="Address *"
@@ -561,7 +570,14 @@ export default function ClientForm({
               disabled={isReadOnly}
               {...field('address')}
             />
-            <Stack alignItems="center" spacing={0.5} sx={{ pt: '2px' }}>
+            <Stack
+              alignItems="center"
+              spacing={0.5}
+              sx={{
+                pt: { xs: 0, sm: '2px' },
+                width: { xs: '100%', sm: 'auto' },
+              }}
+            >
               <IconButton
                 onClick={() => {
                   setPendingLocation(values.location);
@@ -569,7 +585,7 @@ export default function ClientForm({
                 }}
                 disabled={isReadOnly}
                 sx={{
-                  width: 44,
+                  width: { xs: '100%', sm: 44 },
                   height: 44,
                   bgcolor: values.location ? '#eff6ff' : '#e3e8ec',
                   border: `1px solid ${values.location ? '#bfdbfe' : '#e2e8f0'}`,
@@ -581,7 +597,15 @@ export default function ClientForm({
               >
                 <MapIcon fontSize="small" />
               </IconButton>
-              <Typography sx={{ fontSize: '0.6rem', color: values.location ? '#2563eb' : '#94a3b8', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.68rem',
+                  color: values.location ? '#2563eb' : '#94a3b8',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                }}
+              >
                 Map Location
               </Typography>
             </Stack>
@@ -595,7 +619,14 @@ export default function ClientForm({
                   {values.location.address}
                 </Typography>
                 {!isReadOnly && (
-                  <IconButton size="small" onClick={() => setFieldValue('location', null)} sx={{ p: 0.25, '&:focus': { outline: 'none' } }}>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setFieldValue('location', null);
+                      setFieldValue('address', '');
+                    }}
+                    sx={{ p: 0.25, '&:focus': { outline: 'none' } }}
+                  >
                     <ClearIcon sx={{ fontSize: 13, color: '#94a3b8' }} />
                   </IconButton>
                 )}
@@ -674,6 +705,19 @@ export default function ClientForm({
           submitIcon={isReadOnly ? null : <CheckCircleOutlineIcon />}
           loading={isSubmitting}
           disabled={isSubmitting}
+          width="100%"
+          mt={3}
+          containerSx={{
+            justifyContent: { xs: 'stretch', sm: 'flex-end' },
+          }}
+          cancelSx={{
+            flex: { xs: 1, sm: '0 0 140px' },
+            maxWidth: { xs: '100%', sm: 160 },
+          }}
+          submitSx={{
+            flex: { xs: 1, sm: '0 0 168px' },
+            maxWidth: { xs: '100%', sm: 190 },
+          }}
         />
       </form>
 
@@ -691,12 +735,34 @@ export default function ClientForm({
         <DialogContent sx={{ px: 3, py: 2.5 }}>
           <LocationPicker value={pendingLocation} onChange={setPendingLocation} />
         </DialogContent>
-        <Stack direction="row" spacing={1.5} sx={{ px: 3, py: 2, borderTop: '1px solid #f1f5f9' }}>
-          <Button fullWidth variant="outlined" onClick={() => setMapModalOpen(false)}>Cancel</Button>
-          <Button fullWidth variant="contained" disabled={!pendingLocation} onClick={handleConfirmLocation} startIcon={<PinDropIcon />}>
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 2,
+            gap: 1.5,
+            borderTop: '1px solid #f1f5f9',
+            flexDirection: { xs: 'column', sm: 'row' },
+          }}
+        >
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => setMapModalOpen(false)}
+            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 600 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            disabled={!pendingLocation}
+            onClick={handleConfirmLocation}
+            startIcon={<PinDropIcon />}
+            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 600, boxShadow: 'none' }}
+          >
             Confirm Location
           </Button>
-        </Stack>
+        </DialogActions>
       </Dialog>
     </Box>
   );

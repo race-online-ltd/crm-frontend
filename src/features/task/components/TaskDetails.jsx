@@ -376,31 +376,33 @@ export default function TaskDetails({
 
     return (
       <>
-        <Button
-          variant="outlined"
-          color="inherit"
-          size="small"
-          startIcon={<EditOutlinedIcon sx={{ fontSize: '13px !important' }} />}
-          onClick={() => onEdit?.(activeTask)}
-          sx={{
-            borderRadius: '8px',
-            mr: 'auto',
-            fontSize: 12.5,
-            fontWeight: 400,
-            borderColor: 'divider',
-            color: 'text.secondary',
-            '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-          }}
-        >
-          Edit
-        </Button>
+        {onEdit && (
+          <Button
+            variant="outlined"
+            color="inherit"
+            size="small"
+            startIcon={<EditOutlinedIcon sx={{ fontSize: '13px !important' }} />}
+            onClick={() => onEdit(activeTask)}
+            sx={{
+              borderRadius: '8px',
+              mr: 'auto',
+              fontSize: 12.5,
+              fontWeight: 400,
+              borderColor: 'divider',
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+            }}
+          >
+            Edit
+          </Button>
+        )}
 
-        {!isCompleted && !isCancelled && (
+        {onCancelTask && !isCompleted && !isCancelled && (
           <Button
             variant="outlined"
             size="small"
             startIcon={<BlockIcon sx={{ fontSize: '13px !important' }} />}
-            onClick={() => onCancelTask?.(activeTask)}
+            onClick={() => onCancelTask(activeTask)}
             sx={{
               borderRadius: '8px',
               fontSize: 12.5,
@@ -415,14 +417,14 @@ export default function TaskDetails({
           </Button>
         )}
 
-        {isPhysical && activeTask.location && !activeTask.checked_in_at && !isCompleted && !isCancelled && (
+        {onCheckIn && isPhysical && activeTask.location && !activeTask.checked_in_at && !isCompleted && !isCancelled && (
           <Button
             variant="outlined"
             size="small"
             startIcon={<GpsFixedIcon sx={{ fontSize: '13px !important' }} />}
             onClick={() => {
               onClose?.();
-              onCheckIn?.(activeTask);
+              onCheckIn(activeTask);
             }}
             sx={{
               borderRadius: '8px',
@@ -438,14 +440,14 @@ export default function TaskDetails({
           </Button>
         )}
 
-        {isMeeting && !isCompleted && !isCancelled && (
+        {onRecordMeeting && isMeeting && !isCompleted && !isCancelled && (
           <Tooltip title="Open meeting recorder">
             <IconButton
               size="small"
               aria-label="Record meeting"
               onClick={() => {
                 onClose?.();
-                onRecordMeeting?.(activeTask);
+                onRecordMeeting(activeTask);
               }}
               sx={{
                 borderRadius: '8px',
@@ -463,12 +465,12 @@ export default function TaskDetails({
           </Tooltip>
         )}
 
-        {!isCompleted && !isCancelled && (
+        {onMarkComplete && !isCompleted && !isCancelled && (
           <Button
             variant="contained"
             size="small"
             startIcon={<CheckCircleOutlineIcon sx={{ fontSize: '13px !important' }} />}
-            onClick={() => onMarkComplete?.(activeTask)}
+            onClick={() => onMarkComplete(activeTask)}
             disableElevation
             sx={{
               borderRadius: '8px',

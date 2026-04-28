@@ -19,6 +19,21 @@ export async function fetchTasks(params = {}) {
   };
 }
 
+export async function fetchTaskCalendar(params = {}) {
+  const response = await api.get('/tasks/calendar', { params });
+  return response.data?.data ?? [];
+}
+
+export async function fetchTaskCalendarFilters() {
+  const response = await api.get('/tasks/calendar/filters');
+  return response.data?.data ?? {
+    business_entities: [],
+    teams: [],
+    groups: [],
+    kams: [],
+  };
+}
+
 export async function fetchTask(id) {
   const response = await api.get(`/tasks/${id}`);
   return response.data?.data ?? null;
