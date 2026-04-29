@@ -162,13 +162,22 @@ export default function LeadStatCards({ stats }) {
   const currentMonthLabel = useMemo(() => formatMonthYear(new Date()), []);
   const roleKey = useMemo(() => getRoleKey(profile?.role), [profile?.role]);
 
+  // const normalizedStats = useMemo(() => ({
+  //   forwarded: { count: 0, footer: 0 },
+  //   pipeline: { amount: 0, footer: '৳0' },
+  //   pending: { count: 0, footer: 0 },
+  //   won: { count: 0, footer: '৳0' },
+  //   lost: { count: 0, footer: '৳0' },
+  //   active: { count: 0, footer: 0 },
+  //   ...(stats || {}),
+  // }), [stats]);
   const normalizedStats = useMemo(() => ({
-    forwarded: { count: 0, footer: 0 },
-    pipeline: { amount: 0, footer: '৳0' },
-    pending: { count: 0, footer: 0 },
-    won: { count: 0, footer: '৳0' },
-    lost: { count: 0, footer: '৳0' },
-    active: { count: 0, footer: 0 },
+    forwarded: { count: 0, footer: 0 },   // '৳0' → 0
+    pipeline:  { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
+    pending:   { count: 0, footer: 0 },
+    won:       { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
+    lost:      { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
+    active:    { count: 0, footer: 0 },
     ...(stats || {}),
   }), [stats]);
 
