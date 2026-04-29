@@ -6,42 +6,46 @@ const EmailConversation = ({ contact, messages, backBtn, releaseBtn }) => {
   return (
     <div className="email-conv">
       <div className="email-conv__toolbar">
-        {releaseBtn}
-        {backBtn}
-        <SocialConversationActions
-          primaryButtonSx={{
-            textTransform: 'none',
-            fontSize: 12,
-            borderRadius: 50,
-            boxShadow: 'none',
-            '&:hover': {
+        <div className="email-conv__toolbar-left">
+          {releaseBtn}
+          {backBtn}
+        </div>
+        <div className="email-conv__toolbar-actions">
+          <SocialConversationActions
+            primaryButtonSx={{
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
               boxShadow: 'none',
-            },
-          }}
-          secondaryButtonSx={{
-            color: '#0078D4',
-            borderColor: '#0078D4',
-            textTransform: 'none',
-            fontSize: 12,
-            borderRadius: 50,
-            '&:hover': {
-              borderColor: '#0062ad',
-              backgroundColor: 'rgba(0, 120, 212, 0.06)',
-            },
-          }}
-          tertiaryButtonSx={{
-            color: '#475569',
-            borderColor: '#cbd5e1',
-            textTransform: 'none',
-            fontSize: 12,
-            borderRadius: 50,
-            backgroundColor: '#fff',
-            '&:hover': {
-              borderColor: '#94a3b8',
-              backgroundColor: '#f8fafc',
-            },
-          }}
-        />
+              '&:hover': {
+                boxShadow: 'none',
+              },
+            }}
+            secondaryButtonSx={{
+              color: '#0078D4',
+              borderColor: '#0078D4',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              '&:hover': {
+                borderColor: '#0062ad',
+                backgroundColor: 'rgba(0, 120, 212, 0.06)',
+              },
+            }}
+            tertiaryButtonSx={{
+              color: '#475569',
+              borderColor: '#cbd5e1',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              backgroundColor: '#fff',
+              '&:hover': {
+                borderColor: '#94a3b8',
+                backgroundColor: '#f8fafc',
+              },
+            }}
+          />
+        </div>
       </div>
 
       <div className="email-conv__subject">

@@ -105,25 +105,28 @@
 
 // export default EmailList;
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import Chip from '@mui/material/Chip';
 import ChatConversionTooltip from '../ChatConversionTooltip';
+import { CHAT_FILTERS, getFilteredContacts } from '../chatListUtils';
 
 const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
-  const [filter, setFilter] = useState('UNREAD');
+  const [filter, setFilter] = useState(CHAT_FILTERS.UNREAD);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredContacts = contacts
-    .filter((contact) => {
-      if (filter === 'UNREAD') return contact.queueStatus === 'unread';
-      return contact.queueStatus === 'active';
-    })
-    .filter((contact) => {
-      const query = searchQuery.trim().toLowerCase();
-      if (!query) return true;
-      return `${contact.name} ${contact.lastMessage}`.toLowerCase().includes(query);
-    });
+  useEffect(() => {
+    if (selectedContact?.queueStatus === 'active') {
+      setFilter(CHAT_FILTERS.ACTIVE);
+    }
+  }, [selectedContact]);
+
+  const filteredContacts = getFilteredContacts({
+    contacts,
+    filter,
+    searchQuery,
+    currentAgentId,
+  });
 
   return (
     <div className="email-list">
@@ -150,15 +153,15 @@ const EmailList = ({ contacts, selectedContact, currentAgentId, onSelectContact 
           label="Pending"
           size="small"
           color="primary"
-          variant={filter === 'UNREAD' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('UNREAD')}
+          variant={filter === CHAT_FILTERS.UNREAD ? 'filled' : 'outlined'}
+          onClick={() => setFilter(CHAT_FILTERS.UNREAD)}
         />
         <Chip
           label="Activated"
           size="small"
           color="primary"
-          variant={filter === 'ACTIVE' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('ACTIVE')}
+          variant={filter === CHAT_FILTERS.ACTIVE ? 'filled' : 'outlined'}
+          onClick={() => setFilter(CHAT_FILTERS.ACTIVE)}
         />
       </div>
 
