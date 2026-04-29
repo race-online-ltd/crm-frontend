@@ -83,7 +83,23 @@ function BaseTableHead({
               <TableSortLabel
                 active={orderBy === column.id}
                 direction={orderBy === column.id ? order : "asc"}
+                hideSortIcon={false}
                 onClick={createSortHandler(column.id)}
+                sx={{
+                  color: "#475569",
+                  "&.Mui-active": { color: "#0f172a" },
+                  "& .MuiTableSortLabel-icon": {
+                    opacity: 0.22,
+                    color: "#64748b !important",
+                    transition: "opacity 0.15s ease, color 0.15s ease",
+                  },
+                  "&:hover .MuiTableSortLabel-icon": {
+                    opacity: 0.45,
+                  },
+                  "&.Mui-active .MuiTableSortLabel-icon": {
+                    opacity: 0.7,
+                  },
+                }}
               >
                 {column.label}
                 {orderBy === column.id && (
