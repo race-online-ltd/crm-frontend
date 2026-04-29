@@ -319,7 +319,13 @@ function LocationPicker({ value, onChange }) {
 }
 
 // ─── MAIN COMPONENT ─────────────────────────
-export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAssociation = null }) {
+export default function TaskForm({
+  initialValues,
+  onCancel,
+  onSubmit,
+  lockedAssociation = null,
+  actionWidth = '100%',
+}) {
   const { profile } = useUserProfile();
   const isEditMode = Boolean(initialValues);
   const startMode = lockedAssociation?.mode ?? (initialValues?.client ? 'client' : 'lead');
@@ -883,7 +889,7 @@ export default function TaskForm({ initialValues, onCancel, onSubmit, lockedAsso
         loading={isSubmitting}
         disabled={isSubmitting}
         mt={3}
-        width="100%"
+        width={actionWidth}
         containerSx={{
           justifyContent: { xs: 'stretch', sm: 'flex-end' },
         }}

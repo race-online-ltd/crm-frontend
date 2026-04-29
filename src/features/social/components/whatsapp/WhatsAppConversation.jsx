@@ -73,15 +73,16 @@ import MicIcon from '@mui/icons-material/Mic';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useState } from 'react';
-import { Button } from '@mui/material';
+import SocialConversationActions from '../SocialConversationActions';
 
-const WhatsAppConversation = ({ contact, messages, backBtn }) => {
+const WhatsAppConversation = ({ contact, messages, backBtn, releaseBtn }) => {
   const [input, setInput] = useState('');
 
   return (
     <div className="whatsapp-conv">
       <div className="whatsapp-conv__header">
         <div className="whatsapp-conv__header-left">
+          {releaseBtn}
           {backBtn}
           <div className="whatsapp-conv__avatar">
             {contact.name.charAt(0)}
@@ -94,10 +95,8 @@ const WhatsAppConversation = ({ contact, messages, backBtn }) => {
           </div>
         </div>
         <div className="whatsapp-conv__actions">
-          <Button
-            size="small"
-            variant="contained"
-            sx={{
+          <SocialConversationActions
+            primaryButtonSx={{
               backgroundColor: '#25D366',
               textTransform: 'none',
               fontSize: 12,
@@ -108,13 +107,7 @@ const WhatsAppConversation = ({ contact, messages, backBtn }) => {
                 boxShadow: 'none',
               },
             }}
-          >
-            Convert to lead
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            sx={{
+            secondaryButtonSx={{
               color: '#fff',
               borderColor: 'rgba(255, 255, 255, 0.7)',
               textTransform: 'none',
@@ -125,9 +118,19 @@ const WhatsAppConversation = ({ contact, messages, backBtn }) => {
                 backgroundColor: 'rgba(255, 255, 255, 0.08)',
               },
             }}
-          >
-            Convert to task
-          </Button>
+            tertiaryButtonSx={{
+              color: '#fff',
+              borderColor: 'rgba(255, 255, 255, 0.7)',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              '&:hover': {
+                borderColor: '#fff',
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              },
+            }}
+          />
         </div>
       </div>
 

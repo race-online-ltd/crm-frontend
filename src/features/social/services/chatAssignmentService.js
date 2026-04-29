@@ -65,3 +65,16 @@ export async function claimChatAssignment({ chat, currentAgent }) {
     },
   };
 }
+
+export function releaseChatAssignment({ chat }) {
+  if (!chat) {
+    return null;
+  }
+
+  return {
+    ...chat,
+    queueStatus: 'unread',
+    assignedAgentId: null,
+    assignedAgentName: null,
+  };
+}

@@ -1,16 +1,15 @@
-import Button from '@mui/material/Button';
+import SocialConversationActions from '../SocialConversationActions';
 
-const EmailConversation = ({ contact, messages, backBtn }) => {
+const EmailConversation = ({ contact, messages, backBtn, releaseBtn }) => {
   const subject = messages[0]?.subject || 'No Subject';
 
   return (
     <div className="email-conv">
       <div className="email-conv__toolbar">
+        {releaseBtn}
         {backBtn}
-        <Button
-          size="small"
-          variant="contained"
-          sx={{
+        <SocialConversationActions
+          primaryButtonSx={{
             textTransform: 'none',
             fontSize: 12,
             borderRadius: 50,
@@ -19,13 +18,7 @@ const EmailConversation = ({ contact, messages, backBtn }) => {
               boxShadow: 'none',
             },
           }}
-        >
-          Convert to lead
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          sx={{
+          secondaryButtonSx={{
             color: '#0078D4',
             borderColor: '#0078D4',
             textTransform: 'none',
@@ -36,9 +29,19 @@ const EmailConversation = ({ contact, messages, backBtn }) => {
               backgroundColor: 'rgba(0, 120, 212, 0.06)',
             },
           }}
-        >
-          Convert to task
-        </Button>
+          tertiaryButtonSx={{
+            color: '#475569',
+            borderColor: '#cbd5e1',
+            textTransform: 'none',
+            fontSize: 12,
+            borderRadius: 50,
+            backgroundColor: '#fff',
+            '&:hover': {
+              borderColor: '#94a3b8',
+              backgroundColor: '#f8fafc',
+            },
+          }}
+        />
       </div>
 
       <div className="email-conv__subject">

@@ -70,15 +70,16 @@ import ImageIcon from '@mui/icons-material/Image';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useState } from 'react';
-import { Button } from '@mui/material';
+import SocialConversationActions from '../SocialConversationActions';
 
-const MessengerConversation = ({ contact, messages, backBtn }) => {
+const MessengerConversation = ({ contact, messages, backBtn, releaseBtn }) => {
   const [input, setInput] = useState('');
 
   return (
     <div className="messenger-conv">
       <div className="messenger-conv__header">
         <div className="messenger-conv__header-left">
+          {releaseBtn}
           {backBtn}
           <div className="messenger-conv__avatar">
             <div className="messenger-conv__avatar-circle">
@@ -94,10 +95,8 @@ const MessengerConversation = ({ contact, messages, backBtn }) => {
           </div>
         </div>
         <div className="messenger-conv__actions">
-          <Button
-            size="small"
-            variant="contained"
-            sx={{
+          <SocialConversationActions
+            primaryButtonSx={{
               textTransform: 'none',
               fontSize: 12,
               borderRadius: 50,
@@ -106,13 +105,7 @@ const MessengerConversation = ({ contact, messages, backBtn }) => {
                 boxShadow: 'none',
               },
             }}
-          >
-            Convert to lead
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            sx={{
+            secondaryButtonSx={{
               color: '#0084FF',
               borderColor: '#0084FF',
               textTransform: 'none',
@@ -123,9 +116,19 @@ const MessengerConversation = ({ contact, messages, backBtn }) => {
                 backgroundColor: 'rgba(0, 132, 255, 0.06)',
               },
             }}
-          >
-            Convert to task
-          </Button>
+            tertiaryButtonSx={{
+              color: '#475569',
+              borderColor: '#cbd5e1',
+              textTransform: 'none',
+              fontSize: 12,
+              borderRadius: 50,
+              backgroundColor: '#fff',
+              '&:hover': {
+                borderColor: '#94a3b8',
+                backgroundColor: '#f8fafc',
+              },
+            }}
+          />
         </div>
       </div>
 

@@ -212,7 +212,16 @@ function BulkUploadTab({ onCancel }) {
 }
 
 // ─── Main LeadForm ────────────────────────────────────────────────────────────
-export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = null, isEdit = false }) {
+export default function LeadForm({
+  onCancel,
+  onSubmit,
+  tab = 0,
+  initialValues = null,
+  isEdit = false,
+  actionWidth = { xs: '100%', sm: '30%' },
+  actionMarginTop = 6,
+  lockedFields = {},
+}) {
   const navigate = useNavigate();
   const formInitialValues = { ...INITIAL_VALUES, ...(initialValues || {}) };
   const [optionData, setOptionData] = useState({
@@ -534,8 +543,8 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               onBlur={handleBlur}
               error={Boolean(touched.business_entity_id && errors.business_entity_id)}
               helperText={touched.business_entity_id && errors.business_entity_id ? errors.business_entity_id : ' '}
-              disabled={isEdit}
-              searchable={!isEdit}
+              disabled={isEdit || Boolean(lockedFields.business_entity_id)}
+              searchable={!(isEdit || lockedFields.business_entity_id)}
               loading={loadingOptions}
             />
 
@@ -554,6 +563,8 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
               onBlur={handleBlur}
               error={Boolean(touched.source_id && errors.source_id)}
               helperText={touched.source_id && errors.source_id ? errors.source_id : ' '}
+              disabled={Boolean(lockedFields.source_id)}
+              searchable={!lockedFields.source_id}
               loading={loadingOptions}
             />
 
@@ -783,8 +794,8 @@ export default function LeadForm({ onCancel, onSubmit, tab = 0, initialValues = 
           </Box>{/* end grid */}
 
           {/* ── Actions ── */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', sm: '30%' } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: actionMarginTop }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: actionWidth }}>
               <Button
                 fullWidth variant="outlined" onClick={onCancel}
                 sx={{
