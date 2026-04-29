@@ -427,43 +427,61 @@ function buildPipelineFromApiResponse(data = {}) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function statsFromPipelineSummary(summary = {}) {
-  const won     = Number(summary.won_lead_count ?? 0);
-  const lost    = Number(summary.lost_lead_count ?? 0);
-  const active  = Number(summary.active_lead_count ?? 0);
-  const forward = Number(summary.forward_lead_count ?? 0);
+// function statsFromPipelineSummary(summary = {}) {
+//   const won     = Number(summary.won_lead_count ?? 0);
+//   const lost    = Number(summary.lost_lead_count ?? 0);
+//   const active  = Number(summary.active_lead_count ?? 0);
+//   const forward = Number(summary.forward_lead_count ?? 0);
 
-  const pipelineCount = won + lost + active;
+//   const pipelineCount = won + lost + active;
+
+//   return {
+//     pipeline: {
+//       count: pipelineCount,
+//       amount: 0,
+//       footer: 0,
+//     },
+//     forwarded: {
+//       count: forward,
+//       footer: 0,
+//     },
+//     pending: {
+//       count: 0,
+//       footer: 0,
+//     },
+//     won: {
+//       count: won,
+//       amount: 0,
+//       footer: 0,
+//     },
+//     lost: {
+//       count: lost,
+//       amount: 0,
+//       footer: 0,
+//     },
+//     active: {
+//       count: active,
+//       amount: 0,
+//       footer: active,
+//     },
+//   };
+// }
+
+function statsFromPipelineSummary(summary = {}) {
+  const won       = Number(summary.won_lead_count      ?? 0);
+  const lost      = Number(summary.lost_lead_count     ?? 0);
+  const active    = Number(summary.active_lead_count   ?? 0);
+  const forward   = Number(summary.forward_lead_count  ?? 0);
+  const pending   = Number(summary.pending_lead_count  ?? 0);
+  const cancelled = Number(summary.cancelled_lead_count ?? 0);
 
   return {
-    pipeline: {
-      count: pipelineCount,
-      amount: 0,
-      footer: 0,
-    },
-    forwarded: {
-      count: forward,
-      footer: 0,
-    },
-    pending: {
-      count: 0,
-      footer: 0,
-    },
-    won: {
-      count: won,
-      amount: 0,
-      footer: 0,
-    },
-    lost: {
-      count: lost,
-      amount: 0,
-      footer: 0,
-    },
-    active: {
-      count: active,
-      amount: 0,
-      footer: active,
-    },
+    forwarded: { count: forward,   amount: summary.forward_revenue   ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    pending:   { count: pending,   amount: summary.pending_revenue   ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: summary.pending_24h_count ?? 0, last24hAmount: 0 },
+    pipeline:  { count: won + lost + active, amount: summary.pipeline_revenue ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    won:       { count: won,       amount: summary.won_revenue       ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    lost:      { count: lost,      amount: summary.lost_revenue      ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    cancelled: { count: cancelled, amount: summary.cancelled_revenue ?? 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
   };
 }
 
