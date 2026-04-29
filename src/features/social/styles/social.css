@@ -423,13 +423,16 @@
 
 /* ===== Messenger Conversation ===== */
 .messenger-conv {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   background: #fff;
+  overflow: hidden;
 }
 
 .messenger-conv__header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -744,12 +747,15 @@
 
 /* ===== WhatsApp Conversation ===== */
 .whatsapp-conv {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .whatsapp-conv__header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1052,13 +1058,16 @@
 
 /* ===== Email Conversation ===== */
 .email-conv {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   background: #fff;
+  overflow: hidden;
 }
 
 .email-conv__toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1302,6 +1311,12 @@
     color: inherit;
     font-size: 13px;
     margin-right: 4px;
+  }
+
+  .messenger-conv__header,
+  .whatsapp-conv__header,
+  .email-conv__toolbar {
+    padding-left: 52px;
   }
 
   /* Entity tabs: icon only on mobile */

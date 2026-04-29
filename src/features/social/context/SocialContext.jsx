@@ -11,6 +11,7 @@ import {
   CURRENT_AGENT,
   getChatMessages,
   getChatsForSelection,
+  releaseChatAssignment,
 } from '../services/chatAssignmentService';
 
 const SocialContext = createContext(undefined);
@@ -81,6 +82,25 @@ export const SocialProvider = ({ children }) => {
     setPendingChatId(null);
   }
 
+  function closeActiveChat() {
+    if (!selectedContact) return;
+
+    const releasedContact = releaseChatAssignment({ chat: selectedContact });
+
+    setChatStore((prev) => ({
+      ...prev,
+      [activeEntity]: {
+        ...prev[activeEntity],
+        [activeMedium]: prev[activeEntity][activeMedium].map((contact) => (
+          contact.id === selectedContact.id ? releasedContact : contact
+        )),
+      },
+    }));
+
+    setSelectedContactId(null);
+    showToast('Chat released.');
+  }
+
   async function confirmPickChat() {
     if (!pendingChat) return;
 
@@ -130,9 +150,11 @@ export const SocialProvider = ({ children }) => {
       contacts,
       messages,
       currentAgent: CURRENT_AGENT,
+      showToast,
       selectedContact,
       setSelectedContact,
       requestChatSelection,
+      closeActiveChat,
       pendingChat,
       closePickDialog,
       confirmPickChat,

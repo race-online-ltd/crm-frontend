@@ -63,7 +63,9 @@
 
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import { useState } from 'react';
 import { useSocial } from '../context/SocialContext';
 import MessengerChatList from './messenger/MessengerChatList';
 import MessengerConversation from './messenger/MessengerConversation';
@@ -72,8 +74,10 @@ import WhatsAppConversation from './whatsapp/WhatsAppConversation';
 import EmailList from './email/EmailList';
 import EmailConversation from './email/EmailConversation';
 import ChatPickDialog from './ChatPickDialog';
+import ChatReleaseDialog from './ChatReleaseDialog';
 
 const SocialInbox = () => {
+  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
   const {
     activeMedium,
     contacts,
@@ -86,9 +90,16 @@ const SocialInbox = () => {
     confirmPickChat,
     isPickingChat,
     currentAgent,
+    closeActiveChat,
   } = useSocial();
 
   const handleBack = () => setSelectedContact(null);
+  const handleReleaseRequest = () => setReleaseDialogOpen(true);
+  const handleReleaseCancel = () => setReleaseDialogOpen(false);
+  const handleReleaseConfirm = () => {
+    closeActiveChat();
+    setReleaseDialogOpen(false);
+  };
 
   const renderChatList = () => {
     switch (activeMedium) {
@@ -145,13 +156,23 @@ const SocialInbox = () => {
       </IconButton>
     );
 
+    const releaseBtn = (
+      <IconButton
+        size="small"
+        onClick={handleReleaseRequest}
+        className="conv-release-btn"
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    );
+
     switch (activeMedium) {
       case 'messenger':
-        return <MessengerConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return <MessengerConversation contact={selectedContact} messages={messages} backBtn={backBtn} releaseBtn={releaseBtn} />;
       case 'whatsapp':
-        return <WhatsAppConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return <WhatsAppConversation contact={selectedContact} messages={messages} backBtn={backBtn} releaseBtn={releaseBtn} />;
       case 'email':
-        return <EmailConversation contact={selectedContact} messages={messages} backBtn={backBtn} />;
+        return <EmailConversation contact={selectedContact} messages={messages} backBtn={backBtn} releaseBtn={releaseBtn} />;
       default:
         return null;
     }
@@ -171,6 +192,12 @@ const SocialInbox = () => {
         loading={isPickingChat}
         onClose={closePickDialog}
         onConfirm={confirmPickChat}
+      />
+      <ChatReleaseDialog
+        open={releaseDialogOpen}
+        chat={selectedContact}
+        onClose={handleReleaseCancel}
+        onConfirm={handleReleaseConfirm}
       />
     </div>
   );
