@@ -2,30 +2,20 @@
 import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CancelIcon from '@mui/icons-material/Cancel';
-import TrackChangesIcon from '@mui/icons-material/TrackChanges';
-import PendingActionsIcon from '@mui/icons-material/PendingActions';
-import { useUserProfile } from '../../settings/context/UserProfileContext';
+import DoDisturbIcon from '@mui/icons-material/DoDisturb';
 import StatCard from '../../../components/shared/StatCard';
 
 function formatMonthYear(date = new Date(), locale = 'en-US') {
-  return new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
 }
 
 function toNumber(value) {
-  if (typeof value === 'number') {
-    return value;
-  }
-
-  const normalized = String(value ?? '')
-    .replace(/[^0-9.-]/g, '')
-    .trim();
-
+  if (typeof value === 'number') return value;
+  const normalized = String(value ?? '').replace(/[^0-9.-]/g, '').trim();
   return normalized ? Number(normalized) : 0;
 }
 
@@ -37,158 +27,122 @@ function formatCurrency(value) {
   return `৳${toNumber(value).toLocaleString('en-US')}`;
 }
 
-function formatCountAmount(count, amount) {
-  return `${formatNumber(count)} (${formatCurrency(amount)})`;
+function getPreviousMonthName(date = new Date(), locale = 'en-US') {
+  const prev = new Date(date);
+  prev.setMonth(prev.getMonth() - 1);
+  return new Intl.DateTimeFormat(locale, { month: 'long' }).format(prev);
 }
 
-function normalizeRole(role = '') {
-  return String(role).trim().toLowerCase();
-}
+function buildLeadCards(currentMonthLabel, stats) {
+  const prevMonthName = getPreviousMonthName();
 
-function getRoleKey(role = '') {
-  const normalized = normalizeRole(role);
-
-  if (normalized.includes('backoffice') || normalized.includes('back office')) {
-    return 'backoffice';
-  }
-
-  if (normalized.includes('kam')) {
-    return 'kam';
-  }
-
-  return 'helpdesk';
-}
-
-function getTitleLabel(roleKey) {
-  if (roleKey === 'backoffice') {
-    return 'Total Pending Lead';
-  }
-
-  if (roleKey === 'kam') {
-    return 'Total Pipeline';
-  }
-
-  return 'Forwarded Lead';
-}
-
-function buildLeadCards(roleKey, currentMonthLabel, stats) {
-  const showCountAndAmount = roleKey === 'kam' || roleKey === 'backoffice';
-
-  const sharedCards = [
+  return [
+    // 1. Forwarded Lead
+    {
+      icon: <ForwardToInboxIcon />,
+      iconBg: '#eff6ff',
+      iconColor: '#2563eb',
+      title: 'Forwarded Lead',
+      subtitle: currentMonthLabel,
+      value: formatNumber(stats.forwarded?.count),
+      amount: formatCurrency(stats.forwarded?.amount ?? 0),
+      footerLabel: prevMonthName,
+      footerCount: formatNumber(stats.forwarded?.lastMonthCount ?? 0),
+      footerAmount: formatCurrency(stats.forwarded?.lastMonthAmount ?? 0),
+    },
+    // 2. Pending Leads
+    {
+      icon: <PendingActionsIcon />,
+      iconBg: '#fff7ed',
+      iconColor: '#f97316',
+      title: (
+        <>
+          PENDING LEADS <small style={{ color: '#f97316', marginLeft: '4px', textTransform: 'none' }}>(Back Office)</small>
+        </>
+      ),
+      subtitle: '',
+      value: formatNumber(stats.pending?.count),
+      amount: formatCurrency(stats.pending?.amount ?? 0),
+      footerLabel: 'Last 24 Hours',
+      footerCount: formatNumber(stats.pending?.last24hCount ?? 0),
+      footerAmount: formatCurrency(stats.pending?.last24hAmount ?? 0),
+    },
+    // 3. Total Pipeline
+    {
+      icon: <AccountBalanceWalletIcon />,
+      iconBg: '#eef2ff',
+      iconColor: '#4f46e5',
+      title: (
+        <>
+          TOTAL PIPELINE <small style={{ color: '#4f46e5', marginLeft: '4px', textTransform: 'none' }}>(active)</small>
+        </>
+      ),
+      subtitle: currentMonthLabel,
+      value: formatNumber(stats.pipeline?.count),
+      amount: formatCurrency(stats.pipeline?.amount ?? 0),
+      footerLabel: 'Last 24 Hours',
+      footerCount: formatNumber(stats.pipeline?.last24hCount ?? 0),
+      footerAmount: formatCurrency(stats.pipeline?.last24hAmount ?? 0),
+    },
+    // 4. Won Lead
     {
       icon: <EmojiEventsIcon />,
       iconBg: '#f0fdf4',
       iconColor: '#22c55e',
       title: 'Won Lead',
       subtitle: currentMonthLabel,
-      value: showCountAndAmount ? formatCountAmount(stats.won?.count, stats.won?.amount) : formatNumber(stats.won?.count),
-      footerLabel: 'Last Month Won Lead',
-      footerValue: showCountAndAmount
-        ? formatCountAmount(stats.won?.footerCount ?? stats.won?.footer ?? 0, stats.won?.footerAmount ?? stats.won?.footer ?? 0)
-        : (stats.won?.footer || formatCurrency(0)),
+      value: formatNumber(stats.won?.count),
+      amount: formatCurrency(stats.won?.amount ?? 0),
+      footerLabel: prevMonthName,
+      footerCount: formatNumber(stats.won?.lastMonthCount ?? 0),
+      footerAmount: formatCurrency(stats.won?.lastMonthAmount ?? 0),
     },
+    // 5. Lost Lead
     {
       icon: <CancelIcon />,
       iconBg: '#fef2f2',
       iconColor: '#ef4444',
       title: 'Lost Lead',
       subtitle: currentMonthLabel,
-      value: showCountAndAmount ? formatCountAmount(stats.lost?.count, stats.lost?.amount) : formatNumber(stats.lost?.count),
-      footerLabel: 'Last Month Lost Lead',
-      footerValue: showCountAndAmount
-        ? formatCountAmount(stats.lost?.footerCount ?? stats.lost?.footer ?? 0, stats.lost?.footerAmount ?? stats.lost?.footer ?? 0)
-        : (stats.lost?.footer || formatCurrency(0)),
+      value: formatNumber(stats.lost?.count),
+      amount: formatCurrency(stats.lost?.amount ?? 0),
+      footerLabel: prevMonthName,
+      footerCount: formatNumber(stats.lost?.lastMonthCount ?? 0),
+      footerAmount: formatCurrency(stats.lost?.lastMonthAmount ?? 0),
     },
+    // 6. Cancelled Lead
     {
-      icon: <TrackChangesIcon />,
-      iconBg: '#eff6ff',
-      iconColor: '#3b82f6',
-      title: 'Active Leads',
+      icon: <DoDisturbIcon />,
+      iconBg: '#fdf4ff',
+      iconColor: '#a855f7',
+      title: 'Cancelled Lead',
       subtitle: currentMonthLabel,
-      value: showCountAndAmount ? formatCountAmount(stats.active?.count, stats.active?.amount) : formatNumber(stats.active?.count),
-      footerLabel: 'In Progress',
-      footerValue: showCountAndAmount
-        ? formatCountAmount(
-            stats.active?.footerCount ?? stats.active?.footer ?? stats.active?.count ?? 0,
-            stats.active?.footerAmount ?? stats.active?.footer ?? 0,
-          )
-        : formatNumber(stats.active?.footer || stats.active?.count || 0),
+      value: formatNumber(stats.cancelled?.count),
+      amount: formatCurrency(stats.cancelled?.amount ?? 0),
+      footerLabel: prevMonthName,
+      footerCount: formatNumber(stats.cancelled?.lastMonthCount ?? 0),
+      footerAmount: formatCurrency(stats.cancelled?.lastMonthAmount ?? 0),
     },
   ];
-
-  const firstCard = roleKey === 'backoffice'
-    ? {
-        icon: <PendingActionsIcon />,
-        iconBg: '#fff7ed',
-        iconColor: '#f97316',
-        title: getTitleLabel(roleKey),
-        subtitle: '',
-        value: formatNumber(stats.pending?.count),
-        footerLabel: 'Pending in 24 hours',
-        footerValue: formatNumber(stats.pending?.footer || 0),
-      }
-    : roleKey === 'kam'
-      ? {
-          icon: <AccountBalanceWalletIcon />,
-          iconBg: '#eef2ff',
-          iconColor: '#4f46e5',
-          title: getTitleLabel(roleKey),
-          subtitle: currentMonthLabel,
-          value: formatCountAmount(stats.pipeline?.count, stats.pipeline?.amount),
-          footerLabel: 'Last Month Pipeline',
-          footerValue: formatCountAmount(
-            stats.pipeline?.footerCount || stats.pipeline?.count || 0,
-            stats.pipeline?.footerAmount || stats.pipeline?.footer || 0,
-          ),
-      }
-      : {
-          icon: <ForwardToInboxIcon />,
-          iconBg: '#eff6ff',
-          iconColor: '#2563eb',
-          title: getTitleLabel(roleKey),
-          subtitle: currentMonthLabel,
-          value: formatNumber(stats.forwarded?.count),
-          footerLabel: 'Last Month Forwarded Lead',
-          footerValue: formatNumber(stats.forwarded?.footer || 0),
-      };
-
-  return [firstCard, ...sharedCards];
 }
 
 export default function LeadStatCards({ stats }) {
-  const { profile, can } = useUserProfile();
-  const canViewLeads = can?.('page_leads') ?? true;
-
   const currentMonthLabel = useMemo(() => formatMonthYear(new Date()), []);
-  const roleKey = useMemo(() => getRoleKey(profile?.role), [profile?.role]);
 
-  // const normalizedStats = useMemo(() => ({
-  //   forwarded: { count: 0, footer: 0 },
-  //   pipeline: { amount: 0, footer: '৳0' },
-  //   pending: { count: 0, footer: 0 },
-  //   won: { count: 0, footer: '৳0' },
-  //   lost: { count: 0, footer: '৳0' },
-  //   active: { count: 0, footer: 0 },
-  //   ...(stats || {}),
-  // }), [stats]);
   const normalizedStats = useMemo(() => ({
-    forwarded: { count: 0, footer: 0 },   // '৳0' → 0
-    pipeline:  { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
-    pending:   { count: 0, footer: 0 },
-    won:       { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
-    lost:      { count: 0, amount: 0, footer: 0 },  // '৳0' → 0
-    active:    { count: 0, footer: 0 },
+    forwarded: { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    pending:   { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    pipeline:  { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    won:       { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    lost:      { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
+    cancelled: { count: 0, amount: 0, lastMonthCount: 0, lastMonthAmount: 0, last24hCount: 0, last24hAmount: 0 },
     ...(stats || {}),
   }), [stats]);
 
   const cards = useMemo(
-    () => buildLeadCards(roleKey, currentMonthLabel, normalizedStats),
-    [currentMonthLabel, normalizedStats, roleKey],
+    () => buildLeadCards(currentMonthLabel, normalizedStats),
+    [currentMonthLabel, normalizedStats],
   );
-
-  if (!canViewLeads) {
-    return null;
-  }
 
   return (
     <Box
@@ -198,7 +152,8 @@ export default function LeadStatCards({ stats }) {
         gridTemplateColumns: {
           xs: '1fr',
           sm: 'repeat(2, minmax(0, 1fr))',
-          lg: 'repeat(4, minmax(0, 1fr))',
+          md: 'repeat(3, minmax(0, 1fr))',
+          lg: 'repeat(6, minmax(0, 1fr))',
         },
       }}
     >

@@ -1,130 +1,98 @@
 // src/components/shared/StatCard.jsx
-import React from "react";
-import { Card, CardContent, Box, Typography, Avatar, Divider } from "@mui/material";
+import React from 'react';
+import { Box, Typography, Divider } from '@mui/material';
 
-const StatCard = ({ 
-  icon, 
-  iconBg, 
-  iconColor, 
-  title, 
+export default function StatCard({
+  icon,
+  iconBg,
+  iconColor,
+  title,
   subtitle,
-  value, 
-  valueSecondary,
-  percentage, 
-  footerLabel, 
-  footerValue,
-  footerSecondaryValue,
-}) => {
+  value,
+  amount,
+  footerLabel,
+  footerCount,
+  footerAmount,
+}) {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2, height: "100%", display: "flex", flexDirection: "column" }}>
-      <CardContent sx={{ 
-        p: 2, 
-        flexGrow: 1, 
-        display: "flex", 
-        flexDirection: "column",
-        "&:last-child": { pb: 2 } 
-      }}>
-        
-        {/* Top Section: Fixed height ensures Dividers align */}
-        <Box sx={{ minHeight: 80, display: "flex", alignItems: "flex-start", gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: iconBg,
-              color: iconColor,
-              width: 44,
-              height: 44,
-              borderRadius: 2,
-            }}
-          >
-            {icon}
-          </Avatar>
-
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                textTransform: "uppercase", 
-                fontWeight: 700, 
-                color: "text.secondary",
-                letterSpacing: 0.5,
-                display: "block",
-                lineHeight: 1.2,
-                mb: 0.5,
-                minHeight: 32 // ✅ Forces titles to take 2 lines worth of space
-              }}
-            >
-              {title}
-            </Typography>
-            {subtitle ? (
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  lineHeight: 1.25,
-                  color: "text.secondary",
-                  fontWeight: 500,
-                  mb: 0.5,
-                  minHeight: 18,
-                }}
-              >
-                {subtitle}
-              </Typography>
-            ) : null}
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              {value}
-            </Typography>
-            {valueSecondary ? (
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 700,
-                  lineHeight: 1.35,
-                  mt: 0.25,
-                }}
-              >
-                {valueSecondary}
-              </Typography>
-            ) : null}
-          </Box>
-
-          {percentage !== undefined && (
-            <Typography 
-              variant="caption" 
-              sx={{ color: "text.secondary", fontWeight: "bold" }}
-            >
-              — {percentage}%
-            </Typography>
-          )}
-        </Box>
-
-        {/* This Divider will now always be at the same vertical position */}
-        <Divider sx={{ my: 1.5, borderStyle: "dashed" }} />
-
-        {/* Bottom Section: mt: "auto" pushes it to the bottom of the card */}
-        <Box 
-          display="flex" 
-          justifyContent="space-between" 
-          alignItems={footerSecondaryValue ? 'flex-start' : 'center'} 
-          sx={{ mt: "auto" }} 
+    <Box
+      sx={{
+        bgcolor: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '14px',
+        p: 1.5,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        height: '100%',
+      }}
+    >
+      {/* Top row: icon + title */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            bgcolor: iconBg,
+            color: iconColor,
+            borderRadius: '8px',
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            '& svg': { fontSize: 18 },
+          }}
         >
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-            {footerLabel}
-          </Typography>
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.2 }}>
-              {footerValue}
-            </Typography>
-            {footerSecondaryValue ? (
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', lineHeight: 1.2, mt: 0.25 }}>
-                {footerSecondaryValue}
-              </Typography>
-            ) : null}
-          </Box>
+          {icon}
         </Box>
-      </CardContent>
-    </Card>
-  );
-};
+        <Box>
+          <Typography
+            variant="caption"
+            fontWeight={600}
+            color="#64748b"
+            sx={{ letterSpacing: 0.5, lineHeight: 1.2 }}
+          >
+            {title}
+          </Typography>
+        </Box>
+      </Box>
 
-export default StatCard;
+      {/* This month values - Centered */}
+      <Box sx={{ textAlign: 'center', py: 0.5, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {subtitle ? (
+          <Typography variant="caption" color="#94a3b8" display="block" sx={{ mb: 0.25 }}>
+            {subtitle}
+          </Typography>
+        ) : (
+          <Box sx={{ height: '16.8px' }} /> /* Placeholder to keep height consistent if no subtitle */
+        )}
+        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0.5 }}>
+          <Typography variant="h6" fontWeight={700} color="#0f172a" lineHeight={1}>
+            {value}
+          </Typography>
+          <Typography variant="caption" color="#64748b" fontWeight={500}>
+            ({amount})
+          </Typography>
+        </Box>
+      </Box>
+
+      <Divider />
+
+      {/* Footer: last month */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="caption" color="#94a3b8" fontWeight={500}>
+          {footerLabel}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="caption" fontWeight={600} color="#475569">
+            {footerCount}
+          </Typography>
+          <Typography variant="caption" fontWeight={500} color="#64748b">
+            ({footerAmount})
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
