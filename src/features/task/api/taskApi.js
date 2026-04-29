@@ -6,6 +6,7 @@ export async function fetchTaskFormOptions() {
     leads: [],
     clients: [],
     task_types: [],
+    sources: [],
     users: [],
     reminder_channels: [],
   };

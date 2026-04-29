@@ -26,10 +26,12 @@ export default function TaskCreation({ initialValues = null, onCancel, onSubmit 
     : null;
 
   const formikInitial = initialValues
-    ? {
+      ? {
         assignToUserId: initialValues.assigned_to_user_id || initialValues.assignedToUserId || '',
         lead:        initialValues.lead_id    || initialValues.leadId || initialValues.lead || '',
         client:      initialValues.client_id  || initialValues.clientId || initialValues.client || '',
+        source:      initialValues.source_id || initialValues.sourceId || '',
+        sourceInfo:  initialValues.source_info || initialValues.sourceInfo || '',
         taskType:    String(initialValues.task_type_id || initialValues.taskType || ''),
         title:       initialValues.title     || '',
         details:     initialValues.details   || '',

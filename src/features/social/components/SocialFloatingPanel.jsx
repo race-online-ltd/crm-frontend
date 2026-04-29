@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Divider,
@@ -27,8 +27,6 @@ export default function SocialFloatingPanel({
   children,
   contentSx = {},
 }) {
-  const panelRef = useRef(null);
-  const dragStateRef = useRef(null);
   const [panelPosition, setPanelPosition] = useState({
     top: PANEL_GAP,
     left: PANEL_GAP,
@@ -63,47 +61,6 @@ export default function SocialFloatingPanel({
   useEffect(() => {
     if (!open) return undefined;
 
-    function handlePointerMove(event) {
-      const dragState = dragStateRef.current;
-      if (!dragState) return;
-
-      const nextLeft = clamp(
-        event.clientX - dragState.offsetX,
-        PANEL_GAP,
-        window.innerWidth - dragState.width - PANEL_GAP,
-      );
-      const nextTop = clamp(
-        event.clientY - dragState.offsetY,
-        PANEL_GAP,
-        window.innerHeight - dragState.height - PANEL_GAP,
-      );
-
-      setPanelPosition((prev) => ({
-        ...prev,
-        left: nextLeft,
-        top: nextTop,
-      }));
-    }
-
-    function handlePointerUp() {
-      dragStateRef.current = null;
-      if (panelRef.current) {
-        panelRef.current.style.cursor = '';
-      }
-    }
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-
     function handleResize() {
       setPanelPosition((prev) => {
         const nextWidth = Math.min(prev.width, Math.max(window.innerWidth - (PANEL_GAP * 2), MIN_WIDTH));
@@ -123,24 +80,8 @@ export default function SocialFloatingPanel({
     return () => window.removeEventListener('resize', handleResize);
   }, [open]);
 
-  function handleDragStart(event) {
-    if (event.button !== 0) return;
-
-    dragStateRef.current = {
-      offsetX: event.clientX - panelPosition.left,
-      offsetY: event.clientY - panelPosition.top,
-      width: panelPosition.width,
-      height: panelPosition.height,
-    };
-
-    if (panelRef.current) {
-      panelRef.current.style.cursor = 'grabbing';
-    }
-  }
-
   return (
     <Box
-      ref={panelRef}
       sx={{
         position: 'fixed',
         top: `${panelPosition.top}px`,
@@ -177,28 +118,24 @@ export default function SocialFloatingPanel({
             justifyContent: 'flex-start',
             gap: 1,
             bgcolor: '#f8fafc',
-            cursor: 'grab',
-            userSelect: 'none',
-            touchAction: 'none',
           }}
-          onPointerDown={handleDragStart}
         >
-          <IconButton
-            size="small"
-            onClick={onClose}
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
           <Typography
             variant="h6"
             sx={{
               fontSize: '1rem',
               fontWeight: 700,
+              flex: 1,
             }}
           >
             {title}
           </Typography>
+          <IconButton
+            size="small"
+            onClick={onClose}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
         <Divider />
         <Box

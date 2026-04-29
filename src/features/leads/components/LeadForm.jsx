@@ -245,6 +245,7 @@ export default function LeadForm({
   onCancel,
   onSubmit,
   onAddClient,
+  onDraftChange,
   tab = 0,
   initialValues = null,
   isEdit = false,
@@ -401,6 +402,11 @@ export default function LeadForm({
     handleBlur,
     handleSubmit,
   } = formik;
+
+  useEffect(() => {
+    onDraftChange?.(values);
+  }, [onDraftChange, values]);
+
   const selectedClient = optionData.clients.find((client) => String(client.id) === String(values.client_id)) || null;
   const clientMeta = selectedClient ? {
     contactPerson: selectedClient.contact_person || '',

@@ -11,6 +11,8 @@ export default function SocialConversationActions({
   tertiaryButtonSx,
 }) {
   const [activeDrawer, setActiveDrawer] = useState(null);
+  const [taskDrawerVersion, setTaskDrawerVersion] = useState(0);
+  const [ticketDrawerVersion, setTicketDrawerVersion] = useState(0);
   const [leadDraft, setLeadDraft] = useState(null);
   const [clientModalOpen, setClientModalOpen] = useState(false);
 
@@ -40,7 +42,6 @@ export default function SocialConversationActions({
         size="small"
         variant="contained"
         onClick={() => {
-          setLeadDraft(null);
           setActiveDrawer('lead');
         }}
         sx={primaryButtonSx}
@@ -72,12 +73,16 @@ export default function SocialConversationActions({
         onLeadSubmitted={() => setLeadDraft(null)}
       />
       <SocialTaskDrawer
+        key={`social-task-${taskDrawerVersion}`}
         open={activeDrawer === 'task'}
         onClose={() => setActiveDrawer(null)}
+        onSubmitted={() => setTaskDrawerVersion((value) => value + 1)}
       />
       <SocialTicketDrawer
+        key={`social-ticket-${ticketDrawerVersion}`}
         open={activeDrawer === 'ticket'}
         onClose={() => setActiveDrawer(null)}
+        onSubmitted={() => setTicketDrawerVersion((value) => value + 1)}
       />
       <SocialClientModal
         open={clientModalOpen}
