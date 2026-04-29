@@ -35,12 +35,22 @@ const SOURCE_CANDIDATES_BY_MEDIUM = {
   email: ['email', 'mail', 'e-mail'],
 };
 
-export default function SocialLeadDrawer({ open, onClose }) {
+export default function SocialLeadDrawer({
+  open,
+  onClose,
+  draftInitialValues = null,
+  onAddClientRequested,
+  onLeadSubmitted,
+}) {
   const { activeEntity, activeMedium, showToast } = useSocial();
   const [initialValues, setInitialValues] = useState(null);
 
   useEffect(() => {
     if (!open) return undefined;
+    if (draftInitialValues) {
+      setInitialValues(draftInitialValues);
+      return undefined;
+    }
 
     let active = true;
 
@@ -81,14 +91,14 @@ export default function SocialLeadDrawer({ open, onClose }) {
     return () => {
       active = false;
     };
-  }, [activeEntity, activeMedium, open]);
+  }, [activeEntity, activeMedium, draftInitialValues, open]);
 
   return (
     <SocialFloatingPanel
       open={open}
       onClose={onClose}
       title="Convert to Lead"
-      width={580}
+      width={780}
       height={620}
       contentSx={{ p: 0 }}
     >
@@ -97,6 +107,7 @@ export default function SocialLeadDrawer({ open, onClose }) {
           <LeadForm
             initialValues={initialValues}
             onCancel={onClose}
+            onAddClient={onAddClientRequested}
             actionWidth="100%"
             actionMarginTop={3}
             lockedFields={{
@@ -105,6 +116,7 @@ export default function SocialLeadDrawer({ open, onClose }) {
             }}
             onSubmit={() => {
               showToast?.('Lead created from chat.');
+              onLeadSubmitted?.();
               onClose();
             }}
           />

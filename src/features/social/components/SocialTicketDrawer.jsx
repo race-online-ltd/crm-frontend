@@ -192,7 +192,6 @@ export default function SocialTicketDrawer({ open, onClose }) {
           />
 
           <AttachmentField
-            label="Attachment"
             value={formik.values.attachment}
             onChange={(files) => formik.setFieldValue('attachment', files)}
           />

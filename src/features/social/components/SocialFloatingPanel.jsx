@@ -190,7 +190,13 @@ export default function SocialFloatingPanel({
           >
             <CloseIcon fontSize="small" />
           </IconButton>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontSize: '1rem',
+              fontWeight: 700,
+            }}
+          >
             {title}
           </Typography>
         </Box>

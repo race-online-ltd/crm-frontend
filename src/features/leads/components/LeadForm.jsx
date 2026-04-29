@@ -29,7 +29,8 @@ import AttachmentField        from '../../../components/shared/AttachmentField';
 import AddClientButton        from '../../../components/shared/AddClientButton';
 import FormActionButtons      from '../../../components/shared/FormActionButtons';
 import { buildMultipartFormData } from '../../../utils/formData';
-import { fetchLeadFormOptions, createLead, updateLead } from '../api/leadApi';
+import { fetchLeadFormOptions, fetchLeads, createLead, updateLead } from '../api/leadApi';
+import { fetchSystemUsers } from '../../settings/api/settingsApi';
 
 // ─── Validation schema ───────────────────────────────────────────────────────
 const singleLeadSchema = Yup.object({
@@ -83,6 +84,34 @@ function normalizeLeadStages(stages = []) {
       id: String(stage.id),
       label: stage.stage_name || stage.name || stage.label || `Stage ${stage.id}`,
     }));
+}
+
+function formatLeadDate(value) {
+  if (!value) return 'Not available';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not available';
+
+  return date.toLocaleDateString();
+}
+
+function formatLeadProducts(products = []) {
+  if (!Array.isArray(products) || !products.length) {
+    return 'No products';
+  }
+
+  const labels = products
+    .map((product) => product?.label || product?.name || product)
+    .filter(Boolean);
+
+  return labels.length ? labels.join(', ') : 'No products';
+}
+
+function formatLeadRevenue(value) {
+  const numericValue = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+  if (!numericValue) return 'Not set';
+
+  return new Intl.NumberFormat('en-US').format(numericValue);
 }
 
 // ─── InfoRow ─────────────────────────────────────────────────────────────────
@@ -215,6 +244,7 @@ function BulkUploadTab({ onCancel }) {
 export default function LeadForm({
   onCancel,
   onSubmit,
+  onAddClient,
   tab = 0,
   initialValues = null,
   isEdit = false,
@@ -235,7 +265,32 @@ export default function LeadForm({
     stages: [],
   });
   const [loadingOptions, setLoadingOptions] = useState(true);
+  const [allSystemUsers, setAllSystemUsers] = useState([]);
+  const [clientLeads, setClientLeads] = useState([]);
+  const [loadingClientLeads, setLoadingClientLeads] = useState(false);
   const selectedStageRef = useRef(formInitialValues.stage || '');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSystemUsers = async () => {
+      try {
+        const response = await fetchSystemUsers();
+        if (!active) return;
+        setAllSystemUsers(Array.isArray(response?.data) ? response.data : []);
+      } catch {
+        if (active) {
+          setAllSystemUsers([]);
+        }
+      }
+    };
+
+    loadSystemUsers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -253,7 +308,7 @@ export default function LeadForm({
           sources: data.sources || [],
           clients: data.clients || [],
           lead_assigns: data.lead_assigns || [],
-          kam_users: data.kam_users || [],
+          kam_users: [],
           backoffices: data.backoffices || [],
           products: data.products || [],
           stages: normalizeLeadStages(data.stages || []),
@@ -355,6 +410,46 @@ export default function LeadForm({
     lat: selectedClient.lat,
     lng: selectedClient.long,
   } : null;
+  const filteredKamUsers = useMemo(() => {
+    if (!values.business_entity_id) {
+      return [];
+    }
+
+    return allSystemUsers
+      .filter((user) => (
+        String(user.role_id || user.roleId || '') === '5'
+        && String(
+          user.business_entity_id
+          || user.businessEntityId
+          || user.business_entity?.id
+          || user.businessEntity?.id
+          || '',
+        ) === String(values.business_entity_id)
+      ))
+      .map((user) => ({
+        id: String(user.id),
+        label: user.full_name || user.user_name || `User #${user.id}`,
+        name: user.full_name || user.user_name || `User #${user.id}`,
+        user_name: user.user_name || '',
+      }));
+  }, [allSystemUsers, values.business_entity_id]);
+  const kamNameById = useMemo(() => (
+    filteredKamUsers.reduce((acc, user) => {
+      acc[String(user.id)] = user.label || user.name || user.user_name || `KAM #${user.id}`;
+      return acc;
+    }, {})
+  ), [filteredKamUsers]);
+  const normalizedClientLeads = useMemo(() => clientLeads.map((lead) => ({
+    id: String(lead.id),
+    products: formatLeadProducts(lead.products),
+    revenue: formatLeadRevenue(lead.expected_revenue ?? lead.expectedRevenue),
+    createdAt: formatLeadDate(lead.created_at),
+    kamName: lead.kam
+      || lead.assigned_to_user
+      || lead.assignedToUser
+      || kamNameById[String(lead.kam_id || lead.kamId || '')]
+      || 'Not assigned',
+  })), [clientLeads, kamNameById]);
   const getIsOtherSource = (sourceId) => {
     const source = optionData.sources.find((option) => String(option.id) === String(sourceId)) || null;
     return Boolean(String(source?.label || '').trim().toLowerCase().includes('other'));
@@ -365,7 +460,7 @@ export default function LeadForm({
   const isBackOfficeAssign = selectedLeadAssignName.includes('back office');
   const assignTargetOptions = isBackOfficeAssign
     ? optionData.backoffices
-    : optionData.kam_users;
+    : filteredKamUsers;
   const getDefaultAssignmentForBusinessEntity = useCallback((businessEntityId) => {
     const selectedBusinessEntity = optionData.business_entities.find(
       (option) => String(option.id) === String(businessEntityId),
@@ -459,7 +554,7 @@ export default function LeadForm({
         setOptionData((current) => ({
           ...current,
           clients: data.clients || [],
-          kam_users: data.kam_users || [],
+          kam_users: [],
           backoffices: data.backoffices || [],
           products: data.products || [],
           stages,
@@ -491,6 +586,42 @@ export default function LeadForm({
       active = false;
     };
   }, [setFieldValue, values.business_entity_id]);
+
+  useEffect(() => {
+    if (!values.client_id) {
+      setClientLeads([]);
+      setLoadingClientLeads(false);
+      return;
+    }
+
+    let active = true;
+
+    const loadClientLeads = async () => {
+      try {
+        setLoadingClientLeads(true);
+        const data = await fetchLeads({ client_id: values.client_id });
+        if (!active) return;
+        const rows = Array.isArray(data) ? data : [];
+        setClientLeads(rows.filter((lead) => (
+          String(lead.client_id || lead.clientId || '') === String(values.client_id)
+        )));
+      } catch {
+        if (active) {
+          setClientLeads([]);
+        }
+      } finally {
+        if (active) {
+          setLoadingClientLeads(false);
+        }
+      }
+    };
+
+    loadClientLeads();
+
+    return () => {
+      active = false;
+    };
+  }, [values.client_id]);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -615,7 +746,14 @@ export default function LeadForm({
                 loading={loadingOptions}
               />
               <AddClientButton
-                onClick={() => navigate('/clients/new', { state: { returnTo: '/leads/new' } })}
+                onClick={() => {
+                  if (typeof onAddClient === 'function') {
+                    onAddClient(values);
+                    return;
+                  }
+
+                  navigate('/clients/new', { state: { returnTo: '/leads/new' } });
+                }}
                 sx={{ width: { xs: '100%', sm: 'auto' }, mt: { xs: 0, sm: 0.5 } }}
               />
             </Box>
@@ -679,7 +817,7 @@ export default function LeadForm({
                 sx={{
                   gridColumn: '1 / -1',
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
                   gap: '20px',
                 }}
               >
@@ -741,6 +879,51 @@ export default function LeadForm({
                       <InfoRow icon={<PublicIcon />} text={`${clientMeta.lat}, ${clientMeta.lng}`} />
                     ) : null}
                   </Stack>
+                </Paper>
+
+                <Paper
+                  variant="outlined"
+                  sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
+                    <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+                      Lead Information
+                    </Typography>
+                  </Stack>
+                  <Divider sx={{ mb: 1.25 }} />
+
+                  {loadingClientLeads ? (
+                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
+                      Loading lead history...
+                    </Typography>
+                  ) : normalizedClientLeads.length ? (
+                    <Stack spacing={1.25}>
+                      {normalizedClientLeads.map((lead, index) => (
+                        <Box
+                          key={lead.id}
+                          sx={{
+                            pb: index === normalizedClientLeads.length - 1 ? 0 : 1.25,
+                            borderBottom: index === normalizedClientLeads.length - 1 ? 'none' : '1px solid #e2e8f0',
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', mb: 0.5 }}>
+                            Lead #{lead.id}
+                          </Typography>
+                          <Stack spacing={0.5}>
+                            <InfoRow icon={<BusinessIcon />} text={lead.products} />
+                            <InfoRow icon={<PublicIcon />} text={`Revenue: ${lead.revenue}`} />
+                            <InfoRow icon={<LocationOnIcon />} text={`Created: ${lead.createdAt}`} />
+                            <InfoRow icon={<PersonIcon />} text={`KAM: ${lead.kamName}`} />
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
+                      No leads found for this client.
+                    </Typography>
+                  )}
                 </Paper>
               </Box>
             )}
