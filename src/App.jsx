@@ -46,6 +46,7 @@ import { DOControlPage } from './pages/settings/DOControl.page';
 import { DOControlConfigurationComponent } from './components/DOControlConfiguration.component';
 import DeviceAlarmDetails from './pages/DeviceAlarmDetails';
 import AlarmReport from './pages/reports/AlarmReport';
+import SensorLogReport from './pages/reports/SensorLogReport';
 
 
 const App = () => {
@@ -114,6 +115,7 @@ const App = () => {
             <Route path="settings/svguploader" element={<SvgUploader />} />
             <Route path="settings/svgpreviewer" element={<SvgPreview />} />
             <Route path="reports/alarm" element={<AlarmReport />} />
+            <Route path="reports/sensor-log" element={<SensorLogReport />} />
 
             <Route path="roles" element={<RoleList />} />
             <Route path="roles/create" element={<CreateRole />} />

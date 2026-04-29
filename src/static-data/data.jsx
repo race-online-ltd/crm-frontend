@@ -27,13 +27,17 @@ export const sidebarMenu = [
         title: 'Alarm Log',
         path: '/admin/reports/alarm',
       },
+      {
+        title: 'Sensor Log',
+        path: '/admin/reports/sensor-log',
+      },
     ],
   },
-  {
-    title: 'Servers',
-    path: '/admin/servers',
-    icon: <FaServer />,
-  },
+  // {
+  //   title: 'Servers',
+  //   path: '/admin/servers',
+  //   icon: <FaServer />,
+  // },
 
   {
     title: 'Settings',
