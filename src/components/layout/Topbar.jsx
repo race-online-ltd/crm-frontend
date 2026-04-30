@@ -88,6 +88,26 @@ export default function Topbar({ open, handleToggle }) {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        {!isMobile && profile?.role ? (
+          <Box
+            sx={{
+              mr: 1.5,
+              px: 1.5,
+              py: 0.75,
+              borderRadius: "999px",
+              border: "1px solid #dbe4ee",
+              bgcolor: "#ffffff",
+              color: "#475569",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              lineHeight: 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {profile.role}
+          </Box>
+        ) : null}
+
         {/* Notifications */}
         <IconButton
           color="inherit"
@@ -173,9 +193,6 @@ export default function Topbar({ open, handleToggle }) {
                   }}
                 >
                   ID: {profile.userName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {profile.role}
                 </Typography>
               </Box>
             </Stack>

@@ -37,8 +37,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AddIcon from '@mui/icons-material/Add';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CloseIcon from '@mui/icons-material/Close';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import TaskForm from './TaskForm';
 import TaskDetails from './TaskDetails';
 import FilterButton from '../../../components/shared/FilterButton';
@@ -69,6 +70,17 @@ const EMPTY_FILTER_OPTIONS = {
 };
 
 const getConfig = (type) => ACTIVITY_CONFIG[type] || { bg: '#ec4899', label: 'Other' };
+const MONTH_PICKER_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const getTaskTypeLabel = (activity) => activity.task_type_name || activity.taskTypeName || getConfig(activity.taskType).label;
+const getClientName = (activity) =>
+  activity.client_name
+  || activity.clientName
+  || activity.client
+  || activity.client_label
+  || activity.lead
+  || activity.lead_name
+  || activity.leadName
+  || 'No client';
 
 function parseTaskDate(value) {
   if (!value) return null;
@@ -82,7 +94,10 @@ function parseTaskDate(value) {
 
 function SidebarCard({ activity, onOpen }) {
   const cfg = getConfig(activity.taskType);
+  const taskTypeLabel = getTaskTypeLabel(activity);
   const scheduledDate = parseTaskDate(activity.scheduledAt);
+  const scheduledTimeLabel = scheduledDate ? format(scheduledDate, 'p') : 'No time set';
+  const clientName = getClientName(activity);
 
   return (
     <Box
@@ -114,30 +129,41 @@ function SidebarCard({ activity, onOpen }) {
         <Typography sx={{ fontWeight: 700, color: '#1e293b', fontSize: '0.875rem', lineHeight: 1.3 }}>
           {activity.title}
         </Typography>
-        <Chip
-          label={cfg.label}
-          size="small"
+        <Box
           sx={{
-            bgcolor: `${cfg.bg}22`,
+            bgcolor: `${cfg.bg}16`,
             color: cfg.bg,
-            fontWeight: 700,
-            fontSize: '0.6rem',
-            height: 20,
+            border: `1px solid ${cfg.bg}33`,
+            borderRadius: '10px',
+            px: 1,
+            py: 0.5,
             ml: 1,
             flexShrink: 0,
+            minWidth: 74,
+            textAlign: 'center',
           }}
-        />
+        >
+          <Typography sx={{ fontSize: '0.6rem', fontWeight: 800, lineHeight: 1.1 }}>
+            {taskTypeLabel}
+          </Typography>
+          <Typography sx={{ fontSize: '0.58rem', fontWeight: 700, lineHeight: 1.1, mt: 0.25 }}>
+            {scheduledTimeLabel}
+          </Typography>
+        </Box>
       </Stack>
       <Stack direction="row" alignItems="center" spacing={0.5} mt={0.75}>
-        <AccessTimeIcon sx={{ fontSize: 12, color: '#94a3b8' }} />
-        <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
-          {scheduledDate ? format(scheduledDate, 'p') : 'No time set'}
+        <BusinessOutlinedIcon sx={{ fontSize: 13, color: '#94a3b8' }} />
+        <Typography sx={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+          {clientName}
         </Typography>
       </Stack>
       {activity.assigned_to_user_name && (
-        <Typography sx={{ fontSize: '0.72rem', color: '#475569', mt: 0.5, lineHeight: 1.4, fontWeight: 600 }}>
-          {activity.assigned_to_user_name}
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5} mt={0.5}>
+          <PersonOutlineIcon sx={{ fontSize: 13, color: '#94a3b8' }} />
+          <Typography sx={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4, fontWeight: 600 }}>
+            {activity.assigned_to_user_name}
+          </Typography>
+        </Stack>
       )}
       {activity.details && (
         <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mt: 0.5, lineHeight: 1.4 }}>
@@ -212,14 +238,7 @@ export default function TaskCalendar() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
-
-  const nextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
-  const prevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
-  const goToToday = () => {
-    const today = new Date();
-    setCurrentMonth(today);
-    setSelectedDate(today);
-  };
+  const [monthAnchorEl, setMonthAnchorEl] = useState(null);
 
   const loadFilterOptions = useCallback(async () => {
     try {
@@ -395,47 +414,7 @@ export default function TaskCalendar() {
           </Stack>
         </Box>
 
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-          <Box sx={{
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            p: '3px',
-            display: 'flex',
-            alignItems: 'center',
-            bgcolor: '#f8fafc',
-          }}
-          >
-            <IconButton onClick={prevMonth} size="small" sx={{ '&:focus': { outline: 'none' } }}>
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-            <Button
-              onClick={goToToday}
-              sx={{ color: '#64748b', textTransform: 'none', fontWeight: 600, px: 1.5, fontSize: '0.82rem', minWidth: 0 }}
-            >
-              Today
-            </Button>
-            <IconButton onClick={nextMonth} size="small" sx={{ '&:focus': { outline: 'none' } }}>
-              <ChevronRightIcon fontSize="small" />
-            </IconButton>
-          </Box>
-
-          <FilterButton
-            onClick={(event) => {
-              setDraftFilters(filters);
-              setFilterAnchorEl(event.currentTarget);
-            }}
-            label={activeFilterCount ? `Filter (${activeFilterCount})` : 'Filter'}
-            sx={{
-              borderRadius: '10px',
-              textTransform: 'none',
-              fontWeight: 700,
-              px: 1.75,
-              py: 0.9,
-              borderColor: '#dbe4ee',
-              color: '#334155',
-            }}
-          />
-
+        <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -456,6 +435,36 @@ export default function TaskCalendar() {
           >
             {isMobile ? 'Add' : 'New Task'}
           </Button>
+
+          <IconButton
+            onClick={(event) => setMonthAnchorEl(event.currentTarget)}
+            sx={{
+              borderRadius: '10px',
+              border: '1px solid #dbe4ee',
+              bgcolor: '#f8fafc',
+              color: '#334155',
+              '&:focus': { outline: 'none' },
+            }}
+          >
+            <CalendarTodayIcon fontSize="small" />
+          </IconButton>
+
+          <FilterButton
+            onClick={(event) => {
+              setDraftFilters(filters);
+              setFilterAnchorEl(event.currentTarget);
+            }}
+            label={activeFilterCount ? `Filter (${activeFilterCount})` : 'Filter'}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 1.75,
+              py: 0.9,
+              borderColor: '#dbe4ee',
+              color: '#334155',
+            }}
+          />
         </Stack>
       </Stack>
 
@@ -473,10 +482,31 @@ export default function TaskCalendar() {
           display: 'grid',
           gridTemplateColumns: isTablet ? '1fr' : '1fr 320px',
           gap: 3,
-          alignItems: 'start',
+          alignItems: 'stretch',
         }}
       >
-        <Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.25}
+            useFlexGap
+            flexWrap="wrap"
+            sx={{ mb: 1.5 }}
+          >
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em' }}>
+              TASK TYPES
+            </Typography>
+            {Object.entries(ACTIVITY_CONFIG).map(([, cfg]) => (
+              <Stack key={cfg.label} direction="row" alignItems="center" spacing={0.75}>
+                <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: cfg.bg, flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
+                  {cfg.label}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+
           <Box className="cal-weekdays">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <Box key={day} className="cal-weekday">{day}</Box>
@@ -512,14 +542,13 @@ export default function TaskCalendar() {
 
                   {events.slice(0, 3).map((event) => {
                     const scheduledDate = parseTaskDate(event.scheduledAt);
-
                     return (
                       <Box
                         key={event.id}
                         className="cal-pill"
                         sx={{ bgcolor: getConfig(event.taskType).bg }}
                       >
-                        {scheduledDate ? format(scheduledDate, 'h:mma') : '--'} {event.title}
+                        {scheduledDate ? format(scheduledDate, 'h:mma') : '--'} • {getTaskTypeLabel(event)}
                       </Box>
                     );
                   })}
@@ -559,8 +588,10 @@ export default function TaskCalendar() {
               borderRadius: '14px',
               p: 2.5,
               bgcolor: '#fff',
-              position: 'sticky',
-              top: 80,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              minHeight: 0,
             }}
           >
             <Stack direction="row" alignItems="center" spacing={1} mb={2.5}>
@@ -576,7 +607,7 @@ export default function TaskCalendar() {
                 <EventNoteIcon sx={{ fontSize: 18, color: '#2563eb' }} />
               </Box>
               <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem' }}>
-                Activities
+                Tasks
               </Typography>
             </Stack>
 
@@ -584,7 +615,7 @@ export default function TaskCalendar() {
               {format(selectedDate, 'EEEE, MMMM d')}
             </Typography>
 
-            <Stack spacing={1.5}>
+            <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0, overflow: 'auto', pr: 0.5 }}>
               {loading ? (
                 <Box sx={{ py: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <CircularProgress size={22} />
@@ -604,30 +635,90 @@ export default function TaskCalendar() {
                 >
                   <CalendarTodayIcon sx={{ fontSize: 28, color: '#cbd5e1', mb: 1 }} />
                   <Typography sx={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 500 }}>
-                    No activities on this day
+                    No tasks on this day
                   </Typography>
                 </Box>
               )}
             </Stack>
-
-            <Box sx={{ mt: 3, pt: 2.5, borderTop: '1px solid #f1f5f9' }}>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', mb: 1.5, letterSpacing: '0.05em' }}>
-                ACTIVITY TYPES
-              </Typography>
-              <Stack spacing={1}>
-                {Object.entries(ACTIVITY_CONFIG).map(([, cfg]) => (
-                  <Stack key={cfg.label} direction="row" alignItems="center" spacing={1}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: cfg.bg, flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
-                      {cfg.label}
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Box>
           </Box>
         )}
       </Box>
+
+      <Menu
+        anchorEl={monthAnchorEl}
+        open={Boolean(monthAnchorEl)}
+        onClose={() => setMonthAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: 250,
+              p: 1.5,
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 16px 36px rgba(15,23,42,0.12)',
+              mt: 1,
+            },
+          },
+        }}
+      >
+        <Stack spacing={1.5}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <IconButton onClick={() => setCurrentMonth((prev) => subMonths(prev, 12))} size="small">
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b' }}>
+              {format(currentMonth, 'yyyy')}
+            </Typography>
+            <IconButton onClick={() => setCurrentMonth((prev) => addMonths(prev, 12))} size="small">
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 1,
+            }}
+          >
+            {MONTH_PICKER_LABELS.map((monthLabel, monthIndex) => {
+              const isSelectedMonth = currentMonth.getMonth() === monthIndex;
+              return (
+                <Button
+                  key={monthLabel}
+                  onClick={() => {
+                    const nextDate = new Date(currentMonth);
+                    nextDate.setMonth(monthIndex);
+                    nextDate.setDate(1);
+                    setCurrentMonth(nextDate);
+                    setSelectedDate(nextDate);
+                    setMonthAnchorEl(null);
+                  }}
+                  sx={{
+                    minWidth: 0,
+                    px: 1,
+                    py: 1,
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    color: isSelectedMonth ? '#ffffff' : '#334155',
+                    bgcolor: isSelectedMonth ? '#2563eb' : '#f8fafc',
+                    border: '1px solid #dbe4ee',
+                    '&:hover': {
+                      bgcolor: isSelectedMonth ? '#1d4ed8' : '#eff6ff',
+                    },
+                  }}
+                >
+                  {monthLabel}
+                </Button>
+              );
+            })}
+          </Box>
+        </Stack>
+      </Menu>
 
       <Menu
         anchorEl={filterAnchorEl}

@@ -14,6 +14,7 @@ import EmailIcon              from '@mui/icons-material/Email';
 import LocationOnIcon         from '@mui/icons-material/LocationOn';
 import MapIcon                from '@mui/icons-material/Map';
 import PublicIcon             from '@mui/icons-material/Public';
+import HubIcon                from '@mui/icons-material/Hub';
 import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile';
 import DeleteOutlineIcon      from '@mui/icons-material/DeleteOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -445,17 +446,28 @@ export default function LeadForm({
       return acc;
     }, {})
   ), [filteredKamUsers]);
+  const sourceNameById = useMemo(() => (
+    optionData.sources.reduce((acc, source) => {
+      acc[String(source.id)] = source.label || source.name || `Source #${source.id}`;
+      return acc;
+    }, {})
+  ), [optionData.sources]);
   const normalizedClientLeads = useMemo(() => clientLeads.map((lead) => ({
     id: String(lead.id),
     products: formatLeadProducts(lead.products),
     revenue: formatLeadRevenue(lead.expected_revenue ?? lead.expectedRevenue),
+    sourceName: lead.source
+      || lead.source_name
+      || lead.sourceName
+      || sourceNameById[String(lead.source_id || lead.sourceId || '')]
+      || 'Unknown source',
     createdAt: formatLeadDate(lead.created_at),
     kamName: lead.kam
       || lead.assigned_to_user
       || lead.assignedToUser
       || kamNameById[String(lead.kam_id || lead.kamId || '')]
       || 'Not assigned',
-  })), [clientLeads, kamNameById]);
+  })), [clientLeads, kamNameById, sourceNameById]);
   const getIsOtherSource = (sourceId) => {
     const source = optionData.sources.find((option) => String(option.id) === String(sourceId)) || null;
     return Boolean(String(source?.label || '').trim().toLowerCase().includes('other'));
@@ -866,69 +878,108 @@ export default function LeadForm({
 
                 <Paper
                   variant="outlined"
-                  sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
+                  sx={{
+                    height: 210,
+                    p: 2,
+                    borderRadius: '12px',
+                    mb: 3,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
-                    <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
-                      Client Information
-                    </Typography>
-                  </Stack>
-                  <Divider sx={{ mb: 1.25 }} />
-                  <Stack spacing={0.75}>
-                    <InfoRow icon={<BusinessIcon />}   text={selectedClient?.client_name || selectedClient?.label || 'Client'} />
-                    <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson || 'No contact person'} />
-                    <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone || 'No phone number'} />
-                    <InfoRow icon={<EmailIcon />}      text={clientMeta.email || 'No email address'} isLink={Boolean(clientMeta.email)} />
-                    <InfoRow icon={<LocationOnIcon />} text={clientMeta.address || 'No address available'} />
-                    {(clientMeta.lat && clientMeta.lng) ? (
-                      <InfoRow icon={<PublicIcon />} text={`${clientMeta.lat}, ${clientMeta.lng}`} />
-                    ) : null}
-                  </Stack>
+                  <Box
+                    sx={{
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 1,
+                      bgcolor: '#fff',
+                      pb: 1.25,
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
+                      <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+                        Client Information
+                      </Typography>
+                    </Stack>
+                    <Divider />
+                  </Box>
+                  <Box sx={{ overflow: 'auto', pr: 0.5 }}>
+                    <Stack spacing={0.75}>
+                      <InfoRow icon={<BusinessIcon />}   text={selectedClient?.client_name || selectedClient?.label || 'Client'} />
+                      <InfoRow icon={<PersonIcon />}     text={clientMeta.contactPerson || 'No contact person'} />
+                      <InfoRow icon={<PhoneIcon />}      text={clientMeta.phone || 'No phone number'} />
+                      <InfoRow icon={<EmailIcon />}      text={clientMeta.email || 'No email address'} isLink={Boolean(clientMeta.email)} />
+                      <InfoRow icon={<LocationOnIcon />} text={clientMeta.address || 'No address available'} />
+                      {(clientMeta.lat && clientMeta.lng) ? (
+                        <InfoRow icon={<PublicIcon />} text={`${clientMeta.lat}, ${clientMeta.lng}`} />
+                      ) : null}
+                    </Stack>
+                  </Box>
                 </Paper>
 
                 <Paper
                   variant="outlined"
-                  sx={{ height: 210, p: 2, borderRadius: '12px', mb: 3, overflow: 'auto' }}
+                  sx={{
+                    height: 210,
+                    p: 2,
+                    borderRadius: '12px',
+                    mb: 3,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={0.75} mb={1.25}>
-                    <BusinessIcon sx={{ fontSize: 14, color: '#2563eb' }} />
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
-                      Lead Information
+                  <Box
+                    sx={{
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 1,
+                      bgcolor: '#fff',
+                      pb: 1.25,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', mb: 1 }}>
+                      Total Leads: {normalizedClientLeads.length}
                     </Typography>
-                  </Stack>
-                  <Divider sx={{ mb: 1.25 }} />
+                    <Divider />
+                  </Box>
 
                   {loadingClientLeads ? (
-                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
-                      Loading lead history...
-                    </Typography>
+                    <Box sx={{ overflow: 'auto', pr: 0.5 }}>
+                      <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
+                        Loading lead history...
+                      </Typography>
+                    </Box>
                   ) : normalizedClientLeads.length ? (
-                    <Stack spacing={1.25}>
-                      {normalizedClientLeads.map((lead, index) => (
-                        <Box
-                          key={lead.id}
-                          sx={{
-                            pb: index === normalizedClientLeads.length - 1 ? 0 : 1.25,
-                            borderBottom: index === normalizedClientLeads.length - 1 ? 'none' : '1px solid #e2e8f0',
-                          }}
-                        >
-                          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', mb: 0.5 }}>
-                            Lead #{lead.id}
-                          </Typography>
-                          <Stack spacing={0.5}>
-                            <InfoRow icon={<BusinessIcon />} text={lead.products} />
-                            <InfoRow icon={<PublicIcon />} text={`Revenue: ${lead.revenue}`} />
-                            <InfoRow icon={<LocationOnIcon />} text={`Created: ${lead.createdAt}`} />
-                            <InfoRow icon={<PersonIcon />} text={`KAM: ${lead.kamName}`} />
-                          </Stack>
-                        </Box>
-                      ))}
-                    </Stack>
+                    <Box sx={{ overflow: 'auto', pr: 0.5 }}>
+                      <Stack spacing={1.25}>
+                        {normalizedClientLeads.map((lead, index) => (
+                          <Box
+                            key={lead.id}
+                            sx={{
+                              pb: index === normalizedClientLeads.length - 1 ? 0 : 1.25,
+                              borderBottom: index === normalizedClientLeads.length - 1 ? 'none' : '1px solid #e2e8f0',
+                            }}
+                          >
+                            <Stack spacing={0.5}>
+                              <InfoRow icon={<BusinessIcon />} text={lead.products} />
+                              <InfoRow icon={<PublicIcon />} text={`Revenue: ${lead.revenue}`} />
+                              <InfoRow icon={<HubIcon />} text={`Source: ${lead.sourceName}`} />
+                              <InfoRow icon={<LocationOnIcon />} text={`Created At: ${lead.createdAt}`} />
+                              <InfoRow icon={<PersonIcon />} text={`KAM: ${lead.kamName}`} />
+                            </Stack>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
                   ) : (
-                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
-                      No leads found for this client.
-                    </Typography>
+                    <Box sx={{ overflow: 'auto', pr: 0.5 }}>
+                      <Typography sx={{ fontSize: '0.82rem', color: '#64748b' }}>
+                        No leads found for this client.
+                      </Typography>
+                    </Box>
                   )}
                 </Paper>
               </Box>
