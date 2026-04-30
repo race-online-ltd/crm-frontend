@@ -408,3 +408,41 @@ export async function updateColumnMapping(payload) {
  
 //   return response.data;
 // }
+
+
+
+// export async function fetchBackofficesByBusinessEntity(business_entity_id) {
+//   const response = await api.get('/user-mappings/with-backoffices', {
+//     params: { business_entity_id }
+//   });
+
+//   return response.data?.data ?? [];
+// }
+
+
+
+export const fetchBackofficesByBusinessEntity = async (businessEntityId) => {
+  // Explicitly pass the ID as a query parameter
+  const response = await api.get(`/user-mappings/with-backoffices`, {
+    params: {
+      business_entity_id: businessEntityId
+    }
+  });
+  // Adjust based on your API response structure (e.g., response.data.data)
+  return response.data.data || []; 
+};
+
+
+
+// export async function fetchBackofficesByBusinessEntity(business_entity_id) {
+//   // Convert to comma-separated string if array
+//   const ids = Array.isArray(business_entity_id) 
+//     ? business_entity_id.join(',') 
+//     : business_entity_id;
+  
+//   const response = await api.get('/user-mappings/backoffices', {
+//     params: { business_entity_id: ids }
+//   });
+
+//   return response.data?.data ?? [];
+// }
