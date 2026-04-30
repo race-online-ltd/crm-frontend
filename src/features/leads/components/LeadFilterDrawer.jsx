@@ -211,7 +211,7 @@ import {
   Box, Button, MenuItem, Stack, TextField, Typography, FormHelperText,
 } from '@mui/material';
 import { format } from 'date-fns';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 
 import AppDrawer from '../../../components/shared/AppDrawer';
@@ -229,36 +229,12 @@ const DEFAULT_FILTERS = {
 
 // ─── Validation Schema (Formik + Yup) ────────────────────────────────────────
 const filterValidationSchema = Yup.object().shape({
-  business_entity_id: Yup.string()
-    .required('Business Entity is required')
-    .min(1, 'Please select a Business Entity'),
-  
-  // Team OR KAM: at least one required
+  business_entity_id: Yup.string(),
   team_id: Yup.string(),
   kam_id: Yup.string(),
-  
-  // Date range: both required together
-  date_from: Yup.string()
-    .required('From date is required')
-    .nullable(),
-  date_to: Yup.string()
-    .required('To date is required')
-    .nullable(),
+  date_from: Yup.mixed().required('From month is required'),
+  date_to: Yup.mixed().required('To month is required'),
 }).test(
-  'team-or-kam-required',
-  'Please select either Team or KAM',
-  function (values) {
-    const { team_id, kam_id } = values || {};
-    // At least one must be selected
-    if (!team_id && !kam_id) {
-      return this.createError({
-        path: 'team_id',
-        message: 'Please select either Team or KAM',
-      });
-    }
-    return true;
-  }
-).test(
   'date-range-valid',
   'From date cannot be after To date',
   function (values) {
@@ -360,7 +336,7 @@ export default function LeadFilterDrawer({
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ values, setFieldValue, isSubmitting, touched, errors }) => (
+        {({ values, setFieldValue, setFieldTouched, isSubmitting, touched, errors, submitCount }) => (
           <Form style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Stack spacing={2.25} sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
 
@@ -371,7 +347,7 @@ export default function LeadFilterDrawer({
                   select
                   fullWidth
                   size="small"
-                  label="Business Entity *"
+                  label="Business Entity"
                   name="business_entity_id"
                   value={values.business_entity_id}
                   onChange={handleSelectChange('business_entity_id', setFieldValue)}
@@ -445,22 +421,29 @@ export default function LeadFilterDrawer({
                   <MonthPicker
                     label="From Month"
                     value={values.date_from ? new Date(values.date_from) : null}
-                    onChange={handleFromChange(setFieldValue, values)}
+                    onChange={(date) => {
+                      setFieldTouched('date_from', true, false);
+                      handleFromChange(setFieldValue, values)(date);
+                    }}
                     fullWidth
-                    error={touched.date_from && Boolean(errors.date_from)}
+                    error={(touched.date_from || submitCount > 0) && Boolean(errors.date_from)}
                   />
 
                   <MonthPicker
                     label="To Month"
                     value={values.date_to ? new Date(values.date_to) : null}
-                    onChange={handleToChange(setFieldValue, values)}
+                    onChange={(date) => {
+                      setFieldTouched('date_to', true, false);
+                      handleToChange(setFieldValue, values)(date);
+                    }}
                     fullWidth
-                    error={touched.date_to && Boolean(errors.date_to)}
+                    error={(touched.date_to || submitCount > 0) && Boolean(errors.date_to)}
                   />
                 </Stack>
                 
                 {/* Show date errors */}
-                {(touched.date_from && errors.date_from) || (touched.date_to && errors.date_to) ? (
+                {((touched.date_from || submitCount > 0) && errors.date_from) ||
+                ((touched.date_to || submitCount > 0) && errors.date_to) ? (
                   <FormHelperText error sx={{ ml: 0, mt: 0.5 }}>
                     {errors.date_from || errors.date_to}
                   </FormHelperText>

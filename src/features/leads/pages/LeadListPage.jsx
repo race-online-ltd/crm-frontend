@@ -981,14 +981,6 @@ export default function LeadListPage() {
           setDraftFilters((prev) => ({ ...prev, [field]: value }))
         }
         onApply={(nextFilters) => {
-          const hasFilter =
-            nextFilters.business_entity_id ||
-            nextFilters.kam_id ||
-            nextFilters.team_id;
-          if (hasFilter && (!nextFilters.date_from || !nextFilters.date_to)) {
-            alert('Please select a date range when using filters.');
-            return;
-          }
           setAppliedFilters(nextFilters);
           setFilterDrawerOpen(false);
           loadPipeline(buildPipelineParams(nextFilters));

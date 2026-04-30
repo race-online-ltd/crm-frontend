@@ -309,7 +309,7 @@ export default function LeadForm({
           sources: data.sources || [],
           clients: data.clients || [],
           lead_assigns: data.lead_assigns || [],
-          kam_users: [],
+          kam_users: data.kam_users || [],
           backoffices: data.backoffices || [],
           products: data.products || [],
           stages: normalizeLeadStages(data.stages || []),
@@ -421,6 +421,21 @@ export default function LeadForm({
       return [];
     }
 
+    const apiKamUsers = Array.isArray(optionData.kam_users)
+      ? optionData.kam_users
+          .map((user) => ({
+            id: String(user.id ?? ''),
+            label: user.label || user.full_name || user.user_name || `User #${user.id}`,
+            name: user.full_name || user.user_name || user.label || `User #${user.id}`,
+            user_name: user.user_name || '',
+          }))
+          .filter((user) => user.id)
+      : [];
+
+    if (apiKamUsers.length > 0) {
+      return apiKamUsers;
+    }
+
     return allSystemUsers
       .filter((user) => (
         String(user.role_id || user.roleId || '') === '5'
@@ -438,7 +453,7 @@ export default function LeadForm({
         name: user.full_name || user.user_name || `User #${user.id}`,
         user_name: user.user_name || '',
       }));
-  }, [allSystemUsers, values.business_entity_id]);
+  }, [allSystemUsers, optionData.kam_users, values.business_entity_id]);
   const kamNameById = useMemo(() => (
     filteredKamUsers.reduce((acc, user) => {
       acc[String(user.id)] = user.label || user.name || user.user_name || `KAM #${user.id}`;
@@ -467,6 +482,11 @@ export default function LeadForm({
   const assignTargetOptions = isBackOfficeAssign
     ? optionData.backoffices
     : filteredKamUsers;
+
+  useEffect(() => {
+    selectedStageRef.current = values.lead_pipeline_stage_id || '';
+  }, [values.lead_pipeline_stage_id]);
+
   const getDefaultAssignmentForBusinessEntity = useCallback((businessEntityId) => {
     const selectedBusinessEntity = optionData.business_entities.find(
       (option) => String(option.id) === String(businessEntityId),
@@ -560,7 +580,7 @@ export default function LeadForm({
         setOptionData((current) => ({
           ...current,
           clients: data.clients || [],
-          kam_users: [],
+          kam_users: data.kam_users || [],
           backoffices: data.backoffices || [],
           products: data.products || [],
           stages,

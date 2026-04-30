@@ -33,12 +33,6 @@ function getPreviousMonthName(date = new Date(), locale = 'en-US') {
   return new Intl.DateTimeFormat(locale, { month: 'long' }).format(prev);
 }
 
-// Only returns currency string when amount > 0, otherwise null
-function maybeAmount(value) {
-  const num = toNumber(value);
-  return num > 0 ? formatCurrency(num) : null;
-}
-
 function buildLeadCards(currentMonthLabel, stats) {
   const prevMonthName = getPreviousMonthName();
 
@@ -51,10 +45,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       title:       'Forwarded Lead',
       subtitle:    currentMonthLabel,
       value:       formatNumber(stats.forwarded?.count),
-      amount:      maybeAmount(stats.forwarded?.amount),
+      amount:      formatCurrency(stats.forwarded?.amount),
       footerLabel: 'Last 24 Hours',
       footerCount: formatNumber(stats.forwarded?.last24hCount ?? 0),
-      footerAmount: maybeAmount(stats.forwarded?.last24hAmount),
+      footerAmount: formatCurrency(stats.forwarded?.last24hAmount),
     },
     // 2. Pending Leads (Back Office) — footer: Last 24 Hours, amount only if > 0
     {
@@ -71,10 +65,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       ),
       subtitle:    '',
       value:       formatNumber(stats.pending?.count),
-      amount:      maybeAmount(stats.pending?.amount),
+      amount:      formatCurrency(stats.pending?.amount),
       footerLabel: 'Last 24 Hours',
       footerCount: formatNumber(stats.pending?.last24hCount ?? 0),
-      footerAmount: maybeAmount(stats.pending?.last24hAmount),
+      footerAmount: formatCurrency(stats.pending?.last24hAmount),
     },
     // 3. Total Pipeline (Active) — footer: Last 24 Hours, amount only if > 0
     {
@@ -91,10 +85,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       ),
       subtitle:    currentMonthLabel,
       value:       formatNumber(stats.pipeline?.count),
-      amount:      maybeAmount(stats.pipeline?.amount),
+      amount:      formatCurrency(stats.pipeline?.amount),
       footerLabel: 'Last 24 Hours',
       footerCount: formatNumber(stats.pipeline?.last24hCount ?? 0),
-      footerAmount: maybeAmount(stats.pipeline?.last24hAmount),
+      footerAmount: formatCurrency(stats.pipeline?.last24hAmount),
     },
     // 4. Won Lead — footer: previous month, amount only if > 0
     {
@@ -104,10 +98,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       title:       'Won Lead',
       subtitle:    currentMonthLabel,
       value:       formatNumber(stats.won?.count),
-      amount:      maybeAmount(stats.won?.amount),
+      amount:      formatCurrency(stats.won?.amount),
       footerLabel: prevMonthName,
       footerCount: formatNumber(stats.won?.lastMonthCount ?? 0),
-      footerAmount: maybeAmount(stats.won?.lastMonthAmount),
+      footerAmount: formatCurrency(stats.won?.lastMonthAmount),
     },
     // 5. Lost Lead — footer: previous month, amount only if > 0
     {
@@ -117,10 +111,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       title:       'Lost Lead',
       subtitle:    currentMonthLabel,
       value:       formatNumber(stats.lost?.count),
-      amount:      maybeAmount(stats.lost?.amount),
+      amount:      formatCurrency(stats.lost?.amount),
       footerLabel: prevMonthName,
       footerCount: formatNumber(stats.lost?.lastMonthCount ?? 0),
-      footerAmount: maybeAmount(stats.lost?.lastMonthAmount),
+      footerAmount: formatCurrency(stats.lost?.lastMonthAmount),
     },
     // 6. Cancelled Lead — footer: previous month, amount only if > 0
     {
@@ -130,10 +124,10 @@ function buildLeadCards(currentMonthLabel, stats) {
       title:       'Cancelled Lead',
       subtitle:    currentMonthLabel,
       value:       formatNumber(stats.cancelled?.count),
-      amount:      maybeAmount(stats.cancelled?.amount),
+      amount:      formatCurrency(stats.cancelled?.amount),
       footerLabel: prevMonthName,
       footerCount: formatNumber(stats.cancelled?.lastMonthCount ?? 0),
-      footerAmount: maybeAmount(stats.cancelled?.lastMonthAmount),
+      footerAmount: formatCurrency(stats.cancelled?.lastMonthAmount),
     },
   ];
 }

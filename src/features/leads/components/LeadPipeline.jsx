@@ -901,12 +901,13 @@ export default function LeadPipeline({
             onClick={onFilterClick}
             sx={{
               display: 'flex', alignItems: 'center', gap: 0.75,
-              px: 1.6, py: 0.75,
-              border: '1px solid currentColor', borderRadius: '5px', cursor: 'pointer',
-              fontSize: '0.82rem', fontWeight: 700, color: '#0f766e',
+              px: 2, py: 0.75, minHeight: 40,
+              border: '1px solid #cbd5e1', borderRadius: '10px', cursor: 'pointer',
+              fontSize: '0.82rem', fontWeight: 700, color: '#334155',
               bgcolor: 'white',
-              boxShadow: hasActiveFilters ? '0 8px 18px rgba(15,118,110,0.14)' : 'none',
-              '&:hover': { bgcolor: 'white' },
+              boxShadow: 'none',
+              whiteSpace: 'nowrap',
+              '&:hover': { bgcolor: '#f8fafc' },
             }}
           >
             <FilterListIcon sx={{ fontSize: 16 }} />
@@ -915,7 +916,7 @@ export default function LeadPipeline({
               <Chip
                 label={activeFilterCount}
                 size="small"
-                sx={{ height: 20, fontWeight: 800, fontSize: '0.68rem', bgcolor: '#0f766e', color: '#fff' }}
+                sx={{ height: 20, fontWeight: 800, fontSize: '0.68rem', bgcolor: '#334155', color: '#fff' }}
               />
             )}
           </Box>
