@@ -8,13 +8,11 @@ import { useUserProfile } from "./features/settings/context/UserProfileContext";
 import ProtectedRoute from "./app/ProtectedRoute";
 
 const Login = React.lazy(() => import("./features/auth/pages/Login"));
-const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const Social = React.lazy(() => import("./pages/Social"));
 const Components = React.lazy(() => import("./pages/Components"));
 const LeadCreation = React.lazy(() => import("./features/leads/pages/LeadCreation"));
 const LeadListPage = React.lazy(() => import("./features/leads/pages/LeadListPage"));
 const ClientCreation = React.lazy(() => import("./features/client/pages/ClientCreation"));
-const TaskCreation = React.lazy(() => import("./features/task/pages/TaskCreation"));
 const TasksShell = React.lazy(() => import("./features/task/pages/TasksShell"));
 const PriceProposalPage = React.lazy(() => import("./features/priceproposal/pages/PriceProposalPage"));
 const PriceHistoryPage = React.lazy(() => import("./features/pricehistory/pages/PriceHistoryPage"));
@@ -40,7 +38,7 @@ const ApprovalRequestsPage = React.lazy(() => import("./features/approval/pages/
 const KamPerformancePage = React.lazy(() => import("./features/performance/pages/KamPerformancePage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const ColumnMappingPage = React.lazy(() => import("./features/settings/pages/ColumnMappingPage"));
-
+const DashboardPage = React.lazy(() => import("./features/dashboard/pages/DashboardPage"));
 const Loading = () => (
   <div className="loader-container">
     <span className="loader">Loading</span>
@@ -58,12 +56,13 @@ export default function App() {
         <Routes>
           <Route
             path="/login"
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
           />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
   
             <Route path="/leads" element={<LeadListPage />} />
             <Route path="/leads/new" element={<LeadCreation />} />
