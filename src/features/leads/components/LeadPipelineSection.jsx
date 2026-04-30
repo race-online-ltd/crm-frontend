@@ -1,3 +1,4 @@
+// src/features/leads/components/LeadPipelineSection.jsx
 import React, { Suspense } from 'react';
 import { LeadPipelineSkeleton } from './LeadSectionSkeletons';
 
