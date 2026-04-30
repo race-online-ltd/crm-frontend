@@ -408,3 +408,33 @@ export async function updateColumnMapping(payload) {
  
 //   return response.data;
 // }
+
+
+
+// export async function fetchBackofficesByBusinessEntity(business_entity_id) {
+//   const response = await api.get('/user-mappings/with-backoffices', {
+//     params: { business_entity_id }
+//   });
+
+//   return response.data?.data ?? [];
+// }
+
+
+
+export const fetchBackofficesByBusinessEntity = async (businessEntityId) => {
+  // Explicitly pass the ID as a query parameter
+  const response = await api.get(`/user-mappings/with-backoffices`, {
+    params: {
+      business_entity_id: businessEntityId
+    }
+  });
+  // Adjust based on your API response structure (e.g., response.data.data)
+  return response.data.data || []; 
+};
+
+
+
+export async function fetchChannels() {
+  const response = await api.get('/channels');
+  return response.data?.data ?? [];
+}

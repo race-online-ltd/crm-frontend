@@ -75,8 +75,8 @@ export const handleApiError = (error) => {
     case 500:
       return {
         status,
-        message: "Internal server error. Please try later.",
-        errors: null,
+        message: data?.message || "Internal server error. Please try later.",
+        errors: data?.errors || null,
       };
 
     case 502:
