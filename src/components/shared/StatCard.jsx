@@ -59,38 +59,64 @@ export default function StatCard({
       </Box>
 
       {/* This month values - Centered */}
-      <Box sx={{ textAlign: 'center', py: 0.5, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <Box
+        sx={{
+          textAlign: 'center',
+          py: 0.5,
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
         {subtitle ? (
           <Typography variant="caption" color="#94a3b8" display="block" sx={{ mb: 0.25 }}>
             {subtitle}
           </Typography>
         ) : (
-          <Box sx={{ height: '16.8px' }} /> /* Placeholder to keep height consistent if no subtitle */
+          <Box sx={{ height: '16.8px' }} />
         )}
-        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0.5 }}>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'center',
+            gap: 0.5,
+          }}
+        >
           <Typography variant="h6" fontWeight={700} color="#0f172a" lineHeight={1}>
             {value}
           </Typography>
-          <Typography variant="caption" color="#64748b" fontWeight={500}>
-            ({amount})
-          </Typography>
+
+          {/* Only show amount when it exists and is not zero */}
+          {amount ? (
+            <Typography variant="caption" color="#64748b" fontWeight={500}>
+              ({amount})
+            </Typography>
+          ) : null}
         </Box>
       </Box>
 
       <Divider />
 
-      {/* Footer: last month */}
+      {/* Footer */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="caption" color="#94a3b8" fontWeight={500}>
           {footerLabel}
         </Typography>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography variant="caption" fontWeight={600} color="#475569">
             {footerCount}
           </Typography>
-          <Typography variant="caption" fontWeight={500} color="#64748b">
-            ({footerAmount})
-          </Typography>
+
+          {/* Only show footer amount when it exists and is not zero */}
+          {footerAmount ? (
+            <Typography variant="caption" fontWeight={500} color="#64748b">
+              ({footerAmount})
+            </Typography>
+          ) : null}
         </Box>
       </Box>
     </Box>
