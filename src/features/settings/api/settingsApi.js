@@ -434,15 +434,7 @@ export const fetchBackofficesByBusinessEntity = async (businessEntityId) => {
 
 
 
-// export async function fetchBackofficesByBusinessEntity(business_entity_id) {
-//   // Convert to comma-separated string if array
-//   const ids = Array.isArray(business_entity_id) 
-//     ? business_entity_id.join(',') 
-//     : business_entity_id;
-  
-//   const response = await api.get('/user-mappings/backoffices', {
-//     params: { business_entity_id: ids }
-//   });
-
-//   return response.data?.data ?? [];
-// }
+export async function fetchChannels() {
+  const response = await api.get('/channels');
+  return response.data?.data ?? [];
+}
