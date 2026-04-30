@@ -233,8 +233,8 @@ export const CONTACT_TEMPLATES_BY_MEDIUM = {
 };
 
 const messengerMessages = [
-  { id: '1', senderId: 'm1', senderName: 'Ahmed Khan', content: 'Hi, I have a question about my internet plan.', timestamp: '2:25 PM', isOwn: false },
-  { id: '2', senderId: 'self', senderName: 'You', content: 'Hello Ahmed! Sure, how can I help you?', timestamp: '2:26 PM', isOwn: true, status: 'read' },
+  { id: '1', senderId: 'm1', senderName: 'Ahmed Khan', content: 'Hi, I have a question about my internet plan. I have a question about my internet plan. I have a question about my internet plan. I have a question about my internet plan.', timestamp: '2:25 PM', isOwn: false },
+  { id: '2', senderId: 'self', senderName: 'You', content: 'Hello Ahmed! Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?Sure, how can I help you?', timestamp: '2:26 PM', isOwn: true, status: 'read' },
   { id: '3', senderId: 'm1', senderName: 'Ahmed Khan', content: 'I want to know if I can upgrade to the 100 Mbps plan.', timestamp: '2:27 PM', isOwn: false },
   { id: '4', senderId: 'self', senderName: 'You', content: 'Absolutely! The 100 Mbps plan is available in your area. Would you like me to process the upgrade?', timestamp: '2:28 PM', isOwn: true, status: 'read' },
   { id: '5', senderId: 'm1', senderName: 'Ahmed Khan', content: 'Yes please! What will be the new monthly charge?', timestamp: '2:29 PM', isOwn: false },

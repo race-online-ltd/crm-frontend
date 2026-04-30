@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import {
@@ -57,7 +57,7 @@ const validationSchema = Yup.object({
   attachment: Yup.array().default([]),
 });
 
-export default function SocialTicketDrawer({ open, onClose }) {
+export default function SocialTicketDrawer({ open, onClose, onSubmitted }) {
   const { activeEntity, showToast } = useSocial();
 
   const formik = useFormik({
@@ -84,6 +84,7 @@ export default function SocialTicketDrawer({ open, onClose }) {
           },
         });
         onClose();
+        onSubmitted?.();
       } finally {
         setSubmitting(false);
       }
@@ -100,16 +101,8 @@ export default function SocialTicketDrawer({ open, onClose }) {
   }, [activeEntity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!open) {
-      formik.resetForm({
-        values: {
-          businessEntity: activeEntity || '',
-          category: '',
-          subCategory: '',
-          description: '',
-          attachment: [],
-        },
-      });
+    if (open) {
+      formik.setFieldValue('businessEntity', activeEntity || '', false);
     }
   }, [activeEntity, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -185,14 +178,14 @@ export default function SocialTicketDrawer({ open, onClose }) {
             value={formik.values.description}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            minRows={5}
+            minRows={2}
+            maxRows={8}
+            resize="vertical"
             error={formik.touched.description && Boolean(formik.errors.description)}
             helperText={formik.touched.description ? formik.errors.description : ''}
-            resizable={false}
           />
 
           <AttachmentField
-            label="Attachment"
             value={formik.values.attachment}
             onChange={(files) => formik.setFieldValue('attachment', files)}
           />

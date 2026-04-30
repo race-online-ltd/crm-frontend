@@ -1071,11 +1071,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex-wrap: wrap;
   padding: 7px 16px;
   border-bottom: 1px solid #e0e0e0;
   background: #F3F2F1;
+}
+
+.email-conv__toolbar-left,
+.email-conv__toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.email-conv__toolbar-actions {
+  margin-left: auto;
 }
 
 .email-conv__toolbar-divider {

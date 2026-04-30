@@ -8,7 +8,7 @@ const mediums = [
 ];
 
 const MediumTabs = () => {
-  const { activeMedium, setActiveMedium, setSelectedContact } = useSocial();
+  const { activeMedium, setActiveMedium } = useSocial();
 
   return (
     <>
@@ -98,7 +98,7 @@ const MediumTabs = () => {
             return (
               <button
                 key={key}
-                onClick={() => { setActiveMedium(key); setSelectedContact(null); }}
+                onClick={() => { setActiveMedium(key); }}
                 className={`medium-tab${isActive ? ' medium-tab--active' : ''}`}
                 style={isActive ? { color: activeColor } : {}}
               >

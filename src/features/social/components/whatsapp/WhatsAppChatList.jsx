@@ -61,23 +61,26 @@ import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ChatConversionTooltip from '../ChatConversionTooltip';
+import { CHAT_FILTERS, getFilteredContacts } from '../chatListUtils';
 
 const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectContact }) => {
-  const [filter, setFilter] = useState('UNREAD');
+  const [filter, setFilter] = useState(CHAT_FILTERS.UNREAD);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filtered = contacts
-    .filter((contact) => {
-      if (filter === 'UNREAD') return contact.queueStatus === 'unread';
-      return contact.queueStatus === 'active';
-    })
-    .filter((contact) => {
-      const query = searchQuery.trim().toLowerCase();
-      if (!query) return true;
-      return `${contact.name} ${contact.lastMessage}`.toLowerCase().includes(query);
-    });
+  useEffect(() => {
+    if (selectedContact?.queueStatus === 'active') {
+      setFilter(CHAT_FILTERS.ACTIVE);
+    }
+  }, [selectedContact]);
+
+  const filtered = getFilteredContacts({
+    contacts,
+    filter,
+    searchQuery,
+    currentAgentId,
+  });
 
   return (
     <div className="whatsapp-list">
@@ -105,18 +108,18 @@ const WhatsAppChatList = ({ contacts, selectedContact, currentAgentId, onSelectC
         <Chip
           label="Pending"
           size="small"
-          variant={filter === 'UNREAD' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('UNREAD')}
-          sx={{ borderColor: '#25D366', color: filter === 'UNREAD' ? '#fff' : '#25D366',
-                bgcolor: filter === 'UNREAD' ? '#25D366' : 'transparent', fontSize: 11 }}
+          variant={filter === CHAT_FILTERS.UNREAD ? 'filled' : 'outlined'}
+          onClick={() => setFilter(CHAT_FILTERS.UNREAD)}
+          sx={{ borderColor: '#25D366', color: filter === CHAT_FILTERS.UNREAD ? '#fff' : '#25D366',
+                bgcolor: filter === CHAT_FILTERS.UNREAD ? '#25D366' : 'transparent', fontSize: 11 }}
         />
         <Chip
           label="Activated"
           size="small"
-          variant={filter === 'ACTIVE' ? 'filled' : 'outlined'}
-          onClick={() => setFilter('ACTIVE')}
-          sx={{ borderColor: '#25D366', color: filter === 'ACTIVE' ? '#fff' : '#25D366',
-                bgcolor: filter === 'ACTIVE' ? '#25D366' : 'transparent', fontSize: 11 }}
+          variant={filter === CHAT_FILTERS.ACTIVE ? 'filled' : 'outlined'}
+          onClick={() => setFilter(CHAT_FILTERS.ACTIVE)}
+          sx={{ borderColor: '#25D366', color: filter === CHAT_FILTERS.ACTIVE ? '#fff' : '#25D366',
+                bgcolor: filter === CHAT_FILTERS.ACTIVE ? '#25D366' : 'transparent', fontSize: 11 }}
         />
       </div>
 

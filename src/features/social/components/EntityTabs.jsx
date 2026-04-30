@@ -20,7 +20,7 @@ const entityLogos = {
 };
 
 const EntityTabs = () => {
-  const { activeEntity, setActiveEntity, setSelectedContact } = useSocial();
+  const { activeEntity, setActiveEntity } = useSocial();
 
   return (
     <div className="entity-tabs">
@@ -31,7 +31,7 @@ const EntityTabs = () => {
         return (
           <button
             key={entity}
-            onClick={() => { setActiveEntity(entity); setSelectedContact(null); }}
+            onClick={() => { setActiveEntity(entity); }}
             title={entity}
             className={`entity-tab${isActive ? ' entity-tab--active' : ''}`}
             style={isActive ? {

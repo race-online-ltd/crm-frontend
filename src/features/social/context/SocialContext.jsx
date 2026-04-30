@@ -15,12 +15,13 @@ import {
 } from '../services/chatAssignmentService';
 
 const SocialContext = createContext(undefined);
+const buildSelectionKey = (entity, medium) => `${entity}::${medium}`;
 
 export const SocialProvider = ({ children }) => {
   const [activeEntity, setActiveEntity] = useState('Race Online Ltd.');
   const [activeMedium, setActiveMedium] = useState('messenger');
   const [chatStore, setChatStore] = useState(() => createInitialChatStore());
-  const [selectedContactId, setSelectedContactId] = useState(null);
+  const [selectedContactIds, setSelectedContactIds] = useState({});
   const [pendingChatId, setPendingChatId] = useState(null);
   const [isPickingChat, setIsPickingChat] = useState(false);
   const [toastState, setToastState] = useState({
@@ -28,6 +29,8 @@ export const SocialProvider = ({ children }) => {
     severity: 'success',
     message: '',
   });
+  const activeSelectionKey = buildSelectionKey(activeEntity, activeMedium);
+  const selectedContactId = selectedContactIds[activeSelectionKey] || null;
 
   const contacts = useMemo(
     () => getChatsForSelection(chatStore, activeEntity, activeMedium),
@@ -58,7 +61,10 @@ export const SocialProvider = ({ children }) => {
   }
 
   function setSelectedContact(contact) {
-    setSelectedContactId(contact?.id || null);
+    setSelectedContactIds((prev) => ({
+      ...prev,
+      [activeSelectionKey]: contact?.id || null,
+    }));
   }
 
   function requestChatSelection(contact) {
@@ -70,7 +76,10 @@ export const SocialProvider = ({ children }) => {
     }
 
     if (contact.assignedAgentId === CURRENT_AGENT.id) {
-      setSelectedContactId(contact.id);
+      setSelectedContactIds((prev) => ({
+        ...prev,
+        [activeSelectionKey]: contact.id,
+      }));
       return;
     }
 
@@ -97,7 +106,10 @@ export const SocialProvider = ({ children }) => {
       },
     }));
 
-    setSelectedContactId(null);
+    setSelectedContactIds((prev) => ({
+      ...prev,
+      [activeSelectionKey]: null,
+    }));
     showToast('Chat released.');
   }
 
@@ -138,7 +150,10 @@ export const SocialProvider = ({ children }) => {
       },
     }));
 
-    setSelectedContactId(pendingChat.id);
+    setSelectedContactIds((prev) => ({
+      ...prev,
+      [activeSelectionKey]: pendingChat.id,
+    }));
     setPendingChatId(null);
     setIsPickingChat(false);
   }

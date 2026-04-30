@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import SelectDropdownSingle from '../../../components/shared/SelectDropdownSingle';
 import TaskForm from '../../task/components/TaskForm';
@@ -11,15 +12,28 @@ const ENTITY_OPTIONS = entities.map((entity) => ({
   label: entity,
 }));
 
-export default function SocialTaskDrawer({ open, onClose }) {
+export default function SocialTaskDrawer({ open, onClose, onSubmitted }) {
   const { activeEntity, showToast } = useSocial();
+  const [draftValues, setDraftValues] = useState(null);
+  const draftRef = useRef(null);
+
+  const handleDraftChange = useCallback((values) => {
+    draftRef.current = values;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (draftRef.current) {
+      setDraftValues(draftRef.current);
+    }
+    onClose();
+  }, [onClose]);
 
   return (
     <SocialFloatingPanel
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Convert to Task"
-      width={580}
+      width={780}
       height={640}
       contentSx={{ p: 0 }}
     >
@@ -35,11 +49,16 @@ export default function SocialTaskDrawer({ open, onClose }) {
         </Box>
         {open ? (
           <TaskForm
-            onCancel={onClose}
+            initialValues={draftValues}
+            onCancel={handleClose}
+            onDraftChange={handleDraftChange}
             actionWidth="100%"
             onSubmit={async (_payload, formData) => {
               await createTask(formData);
               showToast?.('Task created from chat.');
+              draftRef.current = null;
+              setDraftValues(null);
+              onSubmitted?.();
               onClose();
             }}
           />

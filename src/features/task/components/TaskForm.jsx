@@ -47,6 +47,11 @@ const taskSchema = (mode) =>
       then: (s) => s.required('Client is required'),
       otherwise: (s) => s.notRequired(),
     }),
+    source: Yup.string().when([], {
+      is: () => mode === 'client',
+      then: (s) => s.required('Source is required'),
+      otherwise: (s) => s.notRequired(),
+    }),
     taskType:    Yup.string().required('Task type is required'),
     title:       Yup.string().trim().required('Title is required'),
     scheduledAt: Yup.date().nullable().required('Scheduled time is required'),
@@ -75,6 +80,8 @@ const DEFAULT_VALUES = {
   assignToUserId: '',
   lead:        '',
   client:      '',
+  source:      '',
+  sourceInfo:  '',
   taskType:    '',
   title:       '',
   details:     '',
@@ -323,6 +330,7 @@ export default function TaskForm({
   initialValues,
   onCancel,
   onSubmit,
+  onDraftChange,
   lockedAssociation = null,
   actionWidth = '100%',
 }) {
@@ -338,6 +346,7 @@ export default function TaskForm({
     leads: [],
     clients: [],
     task_types: [],
+    sources: [],
   });
   const [optionsLoading, setOptionsLoading] = useState(true);
   const isAssociationLocked = Boolean(lockedAssociation?.mode && lockedAssociation?.option);
@@ -395,6 +404,7 @@ export default function TaskForm({
           leads: data.leads || [],
           clients: data.clients || [],
           task_types: data.task_types || [],
+          sources: data.sources || [],
         });
       } catch {
         if (active) {
@@ -402,6 +412,7 @@ export default function TaskForm({
             leads: [],
             clients: [],
             task_types: [],
+            sources: [],
           });
         }
       } finally {
@@ -444,8 +455,10 @@ export default function TaskForm({
         const isSelfAssignment = !selectedUser || String(assignedUser.id) === String(currentUser.id);
         const payload = {
           ...(effectiveMode === 'lead'
-            ? { lead_id: associationId }
-            : { client_id: associationId }),
+          ? { lead_id: associationId }
+          : { client_id: associationId }),
+          source_id: effectiveMode === 'client' ? (values.source || null) : null,
+          source_info: effectiveMode === 'client' ? (values.sourceInfo.trim() || null) : null,
           assigned_to_user_id: assignedUser?.id || null,
           assignment_mode: isSelfAssignment ? 'self' : 'manual',
           task_type_id: values.taskType,
@@ -473,10 +486,16 @@ export default function TaskForm({
   });
 
   const { values, errors, touched, setFieldValue, handleChange, handleSubmit, isSubmitting } = formik;
+
+  useEffect(() => {
+    onDraftChange?.(values);
+  }, [onDraftChange, values]);
+
   const assignToFetchOptions = useMemo(() => async () => userOptions, [userOptions]);
   const taskTypeFetchOptions = useMemo(() => async () => optionData.task_types, [optionData.task_types]);
   const leadFetchOptions = useMemo(() => async () => optionData.leads, [optionData.leads]);
   const clientFetchOptions = useMemo(() => async () => optionData.clients, [optionData.clients]);
+  const sourceFetchOptions = useMemo(() => async () => optionData.sources, [optionData.sources]);
   const lockedAssociationFetchOptions = useMemo(
     () => async () => (lockedAssociation?.option ? [lockedAssociation.option] : []),
     [lockedAssociation?.option],
@@ -490,6 +509,10 @@ export default function TaskForm({
   const entityFetchOptions = isAssociationLocked
     ? lockedAssociationFetchOptions
     : entity.fetch;
+  const isOtherSource = useMemo(() => {
+    const selectedSource = optionData.sources.find((option) => String(option.id) === String(values.source));
+    return Boolean(String(selectedSource?.label || '').trim().toLowerCase().includes('other'));
+  }, [optionData.sources, values.source]);
 
   function handleOpenLocationDialog() {
     if (isEditMode) return;
@@ -556,6 +579,8 @@ export default function TaskForm({
                   setMode(tabValue);
                   setFieldValue('lead', '');
                   setFieldValue('client', '');
+                  setFieldValue('source', '');
+                  setFieldValue('sourceInfo', '');
                 }}
                 sx={{
                   px: 2.5, py: 0.8, borderRadius: '9px', cursor: 'pointer',
@@ -629,7 +654,7 @@ export default function TaskForm({
           sx={{
             gridColumn: '1 / -1',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gridTemplateColumns: { xs: '1fr', md: effectiveMode === 'client' ? '1fr 1fr 1fr' : '1fr 1fr' },
             gap: 1.25,
           }}
         >
@@ -653,7 +678,44 @@ export default function TaskForm({
               helperText={touched.scheduledAt && errors.scheduledAt}
             />
           </Box>
+
+          {effectiveMode === 'client' && (
+            <Box>
+              <SelectDropdownSingle
+                name="source"
+                label="Source *"
+                fetchOptions={sourceFetchOptions}
+                value={values.source}
+                onChange={(id) => {
+                  setFieldValue('source', id);
+                  const sourceLabel = String(
+                    optionData.sources.find((option) => String(option.id) === String(id))?.label || '',
+                  ).trim().toLowerCase();
+
+                  if (!sourceLabel.includes('other')) {
+                    setFieldValue('sourceInfo', '');
+                  }
+                }}
+                onBlur={formik.handleBlur}
+                error={touched.source && Boolean(errors.source)}
+                helperText={touched.source && errors.source}
+                loading={optionsLoading}
+              />
+            </Box>
+          )}
         </Box>
+
+        {effectiveMode === 'client' && isOtherSource && (
+          <Box sx={{ gridColumn: '1 / -1' }}>
+            <TextInputField
+              name="sourceInfo"
+              label="Other Info"
+              value={values.sourceInfo}
+              onChange={handleChange}
+              onBlur={formik.handleBlur}
+            />
+          </Box>
+        )}
 
         {/* DETAILS */}
         <Box sx={{ gridColumn: '1 / -1' }}>

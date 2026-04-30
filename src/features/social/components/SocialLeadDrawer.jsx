@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import LeadForm from '../../leads/components/LeadForm';
@@ -35,12 +35,39 @@ const SOURCE_CANDIDATES_BY_MEDIUM = {
   email: ['email', 'mail', 'e-mail'],
 };
 
-export default function SocialLeadDrawer({ open, onClose }) {
+export default function SocialLeadDrawer({
+  open,
+  onClose,
+  draftInitialValues = null,
+  onAddClientRequested,
+  onLeadSubmitted,
+}) {
   const { activeEntity, activeMedium, showToast } = useSocial();
-  const [initialValues, setInitialValues] = useState(null);
+  const [draftValues, setDraftValues] = useState(null);
+  const [loadedContextKey, setLoadedContextKey] = useState('');
+  const draftRef = useRef(null);
+  const contextKey = `${activeEntity || ''}::${activeMedium || ''}`;
+
+  const handleDraftChange = useCallback((values) => {
+    draftRef.current = values;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (draftRef.current) {
+      setDraftValues(draftRef.current);
+    }
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
+    if (draftInitialValues) {
+      setDraftValues(draftInitialValues);
+      draftRef.current = draftInitialValues;
+      setLoadedContextKey(contextKey);
+      return undefined;
+    }
+    if (loadedContextKey === contextKey && draftValues) return undefined;
 
     let active = true;
 
@@ -62,16 +89,22 @@ export default function SocialLeadDrawer({ open, onClose }) {
           SOURCE_CANDIDATES_BY_MEDIUM[activeMedium] || [],
         );
 
-        setInitialValues({
+        const nextDraftValues = {
           business_entity_id: matchedEntity?.id ? String(matchedEntity.id) : '',
           source_id: matchedSource?.id ? String(matchedSource.id) : '',
-        });
+        };
+        setDraftValues(nextDraftValues);
+        draftRef.current = nextDraftValues;
+        setLoadedContextKey(contextKey);
       } catch {
         if (active) {
-          setInitialValues({
+          const fallbackDraftValues = {
             business_entity_id: '',
             source_id: '',
-          });
+          };
+          setDraftValues(fallbackDraftValues);
+          draftRef.current = fallbackDraftValues;
+          setLoadedContextKey(contextKey);
         }
       }
     };
@@ -81,22 +114,24 @@ export default function SocialLeadDrawer({ open, onClose }) {
     return () => {
       active = false;
     };
-  }, [activeEntity, activeMedium, open]);
+  }, [activeEntity, activeMedium, contextKey, draftInitialValues, draftValues, loadedContextKey, open]);
 
   return (
     <SocialFloatingPanel
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Convert to Lead"
-      width={580}
+      width={780}
       height={620}
       contentSx={{ p: 0 }}
     >
       <Box sx={{ p: 2.5 }}>
-        {open && initialValues ? (
+        {open && draftValues ? (
           <LeadForm
-            initialValues={initialValues}
-            onCancel={onClose}
+            initialValues={draftValues}
+            onCancel={handleClose}
+            onAddClient={onAddClientRequested}
+            onDraftChange={handleDraftChange}
             actionWidth="100%"
             actionMarginTop={3}
             lockedFields={{
@@ -105,6 +140,10 @@ export default function SocialLeadDrawer({ open, onClose }) {
             }}
             onSubmit={() => {
               showToast?.('Lead created from chat.');
+              onLeadSubmitted?.();
+              draftRef.current = null;
+              setDraftValues(null);
+              setLoadedContextKey('');
               onClose();
             }}
           />
